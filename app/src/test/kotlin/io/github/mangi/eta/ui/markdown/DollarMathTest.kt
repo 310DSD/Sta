@@ -13,6 +13,7 @@ class DollarMathTest {
             "(1.5t_p√(1-ζ²))/(π)",
             DollarMath.normalize("\$\\frac{1.5t_p\\sqrt{1-\\zeta^2}}{\\pi}\$"),
         )
+        assertEquals("(a)/(b)", DollarMath.normalize("\$\\dfrac{a}{b}\$"))
     }
 
     @Test

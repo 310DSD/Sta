@@ -70,8 +70,11 @@ internal object LatexSymbols {
     )
 
     fun normalize(raw: String): String {
-        var value = replaceCommand(raw, "\\frac", 2) {
-            "(${normalize(it[0])})/(${normalize(it[1])})"
+        var value = raw
+        listOf("\\frac", "\\dfrac", "\\tfrac").forEach { command ->
+            value = replaceCommand(value, command, 2) {
+                "(${normalize(it[0])})/(${normalize(it[1])})"
+            }
         }
         value = replaceCommand(value, "\\sqrt", 1) { "√(${normalize(it[0])})" }
         listOf("\\text", "\\mathrm", "\\mathbf", "\\mathit", "\\operatorname").forEach { command ->

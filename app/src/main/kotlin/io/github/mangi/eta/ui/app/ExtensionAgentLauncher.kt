@@ -89,7 +89,8 @@ internal class ExtensionAgentLauncher(
             daemonSupervisor.list()
                 .filter {
                     it.running && it.task.environment == environment && it.task.identity == identity &&
-                        it.task.backend == backend && it.task.command.trim() in agent.legacyCommands
+                        it.task.backend == backend &&
+                        agent.legacyCommands.any { legacy -> it.task.command.contains(legacy) }
                 }
                 .forEach { daemonSupervisor.stop(it.task.id) }
             val job = currentCoroutineContext().job
