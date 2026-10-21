@@ -266,7 +266,8 @@ internal class LinuxPackageProfileInstaller(
     }
 
     companion object {
-        private const val INSTALL_TIMEOUT_SECONDS = 600L
+        // npm 包体积较大（OpenCode ARM64 约 200 MB），手机网络下 10 分钟不够。
+        private const val INSTALL_TIMEOUT_SECONDS = 1800L
         private val installMutex = Mutex()
     }
 }
