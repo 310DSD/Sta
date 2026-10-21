@@ -21,7 +21,7 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
 | 许可证 | MIT | Apache-2.0（第一方源码） | MIT |
 | 官方分发 | npm `@opencode/cli`，含 `linux-arm64` 与 `linux-arm64-musl` 二进制 | 官方桌面版；官方 CLI 需 `pnpm build:zcode` 自建/自托管 | npm `@deepseek-ai/dsh` |
 | 运行时依赖 | npm 安装后是单文件二进制，运行时不需 Node | 官方 CLI 需 Node + 自托管运行包；社区 `zcode-app-cli` 仅 TUI | Node.js + 86 个直接依赖/插件包（611 个包） |
-| 安装体积（参考） | Linux ARM64 包约 209 MB；x64 `node_modules` 418 MB | 社区包约 123 MB；x64 135 MB | x64 实测 **827 MB / 611 个包** |
+| 安装体积（参考） | Linux ARM64 包 209.5 MB；运行时另需平台二进制依赖 | 社区包约 123 MB（仅 TUI，已淘汰） | **ARM64 实测 787 MB / 610 个包** |
 | Web 入口 | `opencode serve --hostname 127.0.0.1 --port 4096` + `opencode pair` 登录链接 | 官方 CLI 为 `zcode --web ...`，但社区包不支持 `--web` | `dsh web --host 127.0.0.1 --port 3080 --no-open`，直接打印带 token URL |
 | 移动端 Web UI | 官方 Web UI，响应式布局可用 | 官方 Web UI 完整，但无可用 npm CLI 分发 | 以桌面为主，移动端适配一般 |
 | 终端 TUI | `opencode` | `zcode`（社区包） | `dsh` |

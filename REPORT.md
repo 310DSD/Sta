@@ -53,7 +53,7 @@ Android 17 的预测性返回手势与键盘收起动画竞争时容易触发。
 | 指标 | OpenCode | ZCode | DeepSeek Harness |
 | --- | --- | --- | --- |
 | 官方 ARM64 分发 | ✅ npm 单二进制（含 musl） | ❌ 官方 CLI Web 需源码自建/自托管；npm 社区包仅 TUI | ✅ npm |
-| 实测安装体积（x64） | 418 MB | 135 MB | **827 MB / 611 个包** |
+| 实测安装体积（ARM64） | 209.5 MB 包 | 123 MB（仅 TUI，已淘汰） | **787 MB / 610 个包** |
 | Web 入口 | `opencode serve` + `opencode pair` | 社区包不支持 `--web` | `dsh web`，直接打印带 token URL |
 | 成熟度 | 2.x 稳定线 | 3.16.x 稳定产品 | 开发者预览，明确破坏兼容 |
 
