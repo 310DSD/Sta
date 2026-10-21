@@ -92,6 +92,13 @@ class ExtensionAgentWebSessionTest {
                 "\u001B[32mhttp://127.0.0.1:3030/?token=abc\u001B[0m",
             ),
         )
+        assertEquals(
+            "http://127.0.0.1:4096/#token=abc",
+            ExtensionAgentWebSession.addressFromLogs(
+                ExtensionAgent.OPENCODE,
+                "[http://127.0.0.1:4096/#token=abc]",
+            ),
+        )
     }
 
     @Test

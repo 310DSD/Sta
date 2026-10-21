@@ -30,7 +30,7 @@ internal enum class ExtensionAgent(
             "opencode web --hostname 127.0.0.1 --port 4096",
             "opencode web",
         ),
-        webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):\d+(?:/[^\s\u001B]*)?"""),
+        webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):\d+(?:/[A-Za-z0-9/?:=&._~%+#-]*)?"""),
         terminalCommand = "opencode",
     ),
     ZCODE(
@@ -42,7 +42,7 @@ internal enum class ExtensionAgent(
             "zcode --web --workspace /workspace --port 3030 --host 127.0.0.1 --no-open",
             "zcode --web",
         ),
-        webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):\d+(?:/[^\s\u001B]*)?"""),
+        webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):\d+(?:/[A-Za-z0-9/?:=&._~%+#-]*)?"""),
         terminalCommand = "zcode",
     ),
     ;
