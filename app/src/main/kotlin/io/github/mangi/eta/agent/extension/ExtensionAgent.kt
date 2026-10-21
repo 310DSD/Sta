@@ -53,6 +53,16 @@ internal enum class ExtensionAgent(
         terminalCommand = "opencode",
         pairCommand = { "opencode pair" },
     ),
+    KIMI(
+        id = "kimi",
+        displayName = "Kimi Code",
+        packageProfileId = "kimi",
+        // Kimi Code's own web mode prints a tokenized loopback URL.
+        webCommand = "kimi web --no-open",
+        acceptedCommands = setOf("kimi web --no-open", "kimi web"),
+        webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):\d+/#token=[A-Za-z0-9_-]+"""),
+        terminalCommand = "kimi",
+    ),
     DSH(
         id = "dsh",
         displayName = "DeepSeek Harness",

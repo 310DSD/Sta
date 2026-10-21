@@ -16,6 +16,8 @@ import io.github.mangi.eta.core.AndroidAgentLogger
 import io.github.mangi.eta.data.repository.ExtensionAgentSettingsRepository
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
@@ -51,8 +53,11 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
         private set
     var extensionAgentState by mutableStateOf(ExtensionAgentUiState(agent = extensionAgent))
         private set
+    var runningExtensionAgents by mutableStateOf<Set<ExtensionAgent>>(emptySet())
+        private set
     private var extensionAgentJob: Job? = null
     private var extensionAgentRefreshJob: Job? = null
+    private var runningAgentsRefreshJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -63,6 +68,30 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
                     refreshExtensionAgent()
                 }
             }
+        }
+        refreshRunningExtensionAgents()
+        viewModelScope.launch {
+            while (isActive) {
+                delay(15_000)
+                refreshRunningExtensionAgents()
+            }
+        }
+    }
+
+    /** 顶栏需要为所有正在运行的扩展 Agent 分别显示停止入口。 */
+    fun refreshRunningExtensionAgents() {
+        runningAgentsRefreshJob?.cancel()
+        runningAgentsRefreshJob = viewModelScope.launch {
+            val running = withContext(Dispatchers.IO) {
+                val distribution = LinuxEnvironmentSettingsRepository.current(getApplication())
+                val backend = LinuxEnvironmentSettingsRepository.backend(getApplication(), distribution)
+                ExtensionAgent.entries
+                    .filter { agent ->
+                        extensionAgentLauncher.status(agent, distribution.terminalEnvironment, backend).running
+                    }
+                    .toSet()
+            }
+            runningExtensionAgents = running
         }
     }
 
@@ -129,6 +158,9 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
             } catch (failure: Throwable) {
                 ExtensionAgentLaunchResult.Failed("START_FAILED", failure.message)
             }
+            if (result is ExtensionAgentLaunchResult.Opened) {
+                runningExtensionAgents = runningExtensionAgents + agent
+            }
             extensionAgentState = when (result) {
                 is ExtensionAgentLaunchResult.Opened -> ExtensionAgentUiState(agent, ExtensionAgentPhase.RUNNING)
                 is ExtensionAgentLaunchResult.Failed -> ExtensionAgentUiState(agent, ExtensionAgentPhase.FAILED, result.code)
@@ -137,20 +169,24 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
         }
     }
 
-    fun stopExtensionAgent() {
+    fun stopExtensionAgent() = stopExtensionAgent(extensionAgent)
+
+    fun stopExtensionAgent(agent: ExtensionAgent) {
         extensionAgentRefreshJob?.cancel()
-        val preparation = extensionAgentJob
+        val preparation = if (agent == extensionAgent) extensionAgentJob else null
         preparation?.cancel()
         extensionAgentJob = viewModelScope.launch {
             preparation?.join()
-            val agent = extensionAgent
             val distribution = LinuxEnvironmentSettingsRepository.current(getApplication())
             val backend = LinuxEnvironmentSettingsRepository.backend(getApplication(), distribution)
             val stopCode = extensionAgentLauncher.stop(agent, distribution.terminalEnvironment, backend)
-            extensionAgentState = if (stopCode == null) {
-                ExtensionAgentUiState(agent, ExtensionAgentPhase.READY)
-            } else {
-                ExtensionAgentUiState(agent, ExtensionAgentPhase.FAILED, stopCode)
+            if (stopCode == null) {
+                runningExtensionAgents = runningExtensionAgents - agent
+                if (agent == extensionAgent) {
+                    extensionAgentState = ExtensionAgentUiState(agent, ExtensionAgentPhase.READY)
+                }
+            } else if (agent == extensionAgent) {
+                extensionAgentState = ExtensionAgentUiState(agent, ExtensionAgentPhase.FAILED, stopCode)
             }
         }
     }

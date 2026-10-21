@@ -83,11 +83,13 @@ private enum class InstallTarget {
     SSH,
     OPENCODE,
     DSH,
+    KIMI,
 }
 
 private fun InstallTarget.extensionAgent(): ExtensionAgent? = when (this) {
     InstallTarget.OPENCODE -> ExtensionAgent.OPENCODE
     InstallTarget.DSH -> ExtensionAgent.DSH
+    InstallTarget.KIMI -> ExtensionAgent.KIMI
     else -> null
 }
 
@@ -138,6 +140,13 @@ private val packageProfileUis = listOf(
         titleRes = R.string.linux_dsh_tools,
         summaryRes = R.string.linux_dsh_tools_summary,
         readyRes = R.string.linux_dsh_tools_ready,
+    ),
+    PackageProfileUi(
+        target = InstallTarget.KIMI,
+        profile = LinuxPackageProfiles.KIMI,
+        titleRes = R.string.linux_kimi_tools,
+        summaryRes = R.string.linux_kimi_tools_summary,
+        readyRes = R.string.linux_kimi_tools_ready,
     ),
 )
 

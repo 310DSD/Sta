@@ -9,14 +9,15 @@ import org.junit.Test
 
 class ExtensionAgentTest {
     @Test
-    fun catalogueHasTheTwoSelectedAgents() {
-        assertEquals(listOf("opencode", "dsh"), ExtensionAgent.entries.map { it.id })
+    fun catalogueHasTheSelectedAgentsIncludingKimi() {
+        assertEquals(listOf("opencode", "kimi", "dsh"), ExtensionAgent.entries.map { it.id })
     }
 
     @Test
     fun unknownPersistedIdFallsBackToOpenCode() {
         assertEquals(ExtensionAgent.OPENCODE, ExtensionAgent.fromId(null))
-        assertEquals(ExtensionAgent.OPENCODE, ExtensionAgent.fromId("kimi"))
+        assertEquals(ExtensionAgent.OPENCODE, ExtensionAgent.fromId("unknown"))
+        assertEquals(ExtensionAgent.KIMI, ExtensionAgent.fromId("kimi"))
     }
 
     @Test
@@ -25,12 +26,19 @@ class ExtensionAgentTest {
             if (agent == ExtensionAgent.OPENCODE) {
                 assertTrue(agent.webCommand.contains("opencode service start"))
                 assertTrue(agent.webCommand.contains("opencode service status"))
-            } else {
+            } else if (agent == ExtensionAgent.DSH) {
                 assertTrue(agent.webCommand.contains("127.0.0.1"))
                 assertTrue(agent.webCommand.contains("--port"))
+            } else {
+                assertTrue(agent.webCommand.contains("kimi web"))
             }
             assertTrue(agent.acceptedCommands.contains(agent.webCommand))
-            assertTrue(agent.webUrlPattern.containsMatchIn("http://127.0.0.1:4096"))
+            val sample = if (agent == ExtensionAgent.KIMI) {
+                "http://127.0.0.1:4096/#token=abc"
+            } else {
+                "http://127.0.0.1:4096"
+            }
+            assertTrue(agent.webUrlPattern.containsMatchIn(sample))
         }
     }
 

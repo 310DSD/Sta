@@ -1435,6 +1435,7 @@
   <string name="extension_agent_preparing">Starting…</string>
   <string name="extension_agent_open">Open %1$s</string>
   <string name="extension_agent_retry">Retry</string>
+  <string name="extension_agent_stop_named">Stop %1$s</string>
   <string name="extension_agent_stop">Stop agent</string>
   <string name="extension_agent_set_default">Default</string>
   <string name="extension_agent_launch_web">Launch Web</string>

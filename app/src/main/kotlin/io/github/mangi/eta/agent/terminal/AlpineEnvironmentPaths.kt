@@ -13,6 +13,7 @@ internal object AlpineEnvironmentPaths {
     const val SSH_TOOLS_MARKER = ".eta-ssh-tools-ready"
     const val OPENCODE_TOOLS_MARKER = ".eta-opencode-tools-ready"
     const val DSH_TOOLS_MARKER = ".eta-dsh-tools-ready"
+    const val KIMI_TOOLS_MARKER = ".eta-kimi-tools-ready"
     const val TOOLSET_REVISION = 1
     const val APK_ANALYSIS_REVISION = 1
     const val PYTHON_TOOLS_REVISION = 1
@@ -21,6 +22,7 @@ internal object AlpineEnvironmentPaths {
     const val SSH_TOOLS_REVISION = 1
     const val OPENCODE_TOOLS_REVISION = 1
     const val DSH_TOOLS_REVISION = 1
+    const val KIMI_TOOLS_REVISION = 1
 
     fun environmentDir(context: Context): File =
         LinuxEnvironmentPaths.environmentDir(context, LinuxDistribution.ALPINE)

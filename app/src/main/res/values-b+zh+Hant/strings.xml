@@ -1343,6 +1343,7 @@
   <string name="extension_agent_preparing">正在啟動…</string>
   <string name="extension_agent_open">開啟 %1$s</string>
   <string name="extension_agent_retry">重試</string>
+  <string name="extension_agent_stop_named">停止 %1$s</string>
   <string name="extension_agent_stop">停止擴充 Agent</string>
   <string name="extension_agent_set_default">設為預設</string>
   <string name="extension_agent_launch_web">啟動 Web</string>

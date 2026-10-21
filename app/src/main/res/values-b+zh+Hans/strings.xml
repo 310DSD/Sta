@@ -1413,6 +1413,7 @@
   <string name="extension_agent_preparing">正在启动…</string>
   <string name="extension_agent_open">打开 %1$s</string>
   <string name="extension_agent_retry">重试</string>
+  <string name="extension_agent_stop_named">停止 %1$s</string>
   <string name="extension_agent_stop">停止扩展 Agent</string>
   <string name="extension_agent_set_default">设为默认</string>
   <string name="extension_agent_launch_web">启动 Web</string>

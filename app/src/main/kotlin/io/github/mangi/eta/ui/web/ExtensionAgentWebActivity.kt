@@ -14,6 +14,8 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
+import io.github.mangi.eta.agent.terminal.LinuxPackageProfiles
+import org.json.JSONObject
 
 /**
  * 扩展 Agent 的内置移动浏览器。
@@ -68,6 +70,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                     super.onPageFinished(view, url)
                     if (url != null && isLoopbackHttpUrl(url)) {
                         view.evaluateJavascript(MOBILE_INPUT_BRIDGE, null)
+                        view.evaluateJavascript(MOBILE_LAYOUT_BRIDGE, null)
                     }
                 }
             }
@@ -163,5 +166,18 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
               }, true);
             })();
         """.trimIndent()
+
+        private val MOBILE_LAYOUT_BRIDGE: String by lazy {
+            val css = JSONObject.quote(LinuxPackageProfiles.DSH_MOBILE_CSS)
+            """
+            (function() {
+              if (document.getElementById('eta-mobile-webview')) return;
+              var style = document.createElement('style');
+              style.id = 'eta-mobile-webview';
+              style.textContent = $css;
+              (document.head || document.documentElement).appendChild(style);
+            })();
+            """.trimIndent()
+        }
     }
 }

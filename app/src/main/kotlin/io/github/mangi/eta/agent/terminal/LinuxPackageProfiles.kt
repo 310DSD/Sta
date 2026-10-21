@@ -107,12 +107,17 @@ internal object LinuxPackageProfiles {
      * 开发者预览/CLI 参数变化导致启动命令失效；`--prefix /usr/local` 让命令进入 PATH 首位。
      * 国内镜像优先，官方 registry 兜底。
      */
+    private const val KIMI_INSTALL_SCRIPT =
+        "npm install -g --prefix /usr/local --registry=https://registry.npmmirror.com " +
+            "@moonshot-ai/kimi-code@latest || " +
+            "npm install -g --prefix /usr/local @moonshot-ai/kimi-code@latest"
+
     private const val OPENCODE_INSTALL_SCRIPT =
         "npm install -g --prefix /usr/local --include=optional --registry=https://registry.npmmirror.com " +
             "@opencode/cli@2.1.2 || " +
             "npm install -g --prefix /usr/local --include=optional @opencode/cli@2.1.2"
 
-    private const val DSH_MOBILE_CSS =
+    internal const val DSH_MOBILE_CSS =
         "@media (max-width: 720px){" +
             "html,body,#root{max-width:100%;overflow-x:hidden!important}" +
             ":root{--dsh-chat-content-width:calc(100vw - 72px)!important;" +
@@ -179,7 +184,23 @@ internal object LinuxPackageProfiles {
             ),
         ),
     )
-    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, DSH)
+    val KIMI = LinuxPackageProfile(
+        id = "kimi",
+        markerName = AlpineEnvironmentPaths.KIMI_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.KIMI_TOOLS_REVISION,
+        dependsOn = NODE,
+        specs = mapOf(
+            LinuxDistribution.ALPINE to LinuxPackageSpec(
+                setupScript = KIMI_INSTALL_SCRIPT,
+                verifyCommand = "command -v kimi >/dev/null && kimi --version >/dev/null",
+            ),
+            LinuxDistribution.DEBIAN to LinuxPackageSpec(
+                setupScript = KIMI_INSTALL_SCRIPT,
+                verifyCommand = "command -v kimi >/dev/null && kimi --version >/dev/null",
+            ),
+        ),
+    )
+    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, DSH, KIMI)
 }
 
 internal fun linuxPackageProfileReady(rootfs: File, profile: LinuxPackageProfile): Boolean {

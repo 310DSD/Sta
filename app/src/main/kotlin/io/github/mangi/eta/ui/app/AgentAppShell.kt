@@ -90,7 +90,8 @@ internal fun AgentAppShell(
     onLaunchExtensionAgent: (ExtensionAgent) -> Unit,
     extensionAgentLabel: String,
     canStopExtensionAgent: Boolean,
-    onStopExtensionAgent: () -> Unit,
+    runningExtensionAgents: Set<ExtensionAgent>,
+    onStopExtensionAgent: (ExtensionAgent) -> Unit,
     onRefreshExtensionAgent: () -> Unit,
     onOpenBrowser: () -> Unit,
     onSelectConversation: (String) -> Unit,
@@ -131,6 +132,7 @@ internal fun AgentAppShell(
                             onLaunchExtensionAgent = onLaunchExtensionAgent,
                             extensionAgentLabel = extensionAgentLabel,
                             canStopExtensionAgent = canStopExtensionAgent,
+                            runningExtensionAgents = runningExtensionAgents,
                             onStopExtensionAgent = onStopExtensionAgent,
                             onRefreshExtensionAgent = onRefreshExtensionAgent,
                             onOpenBrowser = onOpenBrowser,
@@ -192,7 +194,8 @@ private fun AgentTopBar(
     onLaunchExtensionAgent: (ExtensionAgent) -> Unit,
     extensionAgentLabel: String,
     canStopExtensionAgent: Boolean,
-    onStopExtensionAgent: () -> Unit,
+    runningExtensionAgents: Set<ExtensionAgent>,
+    onStopExtensionAgent: (ExtensionAgent) -> Unit,
     onRefreshExtensionAgent: () -> Unit,
     onOpenBrowser: () -> Unit,
     homeCharacter: RoleplayChatUi?,
@@ -227,6 +230,7 @@ private fun AgentTopBar(
                 onLaunchExtensionAgent = onLaunchExtensionAgent,
                 extensionAgentLabel = extensionAgentLabel,
                 canStopExtensionAgent = canStopExtensionAgent,
+                runningExtensionAgents = runningExtensionAgents,
                 onStopExtensionAgent = onStopExtensionAgent,
                 onRefreshExtensionAgent = onRefreshExtensionAgent,
                 onOpenBrowser = onOpenBrowser,
@@ -269,7 +273,8 @@ private fun TopBarOverflowMenu(
     onLaunchExtensionAgent: (ExtensionAgent) -> Unit,
     extensionAgentLabel: String,
     canStopExtensionAgent: Boolean,
-    onStopExtensionAgent: () -> Unit,
+    runningExtensionAgents: Set<ExtensionAgent>,
+    onStopExtensionAgent: (ExtensionAgent) -> Unit,
     onRefreshExtensionAgent: () -> Unit,
     onOpenBrowser: () -> Unit,
 ) {
@@ -291,16 +296,23 @@ private fun TopBarOverflowMenu(
             val openTerminalText = stringResource(R.string.action_open_terminal)
             val openCodeText = stringResource(R.string.action_launch_agent_web, ExtensionAgent.OPENCODE.displayName)
             val dshText = stringResource(R.string.action_launch_agent_web, ExtensionAgent.DSH.displayName)
-            val stopExtensionAgentText = stringResource(R.string.extension_agent_stop)
+            val kimiText = stringResource(R.string.action_launch_agent_web, ExtensionAgent.KIMI.displayName)
             val openBrowserText = stringResource(R.string.action_open_browser)
+            val running = remember(runningExtensionAgents) {
+                ExtensionAgent.entries.filter { it in runningExtensionAgents }
+            }
+            val stopLabels = running.map { agent ->
+                stringResource(R.string.extension_agent_stop_named, agent.displayName)
+            }
             val menuItems = remember(
                 newConversationText,
                 openTerminalText,
                 openCodeText,
                 dshText,
+                kimiText,
                 openBrowserText,
-                stopExtensionAgentText,
-                canStopExtensionAgent,
+                running,
+                stopLabels,
             ) {
                 listOf(
                     DropdownItem(
@@ -344,6 +356,16 @@ private fun TopBarOverflowMenu(
                         },
                     ),
                     DropdownItem(
+                        text = kimiText,
+                        icon = { modifier ->
+                            Icon(
+                                imageVector = Icons.Rounded.Terminal,
+                                contentDescription = null,
+                                modifier = modifier.size(TopBarMenuIconSize),
+                            )
+                        },
+                    ),
+                    DropdownItem(
                         text = openBrowserText,
                         icon = { modifier ->
                             Icon(
@@ -353,21 +375,17 @@ private fun TopBarOverflowMenu(
                             )
                         },
                     ),
-                ) + if (canStopExtensionAgent) {
-                    listOf(
-                        DropdownItem(
-                            text = stopExtensionAgentText,
-                            icon = { modifier ->
-                                Icon(
-                                    imageVector = Icons.Rounded.Stop,
-                                    contentDescription = null,
-                                    modifier = modifier.size(TopBarMenuIconSize),
-                                )
-                            },
-                        ),
+                ) + running.mapIndexed { index, agent ->
+                    DropdownItem(
+                        text = stopLabels[index],
+                        icon = { modifier ->
+                            Icon(
+                                imageVector = Icons.Rounded.Stop,
+                                contentDescription = null,
+                                modifier = modifier.size(TopBarMenuIconSize),
+                            )
+                        },
                     )
-                } else {
-                    emptyList()
                 }
             }
             ListPopupColumn {
@@ -384,8 +402,9 @@ private fun TopBarOverflowMenu(
                                 1 -> onOpenTerminal()
                                 2 -> onLaunchExtensionAgent(ExtensionAgent.OPENCODE)
                                 3 -> onLaunchExtensionAgent(ExtensionAgent.DSH)
-                                4 -> onOpenBrowser()
-                                5 -> onStopExtensionAgent()
+                                4 -> onLaunchExtensionAgent(ExtensionAgent.KIMI)
+                                5 -> onOpenBrowser()
+                                else -> running.getOrNull(index - 6)?.let(onStopExtensionAgent)
                             }
                         },
                     )
