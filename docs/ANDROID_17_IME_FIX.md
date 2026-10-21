@@ -39,11 +39,11 @@ Compose IME inset 缺陷（Google IssueTracker **b/552500419**，回归自 1.4.0
    - 两者不相等且连续两个 64ms 窗口（共 128ms）都没有新样本：判定动画值已冻结，切换到本地回退动画；
    - 回退动画以 240ms `FastOutSlowInEasing` 从当前值动画到 `imeAnimationTarget`，
      恢复输入框的上升/下降动画；
-   - 一旦某个窗口被判定为冻结，本次窗口生命周期内不再信任冻结的动画值（即使它偶然等于
-     目标值），避免下一次键盘弹出时再次瞬跳。
+   - 冻结后如果动画值再次变化但尚未到达 target，会重新启动两个 64ms 窗口检测；到达 target
+     才恢复系统同步。这样单帧变化不会被永久信任，下一次键盘切换仍能自愈。
 3. `Modifier.imePaddingSafe()` 是 `Modifier.imePadding()` 的 drop-in 替代，消费语义一致。
-4. `rememberImeVisible()` 改用 `imeAnimationTarget` 判断键盘可见性，避免 `showEmptySuggestions`
-   等 UI 被冻结值影响。
+4. 对需要在键盘下降动画期间保持隐藏的 UI，使用 `rememberImeVisibleSafe()`（读取安全
+   inset）；`rememberImeVisible()` 仅保留“键盘即将显示”的目标值语义。
 
 `AgentChatBody.kt` 以及项目内其他使用 `imePadding()` 的页面（模型 Provider 详情、浏览器、
 角色编辑、记忆、终端控制台、语音设置等）都已切换到 `imePaddingSafe()`。
@@ -61,9 +61,12 @@ Compose IME inset 缺陷（Google IssueTracker **b/552500419**，回归自 1.4.0
   每次都跟随动画，且不会残留键盘高度的空白。
 - 该修复不依赖 Android 17 专有 API，API 33+ 均可用；如果未来 Compose 修复了 b/552500419，
   `SafeImeInsets` 可以退役（保留 `imePaddingSafe()` 调用即可）。
+- `foundation-layout` 1.12.0 当前由 `miuix 0.9.4` 传递引入（`libs.versions.toml` 没有单独
+  Compose BOM）；升级 Miuix 或 Compose 时必须重新跑 `SafeImeInsetsWatchTest` 并复核该缺陷。
+- 低帧率设备上单次超过 128ms 的调度卡顿仍可能被误判为冻结；回退动画会落到正确 target，
+  下一帧系统值恢复后会 snap 回系统同步，影响有界。
 
 ## 5. 参考
 
 - Google IssueTracker（b/552500419）：<https://issuetracker.google.com/issues/552500419>
-- Android 官方 IME inset 动画文档：<https://developer.android.com/develop/ui/views/layout/sw-keyboard>
 - Android 官方 IME inset 动画文档：<https://developer.android.com/develop/ui/views/layout/sw-keyboard>

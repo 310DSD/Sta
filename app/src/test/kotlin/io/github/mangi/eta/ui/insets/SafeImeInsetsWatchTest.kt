@@ -85,10 +85,78 @@ class SafeImeInsetsWatchTest {
         advanceTimeBy(140)
         assertEquals(listOf("stranded"), events)
 
-        // A later successful animation moves the animated reading; Compose's listener is alive.
-        samples.emit(sample(360, 0))
+        // A later successful animation reaches the target again: healthy, no new strand.
+        samples.emit(sample(0, 0))
         advanceUntilIdle()
         assertEquals(listOf("stranded", "healthy"), events)
+        job.cancel()
+    }
+
+    @Test
+    fun aChangedAnimatedValueThatStillMissesTargetRearmsTheWatchdog() = runTest {
+        val events = mutableListOf<String>()
+        val samples = MutableSharedFlow<ImeInsetSample>(extraBufferCapacity = 4)
+        val job = launch {
+            watchForStrandedIme(
+                samples = samples,
+                graceMillis = 64,
+                onHealthy = { events += "healthy" },
+                onStranded = { events += "stranded" },
+            )
+        }
+        runCurrent()
+
+        samples.emit(sample(720, 0))
+        advanceTimeBy(140)
+        assertEquals(listOf("stranded"), events)
+
+        // One frame moved, but it stopped short of the target and no further frame arrives.
+        samples.emit(sample(360, 0))
+        advanceTimeBy(140)
+        assertEquals(listOf("stranded", "healthy", "stranded"), events)
+        job.cancel()
+    }
+
+    @Test
+    fun aRestartedWatcherResumesStrandingWithoutAnotherGraceWindow() = runTest {
+        val events = mutableListOf<String>()
+        val job = launch {
+            watchForStrandedIme(
+                samples = flow {
+                    emit(sample(0, 900))
+                    kotlinx.coroutines.awaitCancellation()
+                },
+                graceMillis = 64,
+                resumeStranded = true,
+                onStranded = { events += "stranded" },
+            )
+        }
+        runCurrent()
+        assertEquals(listOf("stranded"), events)
+        job.cancel()
+    }
+
+    @Test
+    fun aSampleInsideTheGraceWindowRestartsBothWindows() = runTest {
+        val events = mutableListOf<String>()
+        val samples = MutableSharedFlow<ImeInsetSample>(extraBufferCapacity = 4)
+        val job = launch {
+            watchForStrandedIme(
+                samples = samples,
+                graceMillis = 64,
+                onStranded = { events += "stranded" },
+            )
+        }
+        runCurrent()
+
+        samples.emit(sample(720, 0))
+        advanceTimeBy(70)
+        assertTrue(events.isEmpty())
+        samples.emit(sample(700, 0))
+        advanceTimeBy(70)
+        assertTrue(events.isEmpty())
+        advanceTimeBy(70)
+        assertEquals(listOf("stranded"), events)
         job.cancel()
     }
 }

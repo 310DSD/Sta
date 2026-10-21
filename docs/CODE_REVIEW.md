@@ -31,10 +31,14 @@
 | Medium | `DetachedTaskSupervisor` 的 `linuxRootfsPathProvider` 仍通过仓库缓存解析 rootfs，与 launcher 的显式 backend 存在两套解析来源；缓存冷/切换瞬间可能不一致。 | 已记录：`EtaApp` 启动时初始化缓存且 launcher 显式路径已覆盖主路径；后续可把 backend 直接传入 supervisor。 |
 | Low | PRoot/user 身份在 launch 返回后释放前台租约，守护任务要到下一次 `list()` 才被重新认领，立刻切后台可能被系统杀掉。 | 已记录；chroot/root 主路径不受影响。 |
 | Low | Root 被撤销后，`ExtensionAgentLauncher.status()` 在列出任务前直接返回 `ROOT_REQUIRED`，UI 无法在无 Root 状态下停止已运行的 root 守护任务。 | 已记录为限制：恢复 Root 后可停止；root 守护任务本身不随 App 进程退出。 |
+| High | IME 恢复分支在 `animated` 仅变化一次后立即解除看门狗；若该帧仍不等于 target 且随后无新帧，下一次键盘切换会重新冻结。 | 已修复：恢复帧若不等于 target 重新等待两个 64ms 窗口；新增 `rearmsTheWatchdog` 虚拟时间测试。 |
+| Medium | `rememberImeVisible()` 读取 target，target 在关闭动画开始时即变 0，建议/记忆设置会在键盘尚未降下时提前出现。 | 新增 `rememberImeVisibleSafe()` 读取安全 inset，并替换 AgentChatBody/AgentMemory/Console 的调用。 |
+| Medium | `EtaVoicePanel` 根与 `AssistantPanel` 各自启动 watcher，共享 fallback 但各自持有 Animatable，可能交错写入。 | `AssistantPanel` 改为接收根部同一 `safeImeInsets`；晚 watcher 先 snap 到共享值再动画。 |
+| Low | watcher 在密度变化重启时可能先冻结 128ms。 | `watchForStrandedIme` 增加 `resumeStranded`，重启时立即恢复回退动画。 |
+| Low | IME 测试缺少“恢复帧仍不匹配再冻结”“双窗口中途新帧重置”“重启立即恢复”等场景。 | 已补充 `SafeImeInsetsWatchTest` 对应用例。 |
 | High | DSH 的 npm 依赖包含 `koffi` / `node-pty` 原生模块；若国内镜像缺少 optional 预编译包，npm 会尝试源码编译，而基础 rootfs 没有 build-essential/cmake，安装会失败。 | 已改为 `--include=optional` 并固定 `@deepseek-ai/dsh@0.2.1-rc.2`；文档记录 ARM64 预编译依赖与回退风险，仍需真机安装验证。 |
 | High | OpenCode 2.x 的 `opencode web` 不是有效子命令；若 `opencode pair` 失败却仍打开 `serve` 根地址，用户会看到密码/401 页面。 | 已改为 `opencode serve` + `opencode pair --url`；`pairRequired` 时拿不到登录链接直接返回 `PAIRING_FAILED` 并回收本次任务。 |
 | Medium | `AGENT_EXITED` 只显示“进程已退出”，没有后台日志，无法定位 CLI 参数/依赖错误。 | `ExtensionAgentLaunchResult.Failed` 增加 `detail`，读取最后 800 字符日志并显示最后 6 行；新增 pair 失败回归测试。 |
-| Medium | `EtaVoicePanel` 根与 `AssistantPanel` 各自调用 `rememberSafeImeInsets()`；多个 watcher 共享同一 per-View fallback 状态，晚启动的 watcher 可能从 0 开始动画造成跳变。 | `AssistantPanel` 改为接收根部的同一 `safeImeInsets`；`SafeImeInsets` 检测到共享 fallback 已变化时先 `snapTo` 再加入动画。 |
 | Low | DSH 体积/版本漂移：`@latest` 可能升级到破坏 CLI 参数的预览版。 | 固定 `@deepseek-ai/dsh@0.2.1-rc.2`；UI 摘要标注 ARM64 约 787 MB。 |
 | Medium | ZCode 的官方 Web CLI 只在源码构建/自托管分发中提供；npm 社区包 `zcode-app-cli` 实际不支持 `--web`，原方案启动即退出。 | 已在实现阶段淘汰 ZCode，改用官方 npm `@deepseek-ai/dsh` + `dsh web`；选型文档记录原因。 |
 | Low | chroot/root 真机未覆盖：模拟器 `su` 只接受 uid/gid，无法执行 `su -c`。 | 已记录残余风险；建议在 Root 设备（Magisk/KernelSU）上按 `docs/EXTENSION_AGENTS.md` 的步骤回归。 |
@@ -65,7 +69,7 @@
 
 - 针对性测试通过：
   `ExtensionAgentWebSessionTest`（含 pair 失败/日志摘要）、`ExtensionAgentTest`、
-  `SafeImeInsetsTest`、`SafeImeInsetsWatchTest`、`AlpineEnvironmentInstallerTest`、
+  `SafeImeInsetsTest`、`SafeImeInsetsWatchTest`（含新恢复/重启场景）、`AlpineEnvironmentInstallerTest`、
   `ShellProcessSupervisorTest.linuxPayload...`。
 - `:app:compileDebugKotlin`、`:app:assembleDebug`、`:app:assembleRelease`、`:app:lintDebug`
   均通过。

@@ -130,6 +130,17 @@ fun rememberImeVisible(): Boolean {
 }
 
 /**
+ * Visibility that follows the safe animated/fallback inset rather than the animation target:
+ * target flips to 0 at the START of the close animation, which would bring suggestion panels
+ * back underneath the still-descending keyboard.
+ */
+@Composable
+fun rememberImeVisibleSafe(): Boolean {
+    val density = LocalDensity.current
+    return rememberSafeImeInsets().getBottom(density) > 0
+}
+
+/**
  * Watch a stream of IME inset samples and report when the animated value has stopped following
  * the target. Extracted from [rememberSafeImeInsets] so the timing/cancellation semantics can be
  * tested with virtual time.
@@ -143,11 +154,25 @@ fun rememberImeVisible(): Boolean {
 internal suspend fun watchForStrandedIme(
     samples: Flow<ImeInsetSample>,
     graceMillis: Long = IME_STRAND_GRACE_MS,
+    resumeStranded: Boolean = false,
     onHealthy: suspend (ImeInsetSample) -> Unit = {},
     onStranded: suspend (ImeInsetSample) -> Unit,
 ) {
     var strandedAt: Int? = null
+    var resume = resumeStranded
     samples.collectLatest { sample ->
+        if (resume) {
+            // Effect restart (e.g. density change) happens mid-fallback. Do not make the user
+            // wait another 128ms at the old fallback value: resume the animation immediately.
+            resume = false
+            if (sample.animated == sample.target) {
+                onHealthy(sample)
+            } else {
+                strandedAt = sample.animated
+                onStranded(sample)
+            }
+            return@collectLatest
+        }
         val strandedAnimated = strandedAt
         if (strandedAnimated == null) {
             if (sample.animated == sample.target) {
@@ -163,6 +188,15 @@ internal suspend fun watchForStrandedIme(
         } else if (sample.animated != strandedAnimated) {
             strandedAt = null
             onHealthy(sample)
+            // A single changed sample can itself be the start of a new wedge: the upstream
+            // failure can deliver one frame and then stop while animated != target. Re-arm the
+            // same two-window check instead of trusting that one frame forever.
+            if (sample.animated != sample.target) {
+                delay(graceMillis)
+                delay(graceMillis)
+                strandedAt = sample.animated
+                onStranded(sample)
+            }
         } else {
             onStranded(sample)
         }
@@ -182,6 +216,7 @@ fun rememberSafeImeInsets(): WindowInsets {
         val fallback = Animatable(insets.fallbackBottom.toFloat())
         watchForStrandedIme(
             samples = snapshotFlow { insets.sample(density) },
+            resumeStranded = insets.isStranded,
             onHealthy = { sample ->
                 val wasStranded = insets.isStranded
                 insets.isStranded = false
