@@ -3,8 +3,8 @@
 ## 1. 背景
 
 Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并用 `kimi web --no-open`
-启动 Kimi Web，解析日志里的带 token 地址后交给系统浏览器。本次 fork 需要从下列三个候选中
-选择两个，替换 Kimi Code 作为 Eta 的扩展 Agent：
+启动 Kimi Web，解析日志里的带 token 地址后交给系统浏览器。本次 fork 在保留 Kimi Code 的
+基础上，从下列三个候选中选择两个作为新增扩展 Agent：
 
 - OpenCode 2.x
 - ZCode 3.16.x
@@ -30,7 +30,7 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
 
 ## 3. 结论
 
-**选择 OpenCode 2.x + DeepSeek Harness 0.2.1，替换 Kimi Code。**
+**选择 OpenCode 2.x + DeepSeek Harness 0.2.1，并保留 Kimi Code 作为第三个扩展 Agent。**
 
 - **OpenCode**：官方 npm 包直接提供 `linux-arm64` 与 `linux-arm64-musl` 二进制，单二进制
   运行时不依赖 Node；2.x 没有 `web` 子命令；Web UI 由共享后台服务提供。正确入口是
