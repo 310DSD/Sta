@@ -8,9 +8,9 @@ class DollarMathTest {
     fun normalizesInlineDollarMath() {
         assertEquals("G", DollarMath.normalize("\$G\$"))
         assertEquals("H(0)=(3)/(0.1)=30", DollarMath.normalize("\$H(0)=\\frac{3}{0.1}=30\$"))
-        assertEquals("K_v=limₛ→₀", DollarMath.normalize("\$K_v=\\lim_{s\\to 0}\$"))
+        assertEquals("Kᵥ=lim(s→0)", DollarMath.normalize("\$K_v=\\lim_{s\\to 0}\$"))
         assertEquals(
-            "(1.5t_p√(1-ζ²))/(π)",
+            "(1.5tₚ√(1-ζ²))/(π)",
             DollarMath.normalize("\$\\frac{1.5t_p\\sqrt{1-\\zeta^2}}{\\pi}\$"),
         )
         assertEquals("(a)/(b)", DollarMath.normalize("\$\\dfrac{a}{b}\$"))

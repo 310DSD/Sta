@@ -49,8 +49,9 @@ internal object LatexSymbols {
     ).sortedByDescending { it.first.length }
 
     private val spacing = Regex("""\\(?:left|right|,|;|!|quad|qquad)""")
-    private val superscript = Regex("""\^\{([^{}]*)\}|\^([0-9+\-=()n])""")
-    private val subscript = Regex("""_\{([^{}]*)\}|_([0-9+\-=()n])""")
+    private val limit = Regex("""\\lim\s*_\s*\{([^{}]*)\}""")
+    private val superscript = Regex("""\^\{([^{}]*)\}|\^([A-Za-z0-9]{1,4})""")
+    private val subscript = Regex("""_\{([^{}]*)\}|_([A-Za-z0-9]{1,4})""")
     private val superscripts = mapOf(
         '0' to '⁰', '1' to '¹', '2' to '²', '3' to '³', '4' to '⁴',
         '5' to '⁵', '6' to '⁶', '7' to '⁷', '8' to '⁸', '9' to '⁹',
@@ -77,6 +78,10 @@ internal object LatexSymbols {
             }
         }
         value = replaceCommand(value, "\\sqrt", 1) { "√(${normalize(it[0])})" }
+        value = limit.replace(value) { match ->
+            val inside = normalize(match.groupValues[1]).replace(" ", "")
+            "lim($inside)"
+        }
         listOf("\\text", "\\mathrm", "\\mathbf", "\\mathit", "\\operatorname").forEach { command ->
             value = replaceCommand(value, command, 1) { normalize(it[0]) }
         }
