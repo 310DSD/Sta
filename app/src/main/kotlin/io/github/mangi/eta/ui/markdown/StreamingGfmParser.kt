@@ -22,7 +22,7 @@ internal class StreamingGfmParserSession {
         style: MarkdownInlineStyle = MarkdownInlineStyle.Default,
     ): StreamingGfmSnapshot {
         val renderedSource = StreamingGfmProjection.project(
-            source = TexMathDelimiters.normalize(source),
+            source = TexMathDelimiters.normalize(DollarMath.normalize(source)),
             isComplete = isComplete,
         )
         val root = parser.buildMarkdownTreeFromString(renderedSource)

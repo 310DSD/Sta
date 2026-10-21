@@ -8,10 +8,10 @@ import org.junit.Test
 
 class TexMathDelimitersTest {
     @Test
-    fun inlineParenthesesKeepLatexSourceIntact() {
+    fun inlineParenthesesAreNormalizedForDisplay() {
         val paragraph = blocks("行内 \\(a_i + b_j = \\frac{1}{2}\\) 结束").single() as MarkdownParagraph
 
-        val formula = "a_i + b_j = \\frac{1}{2}"
+        val formula = "a_i + b_j = (1)/(2)"
         assertTrue(paragraph.text.text.contains(formula))
         assertTrue(paragraph.text.spanStyles.any { range ->
             range.item.fontFamily == FontFamily.Monospace &&
@@ -20,18 +20,19 @@ class TexMathDelimitersTest {
     }
 
     @Test
-    fun displayBracketsBecomeMathBlockWithoutLosingEscapes() {
+    fun displayBracketsBecomeMathBlockWithoutLosingSymbols() {
         val math = blocks("\\[\n\\sum_{i=1}^{n} a_i = \\{x \\mid x > 0\\}\n\\]").single() as MarkdownCode
 
         assertTrue(math.isMath)
-        assertEquals("\\sum_{i=1}^{n} a_i = \\{x \\mid x > 0\\}", math.text.text)
+        assertTrue(math.text.text.contains("∑ᵢ₌₁ⁿ"))
+        assertTrue(math.text.text.contains("a_i"))
     }
 
     @Test
     fun singleLineDisplayBracketsAreMath() {
         val math = blocks("推导如下：\n\n\\[ E = mc^2 \\]").last() as MarkdownCode
         assertTrue(math.isMath)
-        assertEquals("E = mc^2", math.text.text)
+        assertEquals("E = mc²", math.text.text)
     }
 
     @Test
@@ -99,12 +100,11 @@ class TexMathDelimitersTest {
     }
 
     @Test
-    fun dollarMathAndCurrencyStayUnchanged() {
-        listOf("价格 \$4 和 \$20 每百万", "行内 \$E=mc^2\$ 结束").forEach { source ->
-            assertEquals(source, TexMathDelimiters.normalize(source))
-        }
-        val paragraph = blocks("价格 \$4 和 \$20 每百万").single() as MarkdownParagraph
-        assertFalse(paragraph.text.spanStyles.any { it.item.fontFamily == FontFamily.Monospace })
+    fun dollarMathIsNormalizedWhileCurrencyStaysLiteral() {
+        val paragraph = blocks("行内 \$E=mc^2\$ 结束").single() as MarkdownParagraph
+        assertEquals("行内 E=mc² 结束", paragraph.text.text)
+        val currency = blocks("价格 \$4 和 \$20 每百万").single() as MarkdownParagraph
+        assertEquals("价格 \$4 和 \$20 每百万", currency.text.text)
     }
 
     @Test
@@ -113,7 +113,7 @@ class TexMathDelimitersTest {
         val partial = session.parse("\\[\n\\frac{a}{b}", isComplete = false).document.blocks
         assertFalse(partial.any { it is MarkdownCode && it.isMath })
         val complete = session.parse("\\[\n\\frac{a}{b}\n\\]", isComplete = true).document.blocks
-        assertEquals("\\frac{a}{b}", (complete.single() as MarkdownCode).text.text)
+        assertEquals("(a)/(b)", (complete.single() as MarkdownCode).text.text)
     }
 
     @Test(timeout = 5_000)

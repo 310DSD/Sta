@@ -64,7 +64,9 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
   build-essential/cmake，安装会失败。选型验证使用了完整 ARM64 optional 依赖。
 - DSH Web 前端是桌面优先；安装 profile 会在
   `@deepseek-ai/dsh-web-frontend` 的 CSS 末尾追加一段保守的 `max-width:720px` 覆盖
-  （收窄 sidebar、让聊天区宽度 100%），不修改 JS。升级 DSH 版本后需重新检查选择器。
+  （收窄 sidebar、让聊天区宽度 100%、设置弹窗改为纵向导航），不修改 JS。升级 DSH 版本后
+  需重新检查 `VOzbGW_*` 等选择器；设置弹窗的样式由插件运行时注入，覆盖规则带
+  `!important`。
 
 ### 4.2 Agent 目录与启动
 

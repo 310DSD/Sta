@@ -43,11 +43,11 @@ internal object LatexSymbols {
         "\\dots" to "…", "\\ldots" to "…", "\\cdots" to "⋯", "\\vdots" to "⋮",
         "\\ddots" to "⋱", "\\mathbb{R}" to "ℝ", "\\mathbb{N}" to "ℕ",
         "\\mathbb{Z}" to "ℤ", "\\mathbb{Q}" to "ℚ", "\\mathbb{C}" to "ℂ",
+        "\\lim" to "lim", "\\log" to "log", "\\ln" to "ln", "\\sin" to "sin",
+        "\\cos" to "cos", "\\tan" to "tan", "\\exp" to "exp", "\\max" to "max",
+        "\\min" to "min", "\\det" to "det", "\\arg" to "arg",
     ).sortedByDescending { it.first.length }
 
-    private val fraction = Regex("""\\frac\s*\{([^{}]*)\}\s*\{([^{}]*)\}""")
-    private val sqrt = Regex("""\\sqrt\s*\{([^{}]*)\}""")
-    private val textCommand = Regex("""\\(?:text|mathrm|mathbf|mathit|operatorname)\s*\{([^{}]*)\}""")
     private val spacing = Regex("""\\(?:left|right|,|;|!|quad|qquad)""")
     private val superscript = Regex("""\^\{([^{}]*)\}|\^([0-9+\-=()n])""")
     private val subscript = Regex("""_\{([^{}]*)\}|_([0-9+\-=()n])""")
@@ -70,19 +70,94 @@ internal object LatexSymbols {
     )
 
     fun normalize(raw: String): String {
-        var value = textCommand.replace(raw) { it.groupValues[1] }
+        var value = replaceCommand(raw, "\\frac", 2) {
+            "(${normalize(it[0])})/(${normalize(it[1])})"
+        }
+        value = replaceCommand(value, "\\sqrt", 1) { "√(${normalize(it[0])})" }
+        listOf("\\text", "\\mathrm", "\\mathbf", "\\mathit", "\\operatorname").forEach { command ->
+            value = replaceCommand(value, command, 1) { normalize(it[0]) }
+        }
+        // Reduce commands before mapping sub/superscript characters; otherwise a command
+        // inside `_{...}` is split into separate subscript letters.
+        commands.forEach { (command, symbol) -> value = value.replace(command, symbol) }
         value = superscript.replace(value) { m ->
             val body = m.groupValues[1].ifEmpty { m.groupValues[2] }
             body.map { superscripts[it] ?: it }.joinToString("")
         }
         value = subscript.replace(value) { m ->
             val body = m.groupValues[1].ifEmpty { m.groupValues[2] }
-            body.map { subscripts[it] ?: it }.joinToString("")
+            body.filterNot { it.isWhitespace() }.map { subscripts[it] ?: it }.joinToString("")
         }
-        value = fraction.replace(value) { "(${it.groupValues[1]})/(${it.groupValues[2]})" }
-        value = sqrt.replace(value) { "√(${it.groupValues[1]})" }
         value = spacing.replace(value, "")
-        commands.forEach { (command, symbol) -> value = value.replace(command, symbol) }
         return value.trim()
+    }
+
+    /** 读取命令后的 `{...}` 参数，支持嵌套花括号；无花括号时读取一个片段。 */
+    private fun replaceCommand(
+        source: String,
+        command: String,
+        arity: Int,
+        render: (List<String>) -> String,
+    ): String {
+        var value = source
+        var search = 0
+        while (true) {
+            val start = value.indexOf(command, search)
+            if (start < 0) break
+            var cursor = start + command.length
+            val args = mutableListOf<String>()
+            var valid = true
+            for (index in 0 until arity) {
+                cursor = skipSpaces(value, cursor)
+                val group = readGroup(value, cursor)
+                if (group == null) {
+                    valid = false
+                    break
+                }
+                args += group.first
+                cursor = group.second
+            }
+            if (!valid) {
+                search = start + command.length
+                continue
+            }
+            val replacement = render(args)
+            value = value.replaceRange(start, cursor, replacement)
+            search = start + replacement.length
+        }
+        return value
+    }
+
+    private fun readGroup(source: String, start: Int): Pair<String, Int>? {
+        var cursor = skipSpaces(source, start)
+        if (cursor >= source.length) return null
+        if (source[cursor] != '{') {
+            val begin = cursor
+            while (cursor < source.length && !source[cursor].isWhitespace() &&
+                source[cursor] !in "{}()[]"
+            ) {
+                cursor += 1
+            }
+            return if (cursor > begin) source.substring(begin, cursor) to cursor else null
+        }
+        var depth = 1
+        cursor += 1
+        val begin = cursor
+        while (cursor < source.length && depth > 0) {
+            when (source[cursor]) {
+                '{' -> depth += 1
+                '}' -> depth -= 1
+            }
+            if (depth == 0) break
+            cursor += 1
+        }
+        if (depth != 0) return null
+        return source.substring(begin, cursor) to cursor + 1
+    }
+
+    private fun skipSpaces(source: String, start: Int): Int {
+        var cursor = start
+        while (cursor < source.length && source[cursor].isWhitespace()) cursor += 1
+        return cursor
     }
 }

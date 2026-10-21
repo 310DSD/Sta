@@ -120,6 +120,17 @@ internal object LinuxPackageProfiles {
             "[class*=\"sidebarCol\"]{max-width:56px!important;min-width:56px!important}" +
             "[class*=\"centerCol\"]{min-width:0!important}" +
             "[class*=\"rightbarCol\"]{max-width:min(80vw,360px)!important}" +
+            "[class*=\"VOzbGW_panel\"]{width:100%!important;height:100dvh!important;" +
+            "max-width:none!important;max-height:none!important;border-radius:0!important;" +
+            "flex-direction:column!important}" +
+            "[class*=\"VOzbGW_overlay\"]{align-items:stretch!important;padding:8px!important}" +
+            "[class*=\"VOzbGW_nav\"]{width:100%!important;flex-direction:row!important;" +
+            "gap:8px!important;padding:12px!important;overflow-x:auto!important}" +
+            "[class*=\"VOzbGW_navTitle\"]{display:none!important}" +
+            "[class*=\"VOzbGW_navList\"]{flex-direction:row!important;overflow-x:auto!important}" +
+            "[class*=\"VOzbGW_navCell\"]{flex:none!important;height:36px!important;" +
+            "padding:6px 10px!important;white-space:nowrap!important}" +
+            "[class*=\"VOzbGW_content\"]{min-width:0!important;width:100%!important}" +
             "}"
 
     internal const val DSH_MOBILE_CSS_INSTALL =
