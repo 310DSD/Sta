@@ -2,8 +2,8 @@ package io.github.mangi.eta.ui.app
 
 import android.content.Context
 import android.content.Intent
-import androidx.core.net.toUri
 import io.github.mangi.eta.agent.extension.ExtensionAgent
+import io.github.mangi.eta.ui.web.ExtensionAgentWebActivity
 import io.github.mangi.eta.agent.runtime.AgentExecutionService
 import io.github.mangi.eta.agent.terminal.DetachedTaskSupervisor
 import io.github.mangi.eta.agent.terminal.InstallerShellRunner
@@ -52,7 +52,11 @@ internal class ExtensionAgentLauncher(
         },
         openUrl = { url ->
             try {
-                context.startActivity(Intent(Intent.ACTION_VIEW, url.toUri()).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
+                context.startActivity(
+                    Intent(context, ExtensionAgentWebActivity::class.java)
+                        .putExtra(ExtensionAgentWebActivity.EXTRA_URL, url)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                )
                 true
             } catch (_: android.content.ActivityNotFoundException) {
                 false

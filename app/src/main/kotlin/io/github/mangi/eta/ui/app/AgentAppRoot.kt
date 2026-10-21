@@ -277,20 +277,18 @@ fun AgentAppRoot(
             onSearchConversations = { query -> agentState.updateSearchQuery(query) },
             onNewConversation = { createConversation() },
             onOpenTerminal = { pushRoute(AppRoute.Terminal) },
-            onLaunchExtensionAgent = {
+            onLaunchExtensionAgent = { agent ->
                 requestExecutionNotifications()
-                val state = appViewModel.extensionAgentState
-                val phase = state.phase
-                val needsEnvironment = phase == ExtensionAgentPhase.NOT_INSTALLED ||
-                    phase == ExtensionAgentPhase.CHECKING ||
-                    (phase == ExtensionAgentPhase.FAILED &&
-                        state.errorCode in setOf("ROOT_REQUIRED", "LINUX_ENVIRONMENT_NOT_READY"))
-                if (!needsEnvironment && (phase == ExtensionAgentPhase.READY ||
-                        phase == ExtensionAgentPhase.RUNNING || phase == ExtensionAgentPhase.STARTING ||
-                        phase == ExtensionAgentPhase.FAILED)
-                ) {
-                    appViewModel.launchExtensionAgent { result ->
-                        if (result is ExtensionAgentLaunchResult.Failed) {
+                appViewModel.launchExtensionAgent(agent) { result ->
+                    if (result is ExtensionAgentLaunchResult.Failed) {
+                        if (result.code in setOf(
+                                "PROFILE_NOT_INSTALLED",
+                                "LINUX_ENVIRONMENT_NOT_READY",
+                                "ROOT_REQUIRED",
+                            )
+                        ) {
+                            pushRoute(AppRoute.LinuxEnvironment)
+                        } else {
                             Toast.makeText(
                                 context,
                                 result.message(context),
@@ -298,8 +296,6 @@ fun AgentAppRoot(
                             ).show()
                         }
                     }
-                } else {
-                    pushRoute(AppRoute.LinuxEnvironment)
                 }
             },
             extensionAgentLabel = appViewModel.extensionAgentState.actionLabel(context),

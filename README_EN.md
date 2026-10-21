@@ -71,7 +71,7 @@ You can use Eta's terminal yourself or let the agent use it. Each session retain
 
 Eta itself can read projects, edit code, run commands, and verify results. For longer coding sessions on a phone, the built-in **OpenCode** and **DeepSeek Harness** extension agents offer web UIs well suited to mobile. Continue a conversation, inspect code changes, and review execution results in your browser, with a full coding-agent workflow for vibe coding wherever you are.
 
-After installing Linux, Node.js, and either extension agent in Eta, launch its web UI from the home screen or run `opencode` / `dsh` in the terminal. Extension agents have their own model configuration and sessions, so they require a separate sign-in or setup. You can return to a running instance after leaving the page, or stop it from Eta. See [extension agent evaluation](docs/EXTENSION_AGENTS.md) for the tradeoffs and install details.
+After installing Linux, Node.js, and either extension agent in Eta, launch its web UI from the home screen or run `opencode` / `dsh` in the terminal. Extension agents have their own model configuration and sessions, so they require a separate sign-in or setup. You can return to a running instance after leaving the page, or stop it from Eta. On mobile, the top-bar menu opens OpenCode and DeepSeek Harness separately, and a bare Enter inserts a newline instead of sending. See [extension agent evaluation](docs/EXTENSION_AGENTS.md) for the tradeoffs and install details.
 
 ## Models and BYOK
 

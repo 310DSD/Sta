@@ -86,7 +86,8 @@ internal class MarkdownInlineBuilder(
                 appendChildren(node, state)
             }
             MarkdownElementTypes.CODE_SPAN -> appendCode(codeSpanText(node))
-            GFMElementTypes.INLINE_MATH, GFMElementTypes.BLOCK_MATH -> appendCode(mathText(node))
+            GFMElementTypes.INLINE_MATH, GFMElementTypes.BLOCK_MATH ->
+                appendCode(LatexSymbols.normalize(mathText(node)))
             MarkdownElementTypes.INLINE_LINK -> appendInlineLink(node, state)
             MarkdownElementTypes.FULL_REFERENCE_LINK -> appendReferenceLink(
                 node = node,

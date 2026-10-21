@@ -114,10 +114,12 @@ internal object LinuxPackageProfiles {
 
     private const val DSH_MOBILE_CSS =
         "@media (max-width: 720px){" +
-            "html,body{overflow-x:hidden!important}" +
-            ":root{--dsh-chat-content-width:100%!important}" +
+            "html,body,#root{max-width:100%;overflow-x:hidden!important}" +
+            ":root{--dsh-chat-content-width:calc(100vw - 72px)!important;" +
+            "--dsh-composer-side-clearance:8px!important}" +
             "[class*=\"sidebarCol\"]{max-width:56px!important;min-width:56px!important}" +
             "[class*=\"centerCol\"]{min-width:0!important}" +
+            "[class*=\"rightbarCol\"]{max-width:min(80vw,360px)!important}" +
             "}"
 
     internal const val DSH_MOBILE_CSS_INSTALL =

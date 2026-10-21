@@ -39,6 +39,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.mangi.eta.R
+import io.github.mangi.eta.agent.extension.ExtensionAgent
 import io.github.mangi.eta.ui.components.AdaptiveTopAppBar
 import io.github.mangi.eta.ui.components.CharacterAvatar
 import io.github.mangi.eta.ui.components.ConversationSidePaneScaffold
@@ -86,7 +87,7 @@ internal fun AgentAppShell(
     onSearchConversations: (String) -> Unit,
     onNewConversation: () -> Unit,
     onOpenTerminal: () -> Unit,
-    onLaunchExtensionAgent: () -> Unit,
+    onLaunchExtensionAgent: (ExtensionAgent) -> Unit,
     extensionAgentLabel: String,
     canStopExtensionAgent: Boolean,
     onStopExtensionAgent: () -> Unit,
@@ -188,7 +189,7 @@ private fun AgentTopBar(
     onOpenConversationPane: () -> Unit,
     onNewConversation: () -> Unit,
     onOpenTerminal: () -> Unit,
-    onLaunchExtensionAgent: () -> Unit,
+    onLaunchExtensionAgent: (ExtensionAgent) -> Unit,
     extensionAgentLabel: String,
     canStopExtensionAgent: Boolean,
     onStopExtensionAgent: () -> Unit,
@@ -265,7 +266,7 @@ private val TopBarMenuIconSize = 20.dp
 private fun TopBarOverflowMenu(
     onNewConversation: () -> Unit,
     onOpenTerminal: () -> Unit,
-    onLaunchExtensionAgent: () -> Unit,
+    onLaunchExtensionAgent: (ExtensionAgent) -> Unit,
     extensionAgentLabel: String,
     canStopExtensionAgent: Boolean,
     onStopExtensionAgent: () -> Unit,
@@ -288,13 +289,15 @@ private fun TopBarOverflowMenu(
         ) {
             val newConversationText = stringResource(R.string.action_new_conversation)
             val openTerminalText = stringResource(R.string.action_open_terminal)
-            val launchExtensionAgentText = extensionAgentLabel
+            val openCodeText = stringResource(R.string.action_launch_agent_web, ExtensionAgent.OPENCODE.displayName)
+            val dshText = stringResource(R.string.action_launch_agent_web, ExtensionAgent.DSH.displayName)
             val stopExtensionAgentText = stringResource(R.string.extension_agent_stop)
             val openBrowserText = stringResource(R.string.action_open_browser)
             val menuItems = remember(
                 newConversationText,
                 openTerminalText,
-                launchExtensionAgentText,
+                openCodeText,
+                dshText,
                 openBrowserText,
                 stopExtensionAgentText,
                 canStopExtensionAgent,
@@ -321,7 +324,17 @@ private fun TopBarOverflowMenu(
                         },
                     ),
                     DropdownItem(
-                        text = launchExtensionAgentText,
+                        text = openCodeText,
+                        icon = { modifier ->
+                            Icon(
+                                imageVector = Icons.Rounded.Terminal,
+                                contentDescription = null,
+                                modifier = modifier.size(TopBarMenuIconSize),
+                            )
+                        },
+                    ),
+                    DropdownItem(
+                        text = dshText,
                         icon = { modifier ->
                             Icon(
                                 imageVector = Icons.Rounded.Terminal,
@@ -369,9 +382,10 @@ private fun TopBarOverflowMenu(
                             when (index) {
                                 0 -> onNewConversation()
                                 1 -> onOpenTerminal()
-                                2 -> onLaunchExtensionAgent()
-                                3 -> onOpenBrowser()
-                                4 -> onStopExtensionAgent()
+                                2 -> onLaunchExtensionAgent(ExtensionAgent.OPENCODE)
+                                3 -> onLaunchExtensionAgent(ExtensionAgent.DSH)
+                                4 -> onOpenBrowser()
+                                5 -> onStopExtensionAgent()
                             }
                         },
                     )

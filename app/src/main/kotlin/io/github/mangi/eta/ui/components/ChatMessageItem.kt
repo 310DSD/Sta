@@ -429,10 +429,10 @@ private fun UserMessageBubble(
                 }
                 if (visiblePrompt.request.isNotBlank()) {
                     SelectionContainer {
-                        Text(
-                            text = visiblePrompt.request,
-                            style = MiuixTheme.textStyles.body1,
-                            color = MiuixTheme.colorScheme.onSurface,
+                        StaticMarkdown(
+                            content = visiblePrompt.request,
+                            tone = MarkdownTone.Answer,
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                 }

@@ -78,7 +78,7 @@ Agent 的文件与命令共用本次运行的默认身份和工作区：已确�
 
 Eta 本体可以读取项目、修改代码、运行命令并验证结果。如果想在手机上持续进行编程工作，内置的 **OpenCode** 与 **DeepSeek Harness** 扩展 Agent 提供了更适合移动端的 Web UI，可以在浏览器中持续对话、查看代码修改与执行结果，享受完整的 Coding Agent 工作体验，随时随地 Vibe Coding。
 
-在 Eta 中安装 Linux、Node.js 与任一扩展 Agent 后，即可从首页一键启动它的 Web UI，也可以在终端运行 `opencode` 或 `dsh`。扩展 Agent 使用独立的模型配置与会话，需单独完成登录或配置；离开页面后可返回继续使用，也可从 Eta 主动停止。两者的取舍与安装细节见 [扩展 Agent 选型](docs/EXTENSION_AGENTS.md)。
+在 Eta 中安装 Linux、Node.js 与任一扩展 Agent 后，即可从首页一键启动它的 Web UI，也可以在终端运行 `opencode` 或 `dsh`。扩展 Agent 使用独立的模型配置与会话，需单独完成登录或配置；离开页面后可返回继续使用，也可从 Eta 主动停止。移动端从顶栏可分别快速打开 OpenCode / DeepSeek Harness，输入框中的裸 Enter 会换行而不是发送。两者的取舍与安装细节见 [扩展 Agent 选型](docs/EXTENSION_AGENTS.md)。
 
 ## 模型与 BYOK
 

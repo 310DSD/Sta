@@ -104,6 +104,16 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
         }
     }
 
+    fun launchExtensionAgent(agent: ExtensionAgent, onFinished: (ExtensionAgentLaunchResult) -> Unit) {
+        if (extensionAgent != agent) {
+            extensionAgent = agent
+            extensionAgentState = ExtensionAgentUiState(agent)
+            // 顶栏直接启动另一个 Agent 时，也把最近使用项持久化，下次打开仍可快速进入。
+            viewModelScope.launch { ExtensionAgentSettingsRepository.select(agent) }
+        }
+        launchExtensionAgent(onFinished)
+    }
+
     fun launchExtensionAgent(onFinished: (ExtensionAgentLaunchResult) -> Unit) {
         if (extensionAgentJob?.isActive == true) return
         extensionAgentRefreshJob?.cancel()

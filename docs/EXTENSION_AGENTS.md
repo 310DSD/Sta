@@ -85,6 +85,11 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
   “设为默认”按钮。
 - 默认 Agent 持久化在 `SettingsDataStore` 的 `extension_agent` 键，由
   `ExtensionAgentSettingsRepository` 读写；切换后顶栏立即跟随。
+- 顶栏溢出菜单同时提供 OpenCode / DeepSeek Harness 两个快速入口，点击未安装的 Agent
+  会转到 Linux 工具环境页，不再只能打开当前默认 Agent。
+- 扩展 Agent URL 由 `ExtensionAgentWebActivity` 内置 WebView 承载；移动宽度下注入
+  Enter→换行脚本（Shift/Ctrl/Cmd/Alt 语义保留），textarea 与 Lexical contenteditable
+  都覆盖，解决手机键盘没有 Shift 时误发送。
 
 ## 5. 验证
 

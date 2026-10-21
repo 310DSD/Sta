@@ -89,7 +89,7 @@ private class BlockConverter(
             return MarkdownCode(
                 offset = node.startOffset,
                 language = MATH_LANGUAGE,
-                text = AnnotatedString(mathSource(math)),
+                text = AnnotatedString(LatexSymbols.normalize(mathSource(math))),
                 isMath = true,
             )
         }
