@@ -5,6 +5,8 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
@@ -149,6 +151,7 @@ private fun MarkdownBlockView(block: MarkdownBlock, scope: MarkdownRenderScope) 
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MarkdownText(
     block: MarkdownTextBlock,
@@ -158,6 +161,27 @@ private fun MarkdownText(
     softWrap: Boolean = true,
 ) {
     val reveal = scope.reveal
+    // 已完成文本中的 `(分子)/(分母)` 用真正的横线分数绘制；流式显现仍走普通 Text，
+    // 避免 inline flow 在逐字裁剪时反复重排。
+    if (softWrap && reveal == null) {
+        val segments = remember(block.text) { parseFractionSegments(block.text) }
+        if (segments != null) {
+            FlowRow(
+                modifier = modifier.fillMaxWidth(),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Start,
+                verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+            ) {
+                segments.forEach { segment ->
+                    if (segment.numerator == null) {
+                        Text(text = segment.text, style = style)
+                    } else {
+                        FractionText(segment.numerator, segment.denominator.orEmpty(), style)
+                    }
+                }
+            }
+            return
+        }
+    }
     // 空单元格没有可显现的文字，也不占用显现协调器的 key。
     if (reveal == null || block.text.isEmpty()) {
         Text(text = block.text, style = style, softWrap = softWrap, modifier = modifier)
@@ -173,6 +197,86 @@ private fun MarkdownText(
         modifier = modifier.smoothTextReveal(revealState),
         onTextLayout = { layout -> revealState.onTextLayout(block.text.text, layout) },
     )
+}
+
+private data class FractionSegment(
+    val text: AnnotatedString,
+    val numerator: String? = null,
+    val denominator: String? = null,
+)
+
+/** 解析归一化后出现的 `(分子)/(分母)`，保留普通片段的行内样式。 */
+private fun parseFractionSegments(input: AnnotatedString): List<FractionSegment>? {
+    val raw = input.text
+    if (!raw.contains(")/(")) return null
+    val result = mutableListOf<FractionSegment>()
+    var index = 0
+    var last = 0
+    while (index < raw.length) {
+        if (raw[index] != '(') {
+            index += 1
+            continue
+        }
+        val numeratorEnd = matchingParen(raw, index)
+        if (numeratorEnd == null || numeratorEnd + 2 >= raw.length ||
+            raw[numeratorEnd + 1] != '/' || raw[numeratorEnd + 2] != '('
+        ) {
+            index += 1
+            continue
+        }
+        val denominatorEnd = matchingParen(raw, numeratorEnd + 2)
+        if (denominatorEnd == null) {
+            index += 1
+            continue
+        }
+        val numerator = raw.substring(index + 1, numeratorEnd)
+        val denominator = raw.substring(numeratorEnd + 3, denominatorEnd)
+        if (numerator.isBlank() || denominator.isBlank()) {
+            index += 1
+            continue
+        }
+        if (last < index) result += FractionSegment(input.subSequence(last, index))
+        result += FractionSegment(AnnotatedString(""), numerator, denominator)
+        index = denominatorEnd + 1
+        last = index
+    }
+    if (result.isEmpty()) return null
+    if (last < raw.length) result += FractionSegment(input.subSequence(last, raw.length))
+    return result
+}
+
+private fun matchingParen(text: String, open: Int): Int? {
+    var depth = 0
+    var index = open
+    while (index < text.length) {
+        when (text[index]) {
+            '(' -> depth += 1
+            ')' -> {
+                depth -= 1
+                if (depth == 0) return index
+            }
+            '\n' -> return null
+        }
+        index += 1
+    }
+    return null
+}
+
+@Composable
+private fun FractionText(numerator: String, denominator: String, style: TextStyle) {
+    Column(
+        modifier = Modifier.padding(horizontal = 2.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(text = numerator, style = style, maxLines = 1)
+        Box(
+            modifier = Modifier
+                .width(28.dp)
+                .height(1.dp)
+                .background(style.color),
+        )
+        Text(text = denominator, style = style, maxLines = 1)
+    }
 }
 
 // ── 代码块 ──────────────────────────────────────────────────────────────
