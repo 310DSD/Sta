@@ -24,6 +24,9 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import io.github.mangi.eta.agent.terminal.LinuxPackageProfiles
 import org.json.JSONObject
 
@@ -74,8 +77,17 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
             tabScroll,
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)),
         )
-        root.addView(contentHost, LinearLayout.LayoutParams(1, 0, 1f))
+        root.addView(contentHost, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime(),
+            )
+            view.setPadding(0, bars.top, 0, bars.bottom)
+            insets
+        }
         setContentView(root)
+        ViewCompat.requestApplyInsets(root)
 
         onBackPressedDispatcher.addCallback(this) {
             val web = current?.webView

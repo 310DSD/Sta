@@ -46,9 +46,10 @@ internal object LatexSymbols {
         "\\lim" to "lim", "\\log" to "log", "\\ln" to "ln", "\\sin" to "sin",
         "\\cos" to "cos", "\\tan" to "tan", "\\exp" to "exp", "\\max" to "max",
         "\\min" to "min", "\\det" to "det", "\\arg" to "arg",
+        "\\mid" to "|", "\\vert" to "|", "\\Vert" to "‖",
     ).sortedByDescending { it.first.length }
 
-    private val spacing = Regex("""\\(?:left|right|,|;|!|quad|qquad)""")
+    private val spacing = Regex("""\\(?:left|right|big|Big|bigg|Bigg|displaystyle|textstyle|scriptstyle|limits|nolimits|,|;|!|quad|qquad)""")
     private val limit = Regex("""\\lim\s*_\s*\{([^{}]*)\}""")
     private val superscript = Regex("""\^\{([^{}]*)\}|\^([A-Za-z0-9]{1,4})""")
     private val subscript = Regex("""_\{([^{}]*)\}|_([A-Za-z0-9]{1,4})""")
