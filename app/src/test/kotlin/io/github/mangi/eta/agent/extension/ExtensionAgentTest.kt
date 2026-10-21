@@ -20,23 +20,26 @@ class ExtensionAgentTest {
     }
 
     @Test
-    fun bothWebCommandsAreNonInteractiveAndUseAFixedLoopbackPort() {
+    fun bothWebCommandsAreNonInteractiveAndUseLoopbackUrls() {
         ExtensionAgent.entries.forEach { agent ->
-            assertTrue(agent.webCommand.contains("127.0.0.1"))
-            assertTrue(agent.webCommand.contains("--port"))
+            if (agent == ExtensionAgent.OPENCODE) {
+                assertTrue(agent.webCommand.contains("opencode service start"))
+                assertTrue(agent.webCommand.contains("opencode service status"))
+            } else {
+                assertTrue(agent.webCommand.contains("127.0.0.1"))
+                assertTrue(agent.webCommand.contains("--port"))
+            }
             assertTrue(agent.acceptedCommands.contains(agent.webCommand))
             assertTrue(agent.webUrlPattern.containsMatchIn("http://127.0.0.1:4096"))
         }
     }
 
     @Test
-    fun openCodeUsesServeAndPairInsteadOfTheRemovedWebSubcommand() {
+    fun openCodeUsesSharedServiceAndPairInsteadOfTheRemovedWebSubcommand() {
         val agent = ExtensionAgent.OPENCODE
-        assertTrue(agent.webCommand.startsWith("opencode serve"))
-        assertEquals(
-            "opencode pair --url http://127.0.0.1:4096",
-            agent.pairCommand?.invoke("http://127.0.0.1:4096"),
-        )
+        assertTrue(agent.webCommand.contains("opencode service start"))
+        assertTrue(agent.webCommand.contains("opencode service status"))
+        assertEquals("opencode pair", agent.pairCommand?.invoke("http://127.0.0.1:4096"))
     }
 
     @Test

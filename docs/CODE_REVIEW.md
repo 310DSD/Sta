@@ -37,7 +37,7 @@
 | Low | watcher 在密度变化重启时可能先冻结 128ms。 | `watchForStrandedIme` 增加 `resumeStranded`，重启时立即恢复回退动画。 |
 | Low | IME 测试缺少“恢复帧仍不匹配再冻结”“双窗口中途新帧重置”“重启立即恢复”等场景。 | 已补充 `SafeImeInsetsWatchTest` 对应用例。 |
 | High | DSH 的 npm 依赖包含 `koffi` / `node-pty` 原生模块；若国内镜像缺少 optional 预编译包，npm 会尝试源码编译，而基础 rootfs 没有 build-essential/cmake，安装会失败。 | 已改为 `--include=optional` 并固定 `@deepseek-ai/dsh@0.2.1-rc.2`；文档记录 ARM64 预编译依赖与回退风险，仍需真机安装验证。 |
-| High | OpenCode 2.x 的 `opencode web` 不是有效子命令；若 `opencode pair` 失败却仍打开 `serve` 根地址，用户会看到密码/401 页面。 | 已改为 `opencode serve` + `opencode pair --url`；`pairRequired` 时拿不到登录链接直接返回 `PAIRING_FAILED` 并回收本次任务。 |
+| High | OpenCode 2.x 的 `opencode web` 不是有效子命令；若 `opencode pair` 失败却仍打开 `serve` 根地址，用户会看到密码/401 页面。 | 已改为共享服务 `opencode service start` + `opencode pair`；`pairRequired` 时拿不到登录链接直接返回 `PAIRING_FAILED` 并回收本次任务。 |
 | Medium | `AGENT_EXITED` 只显示“进程已退出”，没有后台日志，无法定位 CLI 参数/依赖错误。 | `ExtensionAgentLaunchResult.Failed` 增加 `detail`，读取最后 800 字符日志并显示最后 6 行；新增 pair 失败回归测试。 |
 | Low | DSH 体积/版本漂移：`@latest` 可能升级到破坏 CLI 参数的预览版。 | 固定 `@deepseek-ai/dsh@0.2.1-rc.2`；UI 摘要标注 ARM64 约 787 MB。 |
 | Medium | ZCode 的官方 Web CLI 只在源码构建/自托管分发中提供；npm 社区包 `zcode-app-cli` 实际不支持 `--web`，原方案启动即退出。 | 已在实现阶段淘汰 ZCode，改用官方 npm `@deepseek-ai/dsh` + `dsh web`；选型文档记录原因。 |

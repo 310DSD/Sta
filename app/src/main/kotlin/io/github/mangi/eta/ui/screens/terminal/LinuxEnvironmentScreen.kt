@@ -3,6 +3,7 @@ package io.github.mangi.eta.ui.screens.terminal
 import android.content.Context
 import android.text.format.Formatter
 import androidx.annotation.StringRes
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Description
@@ -493,13 +494,8 @@ internal fun LinuxEnvironmentScreen(
                             },
                             endActions = {
                                 if (agent != null && ready) {
-                                    if (agentRunning) {
-                                        EtaTextButton(
-                                            text = stringResource(R.string.action_stop),
-                                            enabled = launchingAgent == null && !requiresRoot,
-                                            onClick = { stopAgent(agent) },
-                                        )
-                                    }
+                                    // 运行中只放“打开”，避免“停止 + 打开”把 45% 操作区挤成
+                                    // 竖排；停止入口移到下一行的全宽次要操作。
                                     EtaTextButton(
                                         text = stringResource(
                                             when {
@@ -540,6 +536,18 @@ internal fun LinuxEnvironmentScreen(
                                         },
                                     )
                                 }
+                            },
+                            bottomAction = if (agent != null && ready && agentRunning) {
+                                {
+                                    EtaTextButton(
+                                        text = stringResource(R.string.action_stop),
+                                        modifier = Modifier.fillMaxWidth(),
+                                        enabled = launchingAgent == null && !requiresRoot,
+                                        onClick = { stopAgent(agent) },
+                                    )
+                                }
+                            } else {
+                                null
                             },
                         )
                     }

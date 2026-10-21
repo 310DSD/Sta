@@ -22,7 +22,7 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
 | 官方分发 | npm `@opencode/cli`，含 `linux-arm64` 与 `linux-arm64-musl` 二进制 | 官方桌面版；官方 CLI 需 `pnpm build:zcode` 自建/自托管 | npm `@deepseek-ai/dsh` |
 | 运行时依赖 | npm 安装后是单文件二进制，运行时不需 Node | 官方 CLI 需 Node + 自托管运行包；社区 `zcode-app-cli` 仅 TUI | Node.js + 86 个直接依赖/插件包（611 个包） |
 | 安装体积（参考） | Linux ARM64 包 209.5 MB；运行时另需平台二进制依赖 | 社区包约 123 MB（仅 TUI，已淘汰） | **ARM64 实测 787 MB / 610 个包** |
-| Web 入口 | `opencode serve --hostname 127.0.0.1 --port 4096` + `opencode pair` 登录链接 | 官方 CLI 为 `zcode --web ...`，但社区包不支持 `--web` | `dsh web --host 127.0.0.1 --port 3080 --no-open`，直接打印带 token URL |
+| Web 入口 | `opencode service start`（共享服务）+ `opencode pair` 登录链接 | 官方 CLI 为 `zcode --web ...`，但社区包不支持 `--web` | `dsh web --host 127.0.0.1 --port 3080 --no-open`，直接打印带 token URL |
 | 移动端 Web UI | 官方 Web UI，响应式布局可用 | 官方 Web UI 完整，但无可用 npm CLI 分发 | 以桌面为主，移动端适配一般 |
 | 终端 TUI | `opencode` | `zcode`（社区包） | `dsh` |
 | 扩展能力 | 插件、Code Mode、SDK、后台子 Agent | Agent CLI/运行时、插件市场、MCP | 一切皆插件、Cordis 架构 |
@@ -33,8 +33,9 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
 **选择 OpenCode 2.x + DeepSeek Harness 0.2.1，替换 Kimi Code。**
 
 - **OpenCode**：官方 npm 包直接提供 `linux-arm64` 与 `linux-arm64-musl` 二进制，单二进制
-  运行时不依赖 Node；2.x 没有 `web` 子命令，正确入口是 `opencode serve`（前台服务器，
-  同时托管 Web UI）+ `opencode pair --url http://127.0.0.1:4096`（一次性登录链接）。
+  运行时不依赖 Node；2.x 没有 `web` 子命令；Web UI 由共享后台服务提供。正确入口是
+  `opencode service start` + `opencode pair`（一次性登录链接）。`serve` 是独立服务器，
+  不支持 `pair`，不能用于 Web UI 配对。
 - **DeepSeek Harness**：官方 npm `@deepseek-ai/dsh`，`dsh web` 直接打印带 token 的 loopback
   URL，生命周期与 Eta 的 daemon 模型完全匹配。代价是 611 个包、约 827 MB，且是开发者预览；
   这是为了拿到“官方可安装 + 官方 Web UI”而接受的体积/稳定性折衷。
@@ -61,6 +62,9 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
 - DSH 的 `koffi` / `node-pty` 会使用 `@koromix/koffi-linux-arm64`、`node-pty/prebuilds/linux-arm64`
   预编译文件；若镜像缺少 optional dependency，npm 会尝试源码编译，而基础 rootfs 没有
   build-essential/cmake，安装会失败。选型验证使用了完整 ARM64 optional 依赖。
+- DSH Web 前端是桌面优先；安装 profile 会在
+  `@deepseek-ai/dsh-web-frontend` 的 CSS 末尾追加一段保守的 `max-width:720px` 覆盖
+  （收窄 sidebar、让聊天区宽度 100%），不修改 JS。升级 DSH 版本后需重新检查选择器。
 
 ### 4.2 Agent 目录与启动
 
@@ -68,7 +72,7 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
   定义两个 Agent 的 id、显示名、安装 profile、Web 命令、可复用命令集合、URL 正则、
   TUI 命令，以及 OpenCode 的 `pairCommand`。
 - `ExtensionAgentWebSession.kt`：启动/复用 daemon，轮询日志提取 loopback URL；
-  OpenCode 找到 `serve` 地址后执行 `opencode pair --url <serverUrl>` 获取一次性
+  OpenCode wrapper 启动共享服务并输出 `service status` 地址，随后执行 `opencode pair` 获取一次性
   `/auth/connect/...` 登录链接；失败时只回收本次创建且未成功交给浏览器的任务。
 - `ExtensionAgentLauncher.kt`：解析 Linux 环境、取得前台执行租约、按 Agent 串行化启动。
 - `ExtensionAgentUiState.kt`：检查中/未安装/就绪/启动中/运行中/失败六态与错误文案。

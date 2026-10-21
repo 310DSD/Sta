@@ -112,10 +112,25 @@ internal object LinuxPackageProfiles {
             "@opencode/cli@2.1.2 || " +
             "npm install -g --prefix /usr/local --include=optional @opencode/cli@2.1.2"
 
+    private const val DSH_MOBILE_CSS =
+        "@media (max-width: 720px){" +
+            "html,body{overflow-x:hidden!important}" +
+            ":root{--dsh-chat-content-width:100%!important}" +
+            "[class*=\"sidebarCol\"]{max-width:56px!important;min-width:56px!important}" +
+            "[class*=\"centerCol\"]{min-width:0!important}" +
+            "}"
+
+    internal const val DSH_MOBILE_CSS_INSTALL =
+        "for f in /usr/local/lib/node_modules/@deepseek-ai/dsh-web-frontend/dist/assets/index-*.css; do " +
+            "[ -f \"${'$'}f\" ] || continue; " +
+            "grep -q 'eta-mobile' \"${'$'}f\" || " +
+            "printf '%s\n' '/* eta-mobile */ $DSH_MOBILE_CSS' >> \"${'$'}f\"; done"
+
     private const val DSH_INSTALL_SCRIPT =
-        "npm install -g --prefix /usr/local --include=optional --registry=https://registry.npmmirror.com " +
+        "(npm install -g --prefix /usr/local --include=optional --registry=https://registry.npmmirror.com " +
             "@deepseek-ai/dsh@0.2.1-rc.2 || " +
-            "npm install -g --prefix /usr/local --include=optional @deepseek-ai/dsh@0.2.1-rc.2"
+            "npm install -g --prefix /usr/local --include=optional @deepseek-ai/dsh@0.2.1-rc.2) && " +
+            DSH_MOBILE_CSS_INSTALL
 
     val OPENCODE = LinuxPackageProfile(
         id = "opencode",

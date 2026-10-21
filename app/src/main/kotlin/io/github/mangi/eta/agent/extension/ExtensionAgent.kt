@@ -1,5 +1,12 @@
 package io.github.mangi.eta.agent.extension
 
+import io.github.mangi.eta.agent.terminal.LinuxPackageProfiles
+
+private const val OPENCODE_SERVICE_COMMAND =
+    "trap 'opencode service stop >/dev/null 2>&1 || true' EXIT TERM INT; " +
+        "opencode service start >/dev/null 2>&1 || true; " +
+        "opencode service status; while :; do sleep 3600; done"
+
 /**
  * External coding agents that Eta can install into its Linux environment and expose through a
  * mobile-friendly web UI.
@@ -22,8 +29,8 @@ internal enum class ExtensionAgent(
     /** Command users can type in Eta's terminal for the TUI. */
     val terminalCommand: String,
     /**
-     * Optional command that turns the running server URL into a one-time browser login URL.
-     * OpenCode 2.x protects `serve` with an auto-generated password and exposes `pair` for this.
+     * Optional command that prints a one-time browser login URL for the running service.
+     * OpenCode 2.x pairing only works with its shared background service.
      */
     val pairCommand: ((String) -> String)? = null,
 ) {
@@ -31,24 +38,24 @@ internal enum class ExtensionAgent(
         id = "opencode",
         displayName = "OpenCode",
         packageProfileId = "opencode",
-        // OpenCode 2.x has no `web` subcommand; `serve` is the foreground server that also
-        // serves the web UI. `opencode pair` then produces the browser login link.
-        webCommand = "opencode serve --hostname 127.0.0.1 --port 4096",
-        acceptedCommands = setOf(
-            "opencode serve --hostname 127.0.0.1 --port 4096",
-            "opencode serve",
-        ),
+        // OpenCode 2.x has no `web` subcommand. `opencode serve` is standalone and cannot use
+        // `pair`; the supported Web UI path is the shared service started by `service start`.
+        // The wrapper keeps a daemon task alive and stops the service when Eta stops the task.
+        webCommand = OPENCODE_SERVICE_COMMAND,
+        acceptedCommands = setOf(OPENCODE_SERVICE_COMMAND),
         webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):\d+(?:/[A-Za-z0-9/?:=&._~%+#-]*)?"""),
         terminalCommand = "opencode",
-        pairCommand = { serverUrl -> "opencode pair --url $serverUrl" },
+        pairCommand = { "opencode pair" },
     ),
     DSH(
         id = "dsh",
         displayName = "DeepSeek Harness",
         packageProfileId = "dsh",
         // `dsh web` prints a tokenized loopback URL directly and stays in the foreground.
-        webCommand = "dsh web --host 127.0.0.1 --port 3080 --no-open",
+        // Apply the mobile CSS patch on every launch so an already-installed DSH also gets it.
+        webCommand = "$LinuxPackageProfiles.DSH_MOBILE_CSS_INSTALL; dsh web --host 127.0.0.1 --port 3080 --no-open",
         acceptedCommands = setOf(
+            "$LinuxPackageProfiles.DSH_MOBILE_CSS_INSTALL; dsh web --host 127.0.0.1 --port 3080 --no-open",
             "dsh web --host 127.0.0.1 --port 3080 --no-open",
             "dsh web",
         ),

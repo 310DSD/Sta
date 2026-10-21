@@ -137,6 +137,7 @@ class AlpineEnvironmentInstallerTest {
             assertTrue(dshScript.contains("--prefix /usr/local"))
             assertTrue(dshScript.contains("--include=optional"))
             assertTrue(dshScript.contains("registry.npmmirror.com"))
+            assertTrue(dshScript.contains("eta-mobile"))
         }
         LinuxDistribution.entries.forEach { distribution ->
             assertTrue(LinuxPackageProfiles.SSH.spec(distribution).packages.isNotEmpty())
