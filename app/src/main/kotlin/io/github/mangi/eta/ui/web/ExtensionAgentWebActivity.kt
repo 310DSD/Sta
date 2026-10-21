@@ -57,6 +57,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                 override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                     val url = request.url
                     if (isLoopbackHttpUrl(url.toString())) return false
+                    if (url.scheme !in setOf("http", "https")) return true
                     runCatching {
                         startActivity(Intent(Intent.ACTION_VIEW, url).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK))
                     }

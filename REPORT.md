@@ -75,6 +75,9 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 - Linux 工具环境页用 OpenCode、DeepSeek Harness 两行替换 Kimi Code 行，支持安装、启动 Web、
   停止；最近一次成功启动的 Agent 自动成为顶栏默认入口。
 - 默认 Agent 持久化在 `SettingsDataStore` 的 `extension_agent` 键。
+- 扩展 Agent 的 Web UI 改由内置 `ExtensionAgentWebActivity` 承载：移动端 Enter 插入换行，
+  支持文件选择、返回栈和外部链接转系统浏览器；顶栏溢出菜单同时提供 OpenCode / DSH 两个入口。
+- 原生对话的用户消息也走 Markdown；新增常见 LaTeX 希腊字母、运算/集合/箭头符号归一化。
 - 更新中英文 README 与三语字符串。
 
 ### 验证
