@@ -22,8 +22,10 @@ internal enum class ExtensionAgent(
     val packageProfileId: String,
     /** Command started by the daemon supervisor. Keep it fully non-interactive. */
     val webCommand: String,
-    /** Commands accepted when looking for an already-running instance (including legacy forms). */
+    /** Commands accepted when looking for an already-running instance (current forms only). */
     val acceptedCommands: Set<String>,
+    /** Older launcher forms that must be stopped before starting the current command. */
+    val legacyCommands: Set<String> = emptySet(),
     /** Loopback URL printed by the agent's web mode. */
     val webUrlPattern: Regex,
     /** Command users can type in Eta's terminal for the TUI. */
@@ -43,6 +45,10 @@ internal enum class ExtensionAgent(
         // The wrapper keeps a daemon task alive and stops the service when Eta stops the task.
         webCommand = OPENCODE_SERVICE_COMMAND,
         acceptedCommands = setOf(OPENCODE_SERVICE_COMMAND),
+        legacyCommands = setOf(
+            "opencode serve --hostname 127.0.0.1 --port 4096",
+            "opencode serve",
+        ),
         webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):\d+(?:/[A-Za-z0-9/?:=&._~%+#-]*)?"""),
         terminalCommand = "opencode",
         pairCommand = { "opencode pair" },
@@ -56,6 +62,8 @@ internal enum class ExtensionAgent(
         webCommand = "$LinuxPackageProfiles.DSH_MOBILE_CSS_INSTALL; dsh web --host 127.0.0.1 --port 3080 --no-open",
         acceptedCommands = setOf(
             "$LinuxPackageProfiles.DSH_MOBILE_CSS_INSTALL; dsh web --host 127.0.0.1 --port 3080 --no-open",
+        ),
+        legacyCommands = setOf(
             "dsh web --host 127.0.0.1 --port 3080 --no-open",
             "dsh web",
         ),

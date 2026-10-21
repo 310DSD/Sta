@@ -83,6 +83,15 @@ internal class ExtensionAgentLauncher(
                 return@withContext ExtensionAgentLaunchResult.Failed("PROFILE_NOT_INSTALLED")
             }
             val identity = TerminalRuntime.defaultIdentity(environment, rootfs.absolutePath)
+            // Stop old launcher forms before starting the current wrapper; otherwise an old
+            // `dsh web`/`opencode serve` task can hold the fixed port and be reused without
+            // the new mobile CSS / pairing logic.
+            daemonSupervisor.list()
+                .filter {
+                    it.running && it.task.environment == environment && it.task.identity == identity &&
+                        it.task.backend == backend && it.task.command.trim() in agent.legacyCommands
+                }
+                .forEach { daemonSupervisor.stop(it.task.id) }
             val job = currentCoroutineContext().job
             val launchId = "extension-agent-launch-${agent.id}"
             if (identity == "user" && !AgentExecutionService.acquire(context, launchId) { job.cancel() }) {
