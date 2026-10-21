@@ -18,6 +18,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import io.github.mangi.eta.EtaApp
 import io.github.mangi.eta.R
 import io.github.mangi.eta.agent.extension.ExtensionAgent
 import io.github.mangi.eta.agent.terminal.AlpineEnvironmentInstaller
@@ -245,19 +246,17 @@ internal fun LinuxEnvironmentScreen(
                 busyTarget = null
             }
         }
-        if (backend == LinuxExecutionBackend.PROOT) {
-            requestExecutionNotifications()
-            coroutineScope.launchForegroundExecution(
-                context = appContext,
-                onUnavailable = {
-                    busyTarget = null
-                    resultMessage = context.getString(R.string.capability_background_failed)
-                },
-                block = operation,
-            )
-        } else {
-            coroutineScope.launch { operation() }
-        }
+        // 安装 profile 可能跑 30 分钟；chroot/root 也必须由前台执行承载，
+        // 否则离开页面会取消 rememberCoroutineScope，留下半安装的 rootfs。
+        requestExecutionNotifications()
+        EtaApp.applicationScope.launchForegroundExecution(
+            context = appContext,
+            onUnavailable = {
+                busyTarget = null
+                resultMessage = context.getString(R.string.capability_background_failed)
+            },
+            block = operation,
+        )
     }
 
     fun installBase() {
@@ -387,15 +386,18 @@ internal fun LinuxEnvironmentScreen(
                 distribution = selectedDistribution,
                 backend = backend,
                 rootGranted = capabilities.root.isGranted,
-                enabled = busyTarget == null && launchingAgent == null,
+                enabled = busyTarget == null && launchingAgent == null && runningAgents.isEmpty(),
                 onDistributionSelected = { distribution ->
-                    if (busyTarget == null && launchingAgent == null && distribution != selectedDistribution) {
+                    if (busyTarget == null && launchingAgent == null && runningAgents.isEmpty() &&
+                        distribution != selectedDistribution
+                    ) {
                         resultMessage = null
                         coroutineScope.launch { LinuxEnvironmentSettingsRepository.select(distribution) }
                     }
                 },
                 onBackendSelected = { selectedBackend ->
-                    if (busyTarget == null && launchingAgent == null && selectedBackend != backend &&
+                    if (busyTarget == null && launchingAgent == null && runningAgents.isEmpty() &&
+                        selectedBackend != backend &&
                         (selectedBackend == LinuxExecutionBackend.PROOT || capabilities.root.isGranted)
                     ) {
                         resultMessage = null

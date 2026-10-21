@@ -8,8 +8,10 @@ import io.github.mangi.eta.agent.runtime.AgentExecutionService
 import io.github.mangi.eta.agent.terminal.DetachedTaskSupervisor
 import io.github.mangi.eta.agent.terminal.LinuxEnvironmentPaths
 import io.github.mangi.eta.agent.terminal.LinuxExecutionBackend
+import io.github.mangi.eta.agent.terminal.LinuxPackageProfiles
 import io.github.mangi.eta.agent.terminal.TerminalEnvironment
 import io.github.mangi.eta.agent.terminal.TerminalRuntime
+import io.github.mangi.eta.agent.terminal.linuxPackageProfileReady
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.currentCoroutineContext
@@ -71,6 +73,10 @@ internal class ExtensionAgentLauncher(
             if (!LinuxEnvironmentPaths.rootfsReady(rootfs.absolutePath)) {
                 return@withContext ExtensionAgentLaunchResult.Failed("LINUX_ENVIRONMENT_NOT_READY")
             }
+            val profile = LinuxPackageProfiles.ALL.firstOrNull { it.id == agent.packageProfileId }
+            if (profile == null || !linuxPackageProfileReady(rootfs, profile)) {
+                return@withContext ExtensionAgentLaunchResult.Failed("PROFILE_NOT_INSTALLED")
+            }
             val identity = TerminalRuntime.defaultIdentity(environment, rootfs.absolutePath)
             val job = currentCoroutineContext().job
             val launchId = "extension-agent-launch-${agent.id}"
@@ -128,7 +134,8 @@ internal class ExtensionAgentLauncher(
         mutexFor(agent).withLock {
             withContext(Dispatchers.IO) {
                 val status = status(agent, environment, backend)
-                status.taskId?.let(daemonSupervisor::stop) ?: false
+                if (status.taskId == null) return@withContext status.code == null
+                daemonSupervisor.stop(status.taskId)
             }
         }
 

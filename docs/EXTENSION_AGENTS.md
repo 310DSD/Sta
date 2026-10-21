@@ -104,7 +104,15 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
   精确匹配，避免误停 PRoot 任务。
 - PRoot 仍保留为无 Root 回退路径，但其身份是普通 App 用户，文件权限和性能均弱于 chroot。
 
-## 7. 参考资料
+## 7. 安全边界
+
+- OpenCode/ZCode 的 Web UI 默认只监听 `127.0.0.1`，但 **loopback 不是安全边界**：
+  同一设备上的其他应用仍可连接并驱动 Agent，而 chroot/root 下 Agent 可读写工作区。
+- 当前版本未给 Web UI 加认证 token；建议后续为每次启动生成 per-launch token（路径或
+  query secret），或改用 Unix socket + 本地转发。固定端口也会让多个 Agent 实例互相冲突，
+  这与“切换后端前停止旧实例”的限制一起，属于后续需要补齐的生命周期管理。
+
+## 8. 参考资料
 
 - OpenCode CLI/Web 文档：<https://opencode.ai/docs/cli/>、<https://opencode.ai/docs/web/>
 - OpenCode 2.0 发布说明：<https://anoma.ly/notes/opencode-2-0/>

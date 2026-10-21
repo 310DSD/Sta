@@ -26,16 +26,17 @@ import androidx.compose.ui.unit.LayoutDirection
 import java.util.WeakHashMap
 import kotlin.math.roundToInt
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 
 /**
- * How long the animated IME inset may disagree with the IME animation target without emitting a
- * new value before we treat the animated reading as stranded.
+ * Length of one quiet window used to decide that the animated IME inset has stopped following
+ * the target. Two consecutive windows are required (128ms total).
  *
  * A healthy IME animation emits a new inset every frame; the gap that matters is only the dead
  * time between the target flipping and the animation's first progress callback (measured at
- * 17-36ms on a Pixel 8 in the upstream report). 64ms leaves ~2x headroom while keeping the stale
- * padding below the threshold where it reads as lag.
+ * 17-36ms on a Pixel 8 in the upstream report). One 64ms window clears that with ~2x headroom;
+ * the second window protects against a single slow frame while bounding the true-wedge delay.
  */
 internal const val IME_STRAND_GRACE_MS = 64L
 
@@ -128,6 +129,46 @@ fun rememberImeVisible(): Boolean {
     return WindowInsets.imeAnimationTarget.getBottom(density) > 0
 }
 
+/**
+ * Watch a stream of IME inset samples and report when the animated value has stopped following
+ * the target. Extracted from [rememberSafeImeInsets] so the timing/cancellation semantics can be
+ * tested with virtual time.
+ *
+ * - A healthy animation emits a new sample every frame; `collectLatest` cancels the grace delay.
+ * - A true wedge emits nothing, so the sample survives two grace windows and is reported once.
+ * - If the animated value changes while stranded, Compose's listener has come back to life
+ *   (e.g. a later successful animation delivered `onProgress`/`onEnd`, or the holder reset), so
+ *   the consumer must return to the system-synchronized path.
+ */
+internal suspend fun watchForStrandedIme(
+    samples: Flow<ImeInsetSample>,
+    graceMillis: Long = IME_STRAND_GRACE_MS,
+    onHealthy: suspend (ImeInsetSample) -> Unit = {},
+    onStranded: suspend (ImeInsetSample) -> Unit,
+) {
+    var strandedAt: Int? = null
+    samples.collectLatest { sample ->
+        val strandedAnimated = strandedAt
+        if (strandedAnimated == null) {
+            if (sample.animated == sample.target) {
+                onHealthy(sample)
+                return@collectLatest
+            }
+            // Two consecutive quiet windows avoid stranding on a slow first frame while keeping
+            // the true-wedge latency bounded (2 × 64ms) below a visible lag.
+            delay(graceMillis)
+            delay(graceMillis)
+            strandedAt = sample.animated
+            onStranded(sample)
+        } else if (sample.animated != strandedAnimated) {
+            strandedAt = null
+            onHealthy(sample)
+        } else {
+            onStranded(sample)
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun rememberSafeImeInsets(): WindowInsets {
@@ -139,47 +180,36 @@ fun rememberSafeImeInsets(): WindowInsets {
 
     LaunchedEffect(insets, density) {
         val fallback = Animatable(insets.fallbackBottom.toFloat())
-        snapshotFlow { insets.sample(density) }.collectLatest { sample ->
-            if (insets.isStranded) {
-                // Once this window's animated reading is proven stale we no longer trust it,
-                // even when it happens to equal the target again (the freeze keeps the last
-                // value, so a reopen would otherwise look "healthy" and snap).
-                fallback.animateTo(
-                    targetValue = sample.target.toFloat(),
-                    animationSpec = tween(
-                        durationMillis = IME_FALLBACK_DURATION_MS,
-                        easing = FastOutSlowInEasing,
-                    ),
-                ) {
-                    insets.setFallbackBottom(value.roundToInt())
+        watchForStrandedIme(
+            samples = snapshotFlow { insets.sample(density) },
+            onHealthy = { sample ->
+                val wasStranded = insets.isStranded
+                insets.isStranded = false
+                if (wasStranded) {
+                    insets.setFallbackBottom(sample.animated)
+                    fallback.snapTo(sample.animated.toFloat())
                 }
-                insets.setFallbackBottom(sample.target)
-                return@collectLatest
-            }
-
-            if (sample.animated == sample.target) {
-                insets.setFallbackBottom(sample.animated)
-                fallback.snapTo(sample.animated.toFloat())
-                return@collectLatest
-            }
-
-            // A healthy animation reports a new sample every frame, which cancels this wait.
-            // Only a frozen reading survives it.
-            delay(IME_STRAND_GRACE_MS)
-            insets.setFallbackBottom(sample.animated)
-            fallback.snapTo(sample.animated.toFloat())
-            insets.isStranded = true
-            fallback.animateTo(
-                targetValue = sample.target.toFloat(),
-                animationSpec = tween(
-                    durationMillis = IME_FALLBACK_DURATION_MS,
-                    easing = FastOutSlowInEasing,
-                ),
-            ) {
-                insets.setFallbackBottom(value.roundToInt())
-            }
-            insets.setFallbackBottom(sample.target)
-        }
+            },
+            onStranded = { sample ->
+                if (!insets.isStranded) {
+                    insets.setFallbackBottom(sample.animated)
+                    fallback.snapTo(sample.animated.toFloat())
+                    insets.isStranded = true
+                }
+                if (fallback.value.roundToInt() != sample.target) {
+                    fallback.animateTo(
+                        targetValue = sample.target.toFloat(),
+                        animationSpec = tween(
+                            durationMillis = IME_FALLBACK_DURATION_MS,
+                            easing = FastOutSlowInEasing,
+                        ),
+                    ) {
+                        insets.setFallbackBottom(value.roundToInt())
+                    }
+                    insets.setFallbackBottom(sample.target)
+                }
+            },
+        )
     }
 
     return insets

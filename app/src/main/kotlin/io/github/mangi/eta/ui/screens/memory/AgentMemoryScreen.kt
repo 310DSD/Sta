@@ -16,12 +16,11 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import io.github.mangi.eta.ui.insets.imePaddingSafe
-import androidx.compose.foundation.layout.isImeVisible
+import io.github.mangi.eta.ui.insets.rememberImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -96,7 +95,7 @@ internal fun AgentMemoryScreen(
         }
     }
     val currentMode = mode ?: MemoryViewMode.Preview
-    val imeVisible = WindowInsets.isImeVisible
+    val imeVisible = rememberImeVisible()
 
     MiuixScaffold(
         title = stringResource(R.string.ui_memory_b55ff5),

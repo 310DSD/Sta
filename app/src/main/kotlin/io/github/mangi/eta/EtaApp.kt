@@ -36,8 +36,6 @@ import kotlinx.coroutines.runBlocking
  */
 class EtaApp : Application(), XposedServiceHelper.OnServiceListener {
 
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
-
     interface ServiceStateListener {
         fun onServiceStateChanged(service: XposedService?)
     }
@@ -96,6 +94,9 @@ class EtaApp : Application(), XposedServiceHelper.OnServiceListener {
     }
 
     companion object {
+        /** 进程级作用域：长任务（Linux 安装、后台恢复）不能挂在页面 composition 上。 */
+        internal val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
         @Volatile
         var serviceInstance: XposedService? = null
             private set

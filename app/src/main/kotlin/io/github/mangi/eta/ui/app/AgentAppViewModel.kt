@@ -136,13 +136,11 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
             val agent = extensionAgent
             val distribution = LinuxEnvironmentSettingsRepository.current(getApplication())
             val backend = LinuxEnvironmentSettingsRepository.backend(getApplication(), distribution)
-            val status = extensionAgentLauncher.status(agent, distribution.terminalEnvironment, backend)
-            val stopped = if (status.taskId == null) status.code == null
-            else extensionAgentLauncher.stop(agent, distribution.terminalEnvironment, backend)
+            val stopped = extensionAgentLauncher.stop(agent, distribution.terminalEnvironment, backend)
             extensionAgentState = if (stopped) {
                 ExtensionAgentUiState(agent, ExtensionAgentPhase.READY)
             } else {
-                ExtensionAgentUiState(agent, ExtensionAgentPhase.FAILED, status.code ?: "STOP_FAILED")
+                ExtensionAgentUiState(agent, ExtensionAgentPhase.FAILED, "STOP_FAILED")
             }
         }
     }

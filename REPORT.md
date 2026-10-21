@@ -19,7 +19,7 @@ release APK 使用本地生成的 `CN=Sta Fork` 证书签名；如需上架或�
 
 Eta 3.3.1 使用 Compose `foundation-layout 1.12.0`。该版本的 IME insets 监听器存在
 Google IssueTracker **b/552500419**：IME 动画在 `onStart()` 之后被取消时不会收到
-`onEnd()`，内部 `runningAnimation` 永久为 `true`，导致 `WindowInsets.ime` 冻结。
+`onEnd()`，内部 `runningAnimation` 会一直保持 `true`（直到下一次成功动画的 `onEnd` 或 holder 重置），期间 `WindowInsets.ime` 冻结。
 Android 17 的预测性返回手势与键盘收起动画竞争时容易触发。冻结后 `imePadding()` 不再跟随
 键盘，表现为输入框上升/下降动画丢失或停在错误高度。
 
@@ -28,7 +28,7 @@ Android 17 的预测性返回手势与键盘收起动画竞争时容易触发。
 新增 `SafeImeInsets.kt`：
 
 - 正常状态继续使用 `WindowInsets.ime`，保持系统逐帧同步；
-- 64ms 内动画值与 `WindowInsets.imeAnimationTarget` 不一致且没有新帧时，判定为冻结；
+- 连续两个 64ms 窗口（128ms）内动画值与 `WindowInsets.imeAnimationTarget` 不一致且没有新帧时，判定为冻结；
 - 使用本地 240ms 动画追向 `imeAnimationTarget`，恢复上升/下降动画；
 - 冻结判定后本窗口生命周期内不再信任动画值；
 - `imePaddingSafe()` 已替换聊天输入栏及项目内其他 `imePadding()` 调用；
@@ -37,6 +37,7 @@ Android 17 的预测性返回手势与键盘收起动画竞争时容易触发。
 ### 验证
 
 - `SafeImeInsetsTest` 覆盖健康、冻结回退、非 bottom 边使用 target。
+- `SafeImeInsetsWatchTest` 用虚拟时间覆盖健康帧取消、双窗口确认冻结、冻结后恢复。
 - Android 37（API 37）x86_64 模拟器上安装 release APK，反复切换键盘显示/隐藏、
   用返回手势取消动画，输入栏均回到 `y=2052` 的关闭位置，无残留空白或卡死。
 - 说明：模拟器无法稳定复现特定厂商 ROM 上的取消时序，建议在 Xiaomi 17 / HyperOS 4
@@ -96,6 +97,7 @@ DeepSeek Harness 的依赖体量（611 个包）与桌面优先的 Web UI 不适
 ./gradlew :app:testDebugUnitTest \
   --tests "io.github.mangi.eta.ui.app.ExtensionAgentWebSessionTest" \
   --tests "io.github.mangi.eta.ui.insets.SafeImeInsetsTest" \
+  --tests "io.github.mangi.eta.ui.insets.SafeImeInsetsWatchTest" \
   --tests "io.github.mangi.eta.agent.extension.ExtensionAgentTest" \
   --tests "io.github.mangi.eta.agent.terminal.AlpineEnvironmentInstallerTest"
 ```

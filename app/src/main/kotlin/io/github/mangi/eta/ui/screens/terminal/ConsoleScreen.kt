@@ -7,12 +7,11 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import io.github.mangi.eta.ui.insets.imePaddingSafe
-import androidx.compose.foundation.layout.isImeVisible
+import io.github.mangi.eta.ui.insets.rememberImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -108,7 +107,7 @@ internal fun ConsoleScreen(
     var composing by remember { mutableStateOf("") }
     val modifierKeys = remember { ConsoleModifierKeys() }
     val keyboard = remember { ConsoleKeyboardController() }
-    val keyboardVisible = WindowInsets.isImeVisible
+    val keyboardVisible = rememberImeVisible()
     val clipboard = LocalClipboard.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()

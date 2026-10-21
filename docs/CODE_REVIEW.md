@@ -22,6 +22,14 @@
 | Medium | `EtaVoicePanel` 仍直接使用 `WindowInsets.ime`，语音面板的输入区同样可能被 Compose insets 冻结影响。 | 已修复：改用 `rememberSafeImeInsets()`，padding 使用 safe insets。 |
 | Medium | 项目内仍有 `Modifier.imePadding()` 调用点，未覆盖全部输入场景。 | 已修复：全部替换为 `imePaddingSafe()`；`grep` 确认只剩文档与 `SafeImeInsets` 内部实现引用。 |
 | Medium | `ExtensionAgentWebSession` 的 URL 正则过宽，遇到日志中的 `]` 或 `#token=` 时可能截断或带上无关字符，导致浏览器打开错误地址。 | 已修复：收紧到 URL 安全字符集，并覆盖 `?token=` / `#token=`；新增回归断言。 |
+| High | 运行中的 Agent 使用固定 loopback 端口；切换发行版/后端后旧守护任务仍占用端口，但状态过滤按 `environment+backend` 精确匹配，UI 看不到也停不掉它。 | 已修复主要路径：`runningAgents` 非空时禁用发行版/后端切换；跨后端遗留守护任务仍需后续统一探测。 |
+| High | chroot 安装走裸 `rememberCoroutineScope().launch`，离开 Linux 页面会取消 30 分钟、约 200 MB 的 npm 安装，留下半安装 rootfs。 | 已修复：chroot/PRoot 一律使用 `EtaApp.applicationScope.launchForegroundExecution`，前台服务租约 + Application 作用域，离开页面不会取消安装。 |
+| Medium | `ExtensionAgentLauncher.launch` 只检查 rootfs 就绪，不检查 Agent profile 是否安装；从 FAILED 状态重试可能启动一个立刻退出的进程并误报 `AGENT_EXITED`。 | 已修复：launch 前检查 `linuxPackageProfileReady`，返回 `PROFILE_NOT_INSTALLED`。 |
+| Medium | `ConsoleScreen` 与 `AgentMemoryScreen` 仍使用 `WindowInsets.isImeVisible`；该值同样在 Compose insets 冻结时不再更新。 | 已修复：统一改用 `rememberImeVisible()`。 |
+| Medium | `SafeImeInsets` 的看门狗逻辑没有任何针对性测试，只有 pass-through 断言。 | 已修复：抽出 `watchForStrandedIme`，新增 `SafeImeInsetsWatchTest`，覆盖健康帧取消、双窗口确认、冻结后恢复。 |
+| Medium | 当前 Agent Web UI 只监听 loopback 且无认证 token；同设备其他应用可访问，chroot/root 下可读写工作区。 | 已记录为安全限制；建议后续加 per-launch token 或 Unix socket，不应把 127.0.0.1 当作安全边界。 |
+| Medium | `DetachedTaskSupervisor` 的 `linuxRootfsPathProvider` 仍通过仓库缓存解析 rootfs，与 launcher 的显式 backend 存在两套解析来源；缓存冷/切换瞬间可能不一致。 | 已记录：`EtaApp` 启动时初始化缓存且 launcher 显式路径已覆盖主路径；后续可把 backend 直接传入 supervisor。 |
+| Low | PRoot/user 身份在 launch 返回后释放前台租约，守护任务要到下一次 `list()` 才被重新认领，立刻切后台可能被系统杀掉。 | 已记录；chroot/root 主路径不受影响。 |
 | Low | Root 被撤销后，`ExtensionAgentLauncher.status()` 在列出任务前直接返回 `ROOT_REQUIRED`，UI 无法在无 Root 状态下停止已运行的 root 守护任务。 | 已记录为限制：恢复 Root 后可停止；root 守护任务本身不随 App 进程退出。 |
 | Low | ZCode 使用 npm 社区包 `zcode-app-cli`，并非 Z.ai 官方 CLI 分发；存在供应链与版本漂移风险。 | 已在选型文档标注；`ZCODE_INSTALL_SCRIPT` 可替换为官方 `install.sh` 或固定版本 tarball。 |
 | Low | chroot/root 真机未覆盖：模拟器 `su` 只接受 uid/gid，无法执行 `su -c`。 | 已记录残余风险；建议在 Root 设备（Magisk/KernelSU）上按 `docs/EXTENSION_AGENTS.md` 的步骤回归。 |
@@ -42,11 +50,11 @@
 ## IME 修复审查
 
 - `SafeImeInsets` 在正常状态继续使用 `WindowInsets.ime`，不会破坏系统逐帧同步；
-- 64ms 未更新且与 `imeAnimationTarget` 不一致才判定冻结，健康动画每帧都会重置计时；
-- 冻结后本地 240ms 动画追向 target，恢复上升/下降；判定后不再信任旧动画值，避免下次弹键盘瞬跳；
+- 连续两个 64ms 窗口（128ms）未更新且与 `imeAnimationTarget` 不一致才判定冻结，健康动画每帧都会重置计时；
+- 冻结后本地 240ms 动画追向 target，恢复上升/下降；如果 `animated` 之后再次变化，说明 Compose 监听器已恢复，立即回到系统同步路径；
 - 共享实例按 `View` 弱引用缓存，避免 Activity 泄漏；`imePaddingSafe()` 消费语义与
   `imePadding()` 一致；
-- 残余风险：低帧率设备上 64ms 可能误判，但回退动画仍会落到正确 target，不会产生错误 padding。
+- 残余风险：低帧率设备上双窗口仍可能误判，但回退动画仍会落到正确 target，不会产生错误 padding。
 
 ## 测试结果
 
