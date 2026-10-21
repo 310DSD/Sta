@@ -1440,7 +1440,7 @@
   <string name="extension_agent_set_default">Default</string>
   <string name="extension_agent_launch_web">Launch Web</string>
   <string name="action_launch_agent_web">Launch %1$s Web</string>
-  <string name="opencode_provider_config">OpenCode custom provider</string>
+  <string name="opencode_provider_config">Sync Eta providers to OpenCode</string>
   <string name="extension_agent_error_root">Root access is required</string>
   <string name="extension_agent_error_background">Background start is not allowed</string>
   <string name="extension_agent_exited">The agent process exited</string>
@@ -1458,4 +1458,10 @@
   <string name="linux_dsh_tools">DeepSeek Harness</string>
   <string name="linux_dsh_tools_summary">Install the latest DeepSeek Harness via npm (about 787 MB on ARM64); requires Node.js. Web UI: dsh web</string>
   <string name="linux_dsh_tools_ready">DeepSeek Harness is ready; run dsh in the terminal</string>
+  <string name="webview_new_page">New page</string>
+  <string name="webview_close_tab">Close tab</string>
+  <string name="webview_page_menu">Page menu</string>
+  <string name="webview_sync_opencode">Sync Eta providers to OpenCode</string>
+  <string name="webview_reload">Reload page</string>
+  <string name="webview_close_current_tab">Close current tab</string>
 </resources>

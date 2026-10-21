@@ -81,7 +81,9 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 - Kimi Code 原 profile、Linux 工具行、顶栏入口和停止入口一并恢复/保留。
 - DSH 移动端改为独立壳层：隐藏桌面 rail、固定顶栏 + 抽屉、聊天列占满视口、设置页全屏 + 横向分类 chip；旧版保守 CSS 会被启动脚本清理后重新追加。
 - 原生 Markdown 分式改为“分子 / 横向分数线 / 分母”的居中布局，分数线按最宽文本测量，并修正 frac、dfrac、big、lim 等命令的归一化。
-- OpenCode 上游 2.1.2 的“自定义提供商”表单固定报 `provider.custom.unavailable`；Eta 在 WebView `⋮` 菜单和首页溢出菜单提供配置入口，按官方 `providers` 格式写入 `opencode.json` 后 `opencode reload`。
+- OpenCode 上游 2.1.2 的“自定义提供商”表单固定报 `provider.custom.unavailable`；Eta 改为从自身 provider/model 数据直接同步 `opencode.json`，映射上下文、视觉、工具、思考等级和自定义请求头/体，并执行 `opencode reload`。
+- 修复 DSH 移动 CSS 的 `#root` 规则泄漏到 OpenCode 的问题：CSS 仅在检测到 DSH `.pI_x6G_frame` 后注入，并在选择器上用 `:has` 限定 DSH，OpenCode 不再多出 56px 顶部空白。
+- 扩展 Agent WebView 标签栏改用 Compose/Miuix 主题；Enter 捕获改为 window capture + contenteditable `insertLineBreak`，OpenCode/DSH 均能换行而不发送。
 - 更新中英文 README 与三语字符串。
 
 ### 验证
@@ -121,6 +123,6 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 1. DeepSeek Harness 是开发者预览，ARM64 约 787 MB / 610 个包；升级可能破坏兼容，安装耗时长。
    已固定版本并启用 optional 预编译依赖；若镜像缺少 koffi/node-pty ARM64 预编译包，
    安装会尝试源码编译而失败。ZCode 若要启用 Web，必须自建并托管官方 CLI tarball。
-2. 扩展 Agent 的 Web UI 已统一由 Eta 内置 `ExtensionAgentWebActivity` 承载（多标签、状态栏/IME inset、Enter→换行）；DSH 额外使用移动壳层，OpenCode 的自定义提供商通过本地配置写入兜底（上游 2.1.2 Web 表单固定报 `provider.custom.unavailable`）。
+2. 扩展 Agent 的 Web UI 已统一由 Eta 内置 `ExtensionAgentWebActivity` 承载（多标签、状态栏/IME inset、Enter→换行）；DSH 额外使用移动壳层，OpenCode 的自定义提供商改为从 Eta 的 provider/model 数据同步（上游 2.1.2 Web 表单固定报 `provider.custom.unavailable`）。
 3. Android 17 的 IME 修复依赖 `imeAnimationTarget`（Compose 实验 API），
    已在 1.12.0 上验证；升级 Compose 后应保留 `SafeImeInsetsTest` 作为看门测试。

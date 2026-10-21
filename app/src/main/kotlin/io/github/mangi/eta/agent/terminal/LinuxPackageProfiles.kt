@@ -122,19 +122,30 @@ internal object LinuxPackageProfiles {
 :root { --eta-topbar-h: 56px; }
 
 @media (max-width: 720px) {
-  html, body {
+  html:has(.pI_x6G_frame),
+  body:has(.pI_x6G_frame) {
     width: 100%;
     height: 100%;
     overflow: hidden !important;
     background: var(--dsw-alias-bg-base);
   }
-  body { overscroll-behavior: none; }
-  #root {
+  body:has(.pI_x6G_frame) { overscroll-behavior: none; }
+  #root:has(.pI_x6G_frame) {
     height: calc(100dvh - var(--eta-topbar-h)) !important;
     margin-top: var(--eta-topbar-h) !important;
   }
 
   /* Native-feeling top bar. */
+  #eta-mobile-bar,
+  .VOzbGW_panel,
+  .VOzbGW_nav,
+  .VOzbGW_navList,
+  .VOzbGW_navCell,
+  .VOzbGW_content,
+  .VOzbGW_options,
+  .eta-icon {
+    box-sizing: border-box !important;
+  }
   #eta-mobile-bar {
     position: fixed;
     z-index: 90;

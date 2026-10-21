@@ -1348,7 +1348,7 @@
   <string name="extension_agent_set_default">設為預設</string>
   <string name="extension_agent_launch_web">啟動 Web</string>
   <string name="action_launch_agent_web">啟動 %1$s Web</string>
-  <string name="opencode_provider_config">OpenCode 自訂提供商</string>
+  <string name="opencode_provider_config">同步 Eta 提供商到 OpenCode</string>
   <string name="extension_agent_error_root">需要 Root 授權</string>
   <string name="extension_agent_error_background">目前不允許背景啟動</string>
   <string name="extension_agent_exited">擴充 Agent 程序已結束</string>
@@ -1366,4 +1366,10 @@
   <string name="linux_dsh_tools">DeepSeek Harness</string>
   <string name="linux_dsh_tools_summary">透過 npm 安裝最新 DeepSeek Harness（ARM64 約 787 MB）；需要 Node.js。Web UI：dsh web</string>
   <string name="linux_dsh_tools_ready">DeepSeek Harness 已就緒，在終端執行 dsh 即可開始</string>
+  <string name="webview_new_page">新建頁面</string>
+  <string name="webview_close_tab">關閉標籤</string>
+  <string name="webview_page_menu">頁面選單</string>
+  <string name="webview_sync_opencode">同步 Eta 提供商到 OpenCode</string>
+  <string name="webview_reload">重新整理目前頁面</string>
+  <string name="webview_close_current_tab">關閉目前標籤</string>
 </resources>

@@ -1418,7 +1418,7 @@
   <string name="extension_agent_set_default">设为默认</string>
   <string name="extension_agent_launch_web">启动 Web</string>
   <string name="action_launch_agent_web">启动 %1$s Web</string>
-  <string name="opencode_provider_config">OpenCode 自定义提供商</string>
+  <string name="opencode_provider_config">同步 Eta 提供商到 OpenCode</string>
   <string name="extension_agent_error_root">需要 Root 授权</string>
   <string name="extension_agent_error_background">当前不允许后台启动</string>
   <string name="extension_agent_exited">扩展 Agent 进程已退出</string>
@@ -1436,4 +1436,10 @@
   <string name="linux_dsh_tools">DeepSeek Harness</string>
   <string name="linux_dsh_tools_summary">通过 npm 安装最新 DeepSeek Harness（ARM64 约 787 MB）；需要 Node.js。Web UI：dsh web</string>
   <string name="linux_dsh_tools_ready">DeepSeek Harness 已就绪，在终端运行 dsh 即可开始</string>
+  <string name="webview_new_page">新建页面</string>
+  <string name="webview_close_tab">关闭标签</string>
+  <string name="webview_page_menu">页面菜单</string>
+  <string name="webview_sync_opencode">同步 Eta 提供商到 OpenCode</string>
+  <string name="webview_reload">刷新当前页</string>
+  <string name="webview_close_current_tab">关闭当前标签</string>
 </resources>

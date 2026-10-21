@@ -70,9 +70,10 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
   - 设置弹窗改为全屏 panel：导航变成可换行的横向 chip，内容区 100% 宽度，关闭按钮固定
     在标题行右侧；
   - 深浅色都只引用 DSH 自己的 `--dsw-*` 变量，不写死颜色。
-  CSS 同时追加到 `dsh-web-frontend` 资源，并在 WebView 每次页面加载后再注入一次，避免
-  旧安装残留的旧版补丁生效。升级 DSH 版本后需重新检查 `pI_x6G_*`、`wSkVaW_*`、
-  `VOzbGW_*` 等 hash 选择器。
+  CSS 同时追加到 `dsh-web-frontend` 资源，并在 WebView 检测到 DSH 的
+  `.pI_x6G_frame` 后再注入；不能无条件注入到所有扩展 Agent 页面，否则 `#root` 的顶栏
+  高度会泄漏到 OpenCode，造成整页顶部空白。升级 DSH 版本后需重新检查
+  `pI_x6G_*`、`wSkVaW_*`、`VOzbGW_*` 等 hash 选择器。
 
 ### 4.2 Agent 目录与启动
 
@@ -95,15 +96,19 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
   `ExtensionAgentSettingsRepository` 读写；切换后顶栏立即跟随。
 - 顶栏溢出菜单同时提供 OpenCode / DeepSeek Harness 两个快速入口，点击未安装的 Agent
   会转到 Linux 工具环境页，不再只能打开当前默认 Agent。
-- 扩展 Agent URL 由 `ExtensionAgentWebActivity` 内置 WebView 承载；移动宽度下注入
-  Enter→换行脚本（Shift/Ctrl/Cmd/Alt 语义保留），textarea 与 Lexical contenteditable
-  都覆盖，解决手机键盘没有 Shift 时误发送。
+- 扩展 Agent URL 由 `ExtensionAgentWebActivity` 内置 WebView 承载；顶部标签栏使用
+  Compose/Miuix 主题，与 Eta 主界面一致。WebView 保留每个标签独立登录态，不直接复用
+  单例 `AgentBrowserSession`，避免模型浏览器与 Agent 共享导航/Cookie 状态。
+- 移动宽度下注入 Enter→换行脚本：使用 window capture 捕获，textarea 用
+  `setRangeText`，contenteditable 用 `execCommand('insertLineBreak')`，因此 OpenCode
+  和 DSH 都能换行而不是发送；Shift/Ctrl/Cmd/Alt 语义保留。
 - OpenCode 2.1.2 的 Settings → Providers → “自定义 OpenAI 兼容提供商”保存逻辑是上游
   未实现的占位代码，固定抛出 `provider.custom.unavailable`（“此服务器上无法使用自定义
-  提供商”），服务端也没有配置写入 API。Eta 在内置 WebView 的 `⋮` 菜单和首页顶栏溢出菜单
-  提供“OpenCode 自定义提供商”：按官方 `providers` 格式合并写入
-  `/root/.config/opencode/opencode.json`，再执行 `opencode reload`。字段包括 provider ID、
-  显示名、base URL、API key 和模型 ID；写入前校验 ID/URL，写入失败会保留原配置不动。
+  提供商”），服务端也没有配置写入 API。Eta 不再维护第二套手工表单，而是在内置 WebView
+  的 `⋮` 菜单和首页顶栏溢出菜单提供“同步 Eta 提供商到 OpenCode”：直接读取 Eta 的
+  provider/model 数据，合并写入 `/root/.config/opencode/opencode.json`，再执行
+  `opencode reload`。映射包含模型上下文长度、视觉输入、工具能力、思考等级（variants）、
+  自定义请求头和请求体；原有 OpenCode MCP/插件/其他 provider 配置保留。
 
 ## 5. 验证
 

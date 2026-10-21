@@ -1,6 +1,18 @@
 package io.github.mangi.eta.agent.extension
 
+import io.github.mangi.eta.data.model.AnthropicProviderSetting
+import io.github.mangi.eta.data.model.CustomBody
+import io.github.mangi.eta.data.model.CustomHeader
+import io.github.mangi.eta.data.model.CustomProviderSetting
+import io.github.mangi.eta.data.model.Model
+import io.github.mangi.eta.data.model.OpenAiCompatibleProviderSetting
+import io.github.mangi.eta.data.model.OpenAiEndpointMode
+import io.github.mangi.eta.data.model.ProviderSetting
+import io.github.mangi.eta.data.model.ReasoningEffort
+import kotlinx.serialization.json.JsonNull
+import kotlinx.serialization.json.JsonPrimitive
 import org.json.JSONObject
+import org.json.JSONTokener
 
 /**
  * OpenCode 2.1.2 的 Web 设置页把“自定义提供商”保存实现成了无条件抛错的占位代码，
@@ -54,6 +66,157 @@ internal object OpenCodeProviderConfig {
         )
         return root.toString(2)
     }
+
+    /**
+     * 把 Eta 的 provider/model 数据映射成 OpenCode 2.x 的 `providers` 配置。
+     * 只同步启用且有模型的 provider；上下文、视觉输入、工具、自定义头和请求体
+     * 以及 Eta 的思考等级都写入对应字段。
+     */
+    fun mergeEtaProviders(existingJson: String?, providers: List<ProviderSetting>): String {
+        val root = parseRoot(existingJson)
+        if (!root.has("\$schema")) root.put("\$schema", "https://opencode.ai/config.json")
+        val targetProviders = root.optJSONObject("providers") ?: JSONObject().also {
+            root.put("providers", it)
+        }
+        val usedIds = mutableSetOf<String>()
+        syncableProviders(providers).forEach { provider ->
+                val openCodeId = uniqueProviderId(provider, usedIds)
+                targetProviders.put(openCodeId, providerJson(provider))
+            }
+        return root.toString(2)
+    }
+
+    fun syncSummary(providers: List<ProviderSetting>): Pair<Int, Int> {
+        val enabled = syncableProviders(providers)
+        return enabled.size to enabled.sumOf { provider -> provider.models.count { it.isEnabled } }
+    }
+
+    /**
+     * 没有 API key、也没有认证 header 的远端 built-in provider 不应覆盖 OpenCode 自己的
+     * 同名 provider（否则用户未在 Eta 配置 OpenAI key 时会把 OpenCode 的 native 配置冲掉）。
+     * 本机 loopback provider 通常不需要 key，仍然同步。
+     */
+    internal fun syncableProviders(providers: List<ProviderSetting>): List<ProviderSetting> =
+        providers.filter { provider ->
+            provider.isEnabled &&
+                provider.baseUrl.isNotBlank() &&
+                provider.models.any { it.isEnabled } &&
+                (
+                    provider.apiKey.isNotBlank() ||
+                        provider.customHeaders.any { it.name.contains("auth", ignoreCase = true) } ||
+                        provider.baseUrl.startsWith("http://127.0.0.1") ||
+                        provider.baseUrl.startsWith("http://localhost") ||
+                        provider.baseUrl.startsWith("https://localhost")
+                    )
+        }
+
+    private fun providerJson(provider: ProviderSetting): JSONObject = JSONObject().apply {
+        put("name", provider.name)
+        put("package", packageName(provider))
+        put("settings", JSONObject().apply {
+            put("baseURL", provider.baseUrl)
+            if (provider.apiKey.isNotBlank()) put("apiKey", provider.apiKey)
+        })
+        if (provider.customHeaders.isNotEmpty()) put("headers", headersJson(provider.customHeaders))
+        if (provider.customBody.isNotEmpty()) put("body", bodyJson(provider.customBody))
+        put("models", JSONObject().apply {
+            provider.models.filter { it.isEnabled }.forEach { model ->
+                put(modelKey(model), modelJson(model))
+            }
+        })
+    }
+
+    private fun modelJson(model: Model): JSONObject = JSONObject().apply {
+        put("name", model.displayName)
+        put("modelID", model.modelId.ifBlank { model.id })
+        val context = model.contextWindowOverride ?: model.contextWindow
+        if (context != null && context > 0) {
+            put("limit", JSONObject().put("context", context))
+        }
+        val input = buildSet {
+            addAll(model.inputModalities)
+            if (model.supportsVision) add(Model.IMAGE_MODALITY)
+        }.toList()
+        put("capabilities", JSONObject().apply {
+            put("tools", model.supportsTools)
+            put("input", input)
+            put("output", model.outputModalities.ifEmpty { listOf(Model.TEXT_MODALITY) })
+        })
+        val variants = reasoningVariants(model)
+        if (variants != null && variants.length() > 0) put("variants", variants)
+        if (model.customHeaders.isNotEmpty()) put("headers", headersJson(model.customHeaders))
+        if (model.customBody.isNotEmpty()) put("body", bodyJson(model.customBody))
+    }
+
+    private fun reasoningVariants(model: Model): org.json.JSONArray? {
+        val capabilities = model.effectiveReasoningCapabilities ?: return null
+        val efforts = capabilities.selectableEfforts
+            .filter { it != ReasoningEffort.DEFAULT }
+            .distinctBy { it.wireValue }
+        if (efforts.isEmpty()) return null
+        return org.json.JSONArray().apply {
+            efforts.forEach { effort ->
+                put(JSONObject().apply {
+                    put("id", effort.wireValue)
+                    put(
+                        "settings",
+                        JSONObject().put(
+                            "reasoningEffort",
+                            if (effort == ReasoningEffort.OFF) "none" else effort.wireValue,
+                        ),
+                    )
+                })
+            }
+        }
+    }
+
+    private fun packageName(provider: ProviderSetting): String = when (provider) {
+        is AnthropicProviderSetting -> "aisdk:@ai-sdk/anthropic"
+        is OpenAiCompatibleProviderSetting ->
+            if (provider.endpointMode == OpenAiEndpointMode.RESPONSES) "aisdk:@ai-sdk/openai"
+            else PACKAGE
+        is CustomProviderSetting ->
+            if (provider.endpointMode == OpenAiEndpointMode.RESPONSES) "aisdk:@ai-sdk/openai"
+            else PACKAGE
+    }
+
+    private fun uniqueProviderId(provider: ProviderSetting, used: MutableSet<String>): String {
+        val raw = provider.id.lowercase().replace(Regex("[^a-z0-9_-]+"), "-").trim('-')
+        val base = raw.ifBlank {
+            "eta-" + Integer.toHexString(provider.id.hashCode())
+        }
+        val normalizedBase = if (base.firstOrNull()?.isLetter() == true) base else "eta-$base"
+        var candidate = normalizedBase
+        var suffix = 2
+        while (!used.add(candidate)) {
+            candidate = "$normalizedBase-$suffix"
+            suffix += 1
+        }
+        return candidate
+    }
+
+    private fun modelKey(model: Model): String = model.modelId.ifBlank { model.id }
+
+    private fun headersJson(headers: List<CustomHeader>): JSONObject = JSONObject().apply {
+        headers.forEach { put(it.name, it.value) }
+    }
+
+    private fun bodyJson(body: List<CustomBody>): JSONObject = JSONObject().apply {
+        body.forEach { put(it.key, toJsonValue(it.value)) }
+    }
+
+    private fun toJsonValue(value: kotlinx.serialization.json.JsonElement): Any = when (value) {
+        JsonNull -> JSONObject.NULL
+        is JsonPrimitive -> if (value.isString) value.content else JSONTokener(value.toString()).nextValue()
+        else -> JSONTokener(value.toString()).nextValue()
+    }
+
+    private fun parseRoot(existingJson: String?): JSONObject =
+        if (existingJson.isNullOrBlank()) {
+            JSONObject()
+        } else {
+            JSONObject(stripJsonComments(existingJson))
+        }
 
     fun parseModels(raw: String): List<String> =
         raw.split(',', '\n', '\r')

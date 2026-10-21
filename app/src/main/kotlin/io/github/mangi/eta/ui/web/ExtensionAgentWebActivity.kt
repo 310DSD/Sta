@@ -3,11 +3,9 @@ package io.github.mangi.eta.ui.web
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
-import android.graphics.Color
 import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
-import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.ValueCallback
@@ -18,17 +16,24 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.EditText
 import android.widget.FrameLayout
-import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
-import android.widget.PopupMenu
-import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import io.github.mangi.eta.agent.terminal.LinuxPackageProfiles
+import io.github.mangi.eta.data.model.AppearanceSettings
+import io.github.mangi.eta.data.repository.AppearanceSettingsRepository
+import io.github.mangi.eta.ui.app.AgentAppTheme
 import org.json.JSONObject
 
 /**
@@ -42,16 +47,17 @@ import org.json.JSONObject
  * 只接受 loopback URL；外部链接交给系统浏览器，避免把 WebView 变成任意网页容器。
  */
 internal class ExtensionAgentWebActivity : ComponentActivity() {
-    private lateinit var tabStrip: LinearLayout
     private lateinit var contentHost: FrameLayout
     private val tabs = mutableListOf<Tab>()
+    private val tabUi = mutableStateListOf<ExtensionAgentTabUi>()
+    private var selectedTabId by mutableStateOf<Long?>(null)
+    private var nextTabId = 1L
     private var current: Tab? = null
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
 
     private data class Tab(
+        val id: Long,
         val webView: WebView,
-        val button: LinearLayout,
-        val titleView: TextView,
         var title: String = "",
     )
 
@@ -64,33 +70,32 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         }
 
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
-        tabStrip = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(8), dp(4), dp(8), dp(4))
-        }
-        val tabScroll = HorizontalScrollView(this).apply {
-            isHorizontalScrollBarEnabled = false
-            addView(tabStrip, ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(44)))
-        }
-        val menuButton = TextView(this).apply {
-            text = "⋮"
-            textSize = 22f
-            gravity = Gravity.CENTER
-            setTextColor(Color.DKGRAY)
-            contentDescription = "页面菜单"
-            setOnClickListener { showTabMenu(it) }
-        }
-        val topBar = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            addView(tabScroll, LinearLayout.LayoutParams(0, dp(44), 1f))
-            addView(menuButton, LinearLayout.LayoutParams(dp(44), dp(44)))
+        val tabBar = ComposeView(this).apply {
+            setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
+            setContent {
+                val appearance by AppearanceSettingsRepository.settingsFlow()
+                    .collectAsState(initial = AppearanceSettings())
+                AgentAppTheme(appearance = appearance, applyInterfaceScale = false) {
+                    ExtensionAgentTabBar(
+                        tabs = tabUi,
+                        selectedId = selectedTabId,
+                        onSelect = { id -> tabs.firstOrNull { it.id == id }?.let(::selectTab) },
+                        onClose = { id -> tabs.firstOrNull { it.id == id }?.let(::closeTab) },
+                        onAdd = { promptForUrl() },
+                        onSyncProviders = {
+                            OpenCodeProviderDialog.show(this@ExtensionAgentWebActivity) {
+                                current?.webView?.reload()
+                            }
+                        },
+                        onReload = { current?.webView?.reload() },
+                    )
+                }
+            }
         }
         contentHost = FrameLayout(this)
         root.addView(
-            topBar,
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)),
+            tabBar,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(48)),
         )
         root.addView(contentHost, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -117,41 +122,12 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
 
     private fun openTab(url: String) {
         val webView = createWebView()
-        val titleView = TextView(this).apply {
-            text = "页面 ${tabs.size + 1}"
-            maxLines = 1
-            setTextColor(Color.DKGRAY)
-            textSize = 13f
-            setPadding(dp(10), 0, dp(6), 0)
-        }
-        val close = TextView(this).apply {
-            text = "×"
-            textSize = 18f
-            setTextColor(Color.DKGRAY)
-            setPadding(dp(4), 0, dp(8), 0)
-            setOnClickListener { closeTab(tabs.firstOrNull { it.webView === webView } ?: return@setOnClickListener) }
-        }
-        val button = LinearLayout(this).apply {
-            orientation = LinearLayout.HORIZONTAL
-            gravity = Gravity.CENTER_VERTICAL
-            setBackgroundColor(Color.TRANSPARENT)
-            addView(titleView)
-            addView(close)
-            setOnClickListener {
-                tabs.firstOrNull { it.webView === webView }?.let(::selectTab)
-            }
-        }
-        val tab = Tab(webView, button, titleView)
+        val title = "页面 ${tabs.size + 1}"
+        val tab = Tab(id = nextTabId++, webView = webView, title = title)
         tabs += tab
-        tabStrip.addView(
-            button,
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(40)).apply {
-                marginEnd = dp(6)
-            },
-        )
+        tabUi += ExtensionAgentTabUi(tab.id, title)
         webView.loadUrl(url)
         selectTab(tab)
-        updateAddButton()
     }
 
     private fun createWebView(): WebView = WebView(this).apply {
@@ -182,11 +158,21 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                 return true
             }
 
+            override fun onPageStarted(view: WebView, url: String?, favicon: android.graphics.Bitmap?) {
+                super.onPageStarted(view, url, favicon)
+                // Register the Enter capture listener before the web app's own handlers,
+                // otherwise Lexical/OpenCode can submit before we can turn Enter into a newline.
+                if (url != null && isLoopbackHttpUrl(url)) {
+                    view.evaluateJavascript(MOBILE_INPUT_BRIDGE, null)
+                }
+            }
+
             override fun onPageFinished(view: WebView, url: String?) {
                 super.onPageFinished(view, url)
                 if (url != null && isLoopbackHttpUrl(url)) {
                     view.evaluateJavascript(MOBILE_INPUT_BRIDGE, null)
                     view.evaluateJavascript(MOBILE_LAYOUT_BRIDGE, null)
+                    view.evaluateJavascript(OPENCODE_LAYOUT_BRIDGE, null)
                     view.evaluateJavascript(DSH_MOBILE_SHELL_JS, null)
                     updateTitle(view, url)
                 }
@@ -221,23 +207,21 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
             ?: runCatching { Uri.parse(url).host }.getOrNull()
             ?: "页面 ${tabs.indexOf(tab) + 1}"
         tab.title = title
-        tab.titleView.text = title.take(18)
-        updateAddButton()
+        val index = tabUi.indexOfFirst { it.id == tab.id }
+        if (index >= 0) tabUi[index] = tabUi[index].copy(title = title)
     }
 
     private fun selectTab(tab: Tab) {
         current = tab
+        selectedTabId = tab.id
         contentHost.removeAllViews()
         (tab.webView.parent as? ViewGroup)?.removeView(tab.webView)
         contentHost.addView(tab.webView)
-        tabs.forEach {
-            it.button.setBackgroundColor(if (it === tab) 0x1A007AFF else Color.TRANSPARENT)
-        }
     }
 
     private fun closeTab(tab: Tab) {
         tabs.remove(tab)
-        tabStrip.removeView(tab.button)
+        tabUi.removeAll { it.id == tab.id }
         contentHost.removeView(tab.webView)
         tab.webView.stopLoading()
         tab.webView.destroy()
@@ -245,47 +229,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
             current = null
             tabs.lastOrNull()?.let(::selectTab)
         }
-        if (tabs.isEmpty()) finish() else updateAddButton()
-    }
-
-    private fun updateAddButton() {
-        // Keep one compact “+” button at the end of the tab strip.
-        val existing = tabStrip.findViewWithTag<View>(ADD_TAG)
-        if (existing == null) {
-            val add = TextView(this).apply {
-                tag = ADD_TAG
-                text = "+"
-                textSize = 22f
-                gravity = Gravity.CENTER
-                setPadding(dp(12), 0, dp(12), 0)
-                setOnClickListener { promptForUrl() }
-            }
-            tabStrip.addView(add, LinearLayout.LayoutParams(dp(44), dp(40)))
-        } else {
-            tabStrip.removeView(existing)
-            tabStrip.addView(existing)
-        }
-    }
-
-    private fun showTabMenu(anchor: View) {
-        PopupMenu(this, anchor).apply {
-            if (current?.webView?.title?.contains("OpenCode", ignoreCase = true) == true) {
-                menu.add(0, MENU_OPENCODE_PROVIDER, 0, "OpenCode 自定义提供商")
-            }
-            menu.add(0, MENU_RELOAD, 1, "刷新当前页")
-            menu.add(0, MENU_CLOSE_TAB, 2, "关闭当前标签")
-            setOnMenuItemClickListener { item ->
-                when (item.itemId) {
-                    MENU_OPENCODE_PROVIDER -> OpenCodeProviderDialog.show(this@ExtensionAgentWebActivity) {
-                        current?.webView?.reload()
-                    }
-                    MENU_RELOAD -> current?.webView?.reload()
-                    MENU_CLOSE_TAB -> current?.let(::closeTab)
-                }
-                true
-            }
-            show()
-        }
+        if (tabs.isEmpty()) finish()
     }
 
     private fun promptForUrl() {
@@ -340,10 +284,6 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     companion object {
         const val EXTRA_URL = "io.github.mangi.eta.extra.EXTENSION_AGENT_URL"
         private const val REQUEST_FILE_CHOOSER = 7401
-        private const val ADD_TAG = "eta-webbrowser-add"
-        private const val MENU_OPENCODE_PROVIDER = 1
-        private const val MENU_RELOAD = 2
-        private const val MENU_CLOSE_TAB = 3
 
         private fun isLoopbackHttpUrl(value: String): Boolean {
             val uri = runCatching { Uri.parse(value) }.getOrNull() ?: return false
@@ -438,7 +378,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
               window.__etaMobileInputInstalled = true;
               var mobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 800;
               if (!mobile) return;
-              document.addEventListener('keydown', function(event) {
+              window.addEventListener('keydown', function(event) {
                 if (event.key !== 'Enter' || event.isComposing || event.keyCode === 229 ||
                     event.shiftKey || event.ctrlKey || event.metaKey || event.altKey) return;
                 var target = event.target;
@@ -450,13 +390,24 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                   var end = target.selectionEnd == null ? start : target.selectionEnd;
                   target.setRangeText('\n', start, end, 'end');
                   target.dispatchEvent(new Event('input', { bubbles: true }));
-                } else {
-                  target.dispatchEvent(new KeyboardEvent('keydown', {
-                    key: 'Enter', code: 'Enter', keyCode: 13, which: 13,
-                    shiftKey: true, bubbles: true, cancelable: true
-                  }));
+                } else if (!document.execCommand('insertLineBreak')) {
+                  document.execCommand('insertText', false, '\n');
                 }
               }, true);
+            })();
+        """.trimIndent()
+
+        private val OPENCODE_LAYOUT_BRIDGE = """
+            (function() {
+              if (document.getElementById('eta-opencode-webview')) return;
+              var style = document.createElement('style');
+              style.id = 'eta-opencode-webview';
+              style.textContent = '@media (max-width:767px){' +
+                '#root:not(:has(.pI_x6G_frame)){margin-top:0!important}' +
+                'main[data-component=connect-server]{padding-top:16px!important}' +
+                '.server-connect-content{margin-top:0!important;margin-bottom:0!important}' +
+                '}';
+              (document.head || document.documentElement).appendChild(style);
             })();
         """.trimIndent()
 
@@ -465,10 +416,20 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
             """
             (function() {
               if (document.getElementById('eta-mobile-webview')) return;
-              var style = document.createElement('style');
-              style.id = 'eta-mobile-webview';
-              style.textContent = $css;
-              (document.head || document.documentElement).appendChild(style);
+              function install() {
+                if (!document.querySelector('.pI_x6G_frame')) return false;
+                var style = document.createElement('style');
+                style.id = 'eta-mobile-webview';
+                style.textContent = $css;
+                (document.head || document.documentElement).appendChild(style);
+                return true;
+              }
+              if (install()) return;
+              var attempts = 0;
+              var timer = setInterval(function() {
+                attempts += 1;
+                if (install() || attempts > 120) clearInterval(timer);
+              }, 250);
             })();
             """.trimIndent()
         }
