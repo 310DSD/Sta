@@ -126,7 +126,9 @@ class ExtensionAgentWebSessionTest {
         val result = ExtensionAgentWebSession(tasks, openUrl = { true }, waitAttempts = 1, waitIntervalMs = 0)
             .launch(ExtensionAgent.DSH, environment, "user", LinuxExecutionBackend.PROOT)
 
-        assertEquals(ExtensionAgentLaunchResult.Failed("URL_TIMEOUT"), result)
+        val failure = result as ExtensionAgentLaunchResult.Failed
+        assertEquals("URL_TIMEOUT", failure.code)
+        assertEquals("booting", failure.detail)
         assertEquals(listOf("dsh"), tasks.started)
         assertEquals(listOf("started-dsh"), tasks.stopped)
     }

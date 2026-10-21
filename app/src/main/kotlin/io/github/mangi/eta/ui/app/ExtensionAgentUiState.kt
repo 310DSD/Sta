@@ -24,8 +24,8 @@ internal data class ExtensionAgentUiState(
     }
 }
 
-internal fun ExtensionAgentLaunchResult.Failed.message(context: Context): String =
-    context.getString(
+internal fun ExtensionAgentLaunchResult.Failed.message(context: Context): String {
+    val base = context.getString(
         when (code) {
             "ROOT_REQUIRED" -> R.string.extension_agent_error_root
             "BACKGROUND_START_NOT_ALLOWED" -> R.string.extension_agent_error_background
@@ -35,6 +35,17 @@ internal fun ExtensionAgentLaunchResult.Failed.message(context: Context): String
             "LOGS_UNAVAILABLE" -> R.string.extension_agent_error_logs
             "URL_TIMEOUT" -> R.string.extension_agent_error_url
             "BROWSER_UNAVAILABLE" -> R.string.extension_agent_error_browser
+            "PAIRING_FAILED" -> R.string.extension_agent_error_pairing
             else -> R.string.extension_agent_error_start
         },
     )
+    val detailText = detail.orEmpty()
+        .lineSequence()
+        .map(String::trim)
+        .filter(String::isNotEmpty)
+        .toList()
+        .takeLast(6)
+        .joinToString("\n")
+        .take(600)
+    return if (detailText.isBlank()) base else "$base\n$detailText"
+}

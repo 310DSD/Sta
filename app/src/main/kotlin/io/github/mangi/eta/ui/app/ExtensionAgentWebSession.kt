@@ -10,7 +10,7 @@ import kotlinx.coroutines.delay
 
 internal sealed interface ExtensionAgentLaunchResult {
     data class Opened(val url: String) : ExtensionAgentLaunchResult
-    data class Failed(val code: String) : ExtensionAgentLaunchResult
+    data class Failed(val code: String, val detail: String? = null) : ExtensionAgentLaunchResult
 }
 
 /**
@@ -35,6 +35,7 @@ internal class ExtensionAgentWebSession(
         environment: TerminalEnvironment,
         identity: String,
         backend: LinuxExecutionBackend,
+        pairRequired: Boolean = false,
         resolveUrl: suspend (String) -> String? = { null },
     ): ExtensionAgentLaunchResult {
         var createdTaskId: String? = null
@@ -50,18 +51,27 @@ internal class ExtensionAgentWebSession(
                 is DaemonStartResult.Started -> started.task.id.also { createdTaskId = it }
                 is DaemonStartResult.Failed -> return ExtensionAgentLaunchResult.Failed(started.code)
             }
+            var lastLogs: String? = null
             repeat(waitAttempts) {
                 val status = tasks.list().firstOrNull { it.task.id == taskId }
-                if (status == null || !status.running) {
-                    return ExtensionAgentLaunchResult.Failed("AGENT_EXITED")
-                }
                 val logs = tasks.logs(taskId)
+                if (logs.ok) lastLogs = logs.text
+                if (status == null || !status.running) {
+                    return ExtensionAgentLaunchResult.Failed(
+                        "AGENT_EXITED",
+                        lastLogs?.takeLast(MAX_ERROR_DETAIL_CHARS),
+                    )
+                }
                 if (!logs.ok) {
                     return ExtensionAgentLaunchResult.Failed(logs.code.ifBlank { "LOGS_UNAVAILABLE" })
                 }
                 val url = addressFromLogs(agent, logs.text)
                 if (url != null) {
-                    val targetUrl = resolveUrl(url) ?: url
+                    val resolved = resolveUrl(url)
+                    if (pairRequired && resolved == null) {
+                        return ExtensionAgentLaunchResult.Failed("PAIRING_FAILED")
+                    }
+                    val targetUrl = resolved ?: url
                     opened = openUrl(targetUrl)
                     return if (opened) {
                         ExtensionAgentLaunchResult.Opened(targetUrl)
@@ -71,13 +81,18 @@ internal class ExtensionAgentWebSession(
                 }
                 delay(waitIntervalMs)
             }
-            return ExtensionAgentLaunchResult.Failed("URL_TIMEOUT")
+            return ExtensionAgentLaunchResult.Failed(
+                "URL_TIMEOUT",
+                lastLogs?.takeLast(MAX_ERROR_DETAIL_CHARS),
+            )
         } finally {
             if (!opened) createdTaskId?.let(tasks::stop)
         }
     }
 
     companion object {
+        private const val MAX_ERROR_DETAIL_CHARS = 800
+
         fun addressFromLogs(agent: ExtensionAgent, text: String): String? =
             agent.webUrlPattern.find(text)?.value
     }

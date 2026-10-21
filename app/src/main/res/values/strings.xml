@@ -1447,11 +1447,12 @@
   <string name="extension_agent_error_logs">Could not read the agent logs</string>
   <string name="extension_agent_error_url">Web UI address not found; check background task logs</string>
   <string name="extension_agent_error_browser">No browser available</string>
+  <string name="extension_agent_error_pairing">Could not obtain the agent login link; check the background task logs.</string>
   <string name="extension_agent_error_start">Failed to start the agent</string>
   <string name="linux_opencode_tools">OpenCode</string>
   <string name="linux_opencode_tools_summary">Install the latest OpenCode 2 via npm; requires Node.js. Web UI: opencode web</string>
   <string name="linux_opencode_tools_ready">OpenCode is ready; run opencode in the terminal</string>
   <string name="linux_dsh_tools">DeepSeek Harness</string>
-  <string name="linux_dsh_tools_summary">Install the latest DeepSeek Harness via npm; requires Node.js. Web UI: dsh web</string>
+  <string name="linux_dsh_tools_summary">Install the latest DeepSeek Harness via npm (about 787 MB on ARM64); requires Node.js. Web UI: dsh web</string>
   <string name="linux_dsh_tools_ready">DeepSeek Harness is ready; run dsh in the terminal</string>
 </resources>

@@ -86,7 +86,13 @@ internal class ExtensionAgentLauncher(
             }
             try {
                 currentCoroutineContext().ensureActive()
-                session.launch(agent, environment, identity, backend) { serverUrl ->
+                session.launch(
+                    agent = agent,
+                    environment = environment,
+                    identity = identity,
+                    backend = backend,
+                    pairRequired = agent.pairCommand != null,
+                ) { serverUrl ->
                     val pairCommand = agent.pairCommand?.invoke(serverUrl)
                     if (pairCommand == null) {
                         null

@@ -1355,11 +1355,12 @@
   <string name="extension_agent_error_logs">無法讀取擴充 Agent 日誌</string>
   <string name="extension_agent_error_url">未取得 Web UI 位址，請到背景任務查看日誌</string>
   <string name="extension_agent_error_browser">沒有可用的瀏覽器</string>
+  <string name="extension_agent_error_pairing">未取得擴充 Agent 登入連結，請到背景任務查看日誌</string>
   <string name="extension_agent_error_start">擴充 Agent 啟動失敗</string>
   <string name="linux_opencode_tools">OpenCode</string>
   <string name="linux_opencode_tools_summary">透過 npm 安裝最新 OpenCode 2；需要先安裝 Node.js。Web UI：opencode web</string>
   <string name="linux_opencode_tools_ready">OpenCode 已就緒，在終端執行 opencode 即可開始</string>
   <string name="linux_dsh_tools">DeepSeek Harness</string>
-  <string name="linux_dsh_tools_summary">透過 npm 安裝最新 DeepSeek Harness；需要 Node.js。Web UI：dsh web</string>
+  <string name="linux_dsh_tools_summary">透過 npm 安裝最新 DeepSeek Harness（ARM64 約 787 MB）；需要 Node.js。Web UI：dsh web</string>
   <string name="linux_dsh_tools_ready">DeepSeek Harness 已就緒，在終端執行 dsh 即可開始</string>
 </resources>
