@@ -21,6 +21,7 @@
 | Medium | 安装校验使用 `opencode web --help` / `zcode --help`，CLI 的 help 退出码或分页行为可能导致“安装成功但校验失败”。 | 已修复：改为 `command -v <cmd>` + `--version`（ZCode 保留 `--help` 作为可用性探测）。 |
 | Medium | `EtaVoicePanel` 仍直接使用 `WindowInsets.ime`，语音面板的输入区同样可能被 Compose insets 冻结影响。 | 已修复：改用 `rememberSafeImeInsets()`，padding 使用 safe insets。 |
 | Medium | 项目内仍有 `Modifier.imePadding()` 调用点，未覆盖全部输入场景。 | 已修复：全部替换为 `imePaddingSafe()`；`grep` 确认只剩文档与 `SafeImeInsets` 内部实现引用。 |
+| Medium | `ExtensionAgentWebSession` 的 URL 正则过宽，遇到日志中的 `]` 或 `#token=` 时可能截断或带上无关字符，导致浏览器打开错误地址。 | 已修复：收紧到 URL 安全字符集，并覆盖 `?token=` / `#token=`；新增回归断言。 |
 | Low | Root 被撤销后，`ExtensionAgentLauncher.status()` 在列出任务前直接返回 `ROOT_REQUIRED`，UI 无法在无 Root 状态下停止已运行的 root 守护任务。 | 已记录为限制：恢复 Root 后可停止；root 守护任务本身不随 App 进程退出。 |
 | Low | ZCode 使用 npm 社区包 `zcode-app-cli`，并非 Z.ai 官方 CLI 分发；存在供应链与版本漂移风险。 | 已在选型文档标注；`ZCODE_INSTALL_SCRIPT` 可替换为官方 `install.sh` 或固定版本 tarball。 |
 | Low | chroot/root 真机未覆盖：模拟器 `su` 只接受 uid/gid，无法执行 `su -c`。 | 已记录残余风险；建议在 Root 设备（Magisk/KernelSU）上按 `docs/EXTENSION_AGENTS.md` 的步骤回归。 |
