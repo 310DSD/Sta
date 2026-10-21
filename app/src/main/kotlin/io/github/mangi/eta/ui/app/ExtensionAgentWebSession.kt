@@ -20,7 +20,7 @@ internal sealed interface ExtensionAgentLaunchResult {
 internal class ExtensionAgentWebSession(
     private val tasks: Tasks,
     private val openUrl: (String) -> Boolean,
-    private val waitAttempts: Int = 40,
+    private val waitAttempts: Int = 90,
     private val waitIntervalMs: Long = 500,
 ) {
     interface Tasks {

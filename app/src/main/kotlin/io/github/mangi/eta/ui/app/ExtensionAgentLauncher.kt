@@ -7,6 +7,7 @@ import io.github.mangi.eta.agent.extension.ExtensionAgent
 import io.github.mangi.eta.agent.runtime.AgentExecutionService
 import io.github.mangi.eta.agent.terminal.DetachedTaskSupervisor
 import io.github.mangi.eta.agent.terminal.LinuxEnvironmentPaths
+import io.github.mangi.eta.agent.terminal.LinuxExecutionBackend
 import io.github.mangi.eta.agent.terminal.TerminalEnvironment
 import io.github.mangi.eta.agent.terminal.TerminalRuntime
 import java.util.concurrent.ConcurrentHashMap
@@ -61,11 +62,12 @@ internal class ExtensionAgentLauncher(
     suspend fun launch(
         agent: ExtensionAgent,
         environment: TerminalEnvironment,
+        backend: LinuxExecutionBackend,
     ): ExtensionAgentLaunchResult = mutexFor(agent).withLock {
         withContext(Dispatchers.IO) {
             val distribution = environment.linuxDistribution
                 ?: return@withContext ExtensionAgentLaunchResult.Failed("INVALID_ENVIRONMENT")
-            val rootfs = LinuxEnvironmentPaths.rootfsDir(context, distribution)
+            val rootfs = LinuxEnvironmentPaths.rootfsDir(context, distribution, backend)
             if (!LinuxEnvironmentPaths.rootfsReady(rootfs.absolutePath)) {
                 return@withContext ExtensionAgentLaunchResult.Failed("LINUX_ENVIRONMENT_NOT_READY")
             }
@@ -77,7 +79,7 @@ internal class ExtensionAgentLauncher(
             }
             try {
                 currentCoroutineContext().ensureActive()
-                session.launch(agent, environment, identity, LinuxEnvironmentPaths.backendOf(rootfs.absolutePath))
+                session.launch(agent, environment, identity, backend)
             } finally {
                 if (identity == "user") AgentExecutionService.release(launchId)
             }
@@ -87,10 +89,11 @@ internal class ExtensionAgentLauncher(
     suspend fun status(
         agent: ExtensionAgent,
         environment: TerminalEnvironment,
+        backend: LinuxExecutionBackend,
     ): ExtensionAgentRuntimeStatus = withContext(Dispatchers.IO) {
         val distribution = environment.linuxDistribution
             ?: return@withContext ExtensionAgentRuntimeStatus(code = "INVALID_ENVIRONMENT")
-        val rootfs = LinuxEnvironmentPaths.rootfsDir(context, distribution)
+        val rootfs = LinuxEnvironmentPaths.rootfsDir(context, distribution, backend)
         if (!LinuxEnvironmentPaths.rootfsReady(rootfs.path)) {
             return@withContext ExtensionAgentRuntimeStatus(code = "LINUX_ENVIRONMENT_NOT_READY")
         }
@@ -100,7 +103,7 @@ internal class ExtensionAgentLauncher(
         }
         val matches = daemonSupervisor.list().filter {
             it.task.environment == environment && it.task.identity == identity &&
-                it.task.backend == LinuxEnvironmentPaths.backendOf(rootfs.path) &&
+                it.task.backend == backend &&
                 it.task.command.trim() in agent.acceptedCommands
         }
         val task = matches.lastOrNull { it.running } ?: matches.lastOrNull()
@@ -117,10 +120,14 @@ internal class ExtensionAgentLauncher(
         )
     }
 
-    suspend fun stop(agent: ExtensionAgent, environment: TerminalEnvironment): Boolean =
+    suspend fun stop(
+        agent: ExtensionAgent,
+        environment: TerminalEnvironment,
+        backend: LinuxExecutionBackend,
+    ): Boolean =
         mutexFor(agent).withLock {
             withContext(Dispatchers.IO) {
-                val status = status(agent, environment)
+                val status = status(agent, environment, backend)
                 status.taskId?.let(daemonSupervisor::stop) ?: false
             }
         }

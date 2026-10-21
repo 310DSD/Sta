@@ -87,7 +87,24 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
   3. 点“启动 Web”，确认浏览器打开 `http://127.0.0.1:4096` 或 `http://127.0.0.1:3030`；
   4. 回到 Eta，确认顶栏按钮变为“打开 …”，并能停止守护任务。
 
-## 6. 参考资料
+## 6. chroot + root 适配
+
+本 fork 主要面向 **Root 授权后的 chroot 模式**（`LinuxExecutionBackend.CHROOT`）：
+
+- 安装扩展 Agent 时显式把当前 `backend` 传给 `LinuxPackageProfileInstaller`，rootfs 固定为
+  `filesDir/terminal/<distribution>/rootfs`，不会因缓存的后端选择误装到 PRoot 目录。
+- 启动时 `TerminalRuntime.defaultIdentity()` 对 chroot 返回 `root`；
+  `DetachedTaskSupervisor` 通过 `su -c` 进入 `unshare -m` + `chroot`，内层环境已设置
+  `HOME=/root`、`PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin`，
+  因此 npm 的 `--prefix /usr/local` 安装结果可直接执行。
+- 工作目录 `/workspace` 由 `/data/local/tmp/eta` bind mount 到 rootfs，root 可读写；
+  Web 服务监听 `127.0.0.1`，与 Android 浏览器共享网络命名空间。
+- 只有 `identity=user`（PRoot）才申请 `AgentExecutionService` 前台执行租约；chroot/root
+  守护任务直接由 root shell 启动，stop/status 仍按 `environment + identity + backend`
+  精确匹配，避免误停 PRoot 任务。
+- PRoot 仍保留为无 Root 回退路径，但其身份是普通 App 用户，文件权限和性能均弱于 chroot。
+
+## 7. 参考资料
 
 - OpenCode CLI/Web 文档：<https://opencode.ai/docs/cli/>、<https://opencode.ai/docs/web/>
 - OpenCode 2.0 发布说明：<https://anoma.ly/notes/opencode-2-0/>

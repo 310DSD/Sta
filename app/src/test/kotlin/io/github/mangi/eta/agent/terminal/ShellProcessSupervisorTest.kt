@@ -53,6 +53,7 @@ class ShellProcessSupervisorTest {
         assertTrue(payload.contains("eta_mount_required /data/local/tmp/eta"))
         assertTrue(payload.contains("eta_rootfs/workspace"))
         assertTrue(payload.contains("chroot"))
+        assertTrue(payload.contains("PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"))
         assertTrue(payload.contains(AlpineEnvironmentPaths.READY_MARKER))
         assertTrue(payload.contains("/bin/busybox env -i"))
         // Alpine 的 /bin/sh 是绝对符号链接，Android 侧就绪检查必须放行符号链接。

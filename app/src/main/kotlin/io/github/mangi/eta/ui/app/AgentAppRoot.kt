@@ -279,9 +279,15 @@ fun AgentAppRoot(
             onOpenTerminal = { pushRoute(AppRoute.Terminal) },
             onLaunchExtensionAgent = {
                 requestExecutionNotifications()
-                val phase = appViewModel.extensionAgentState.phase
-                if (phase == ExtensionAgentPhase.READY || phase == ExtensionAgentPhase.RUNNING ||
-                    phase == ExtensionAgentPhase.STARTING || phase == ExtensionAgentPhase.FAILED
+                val state = appViewModel.extensionAgentState
+                val phase = state.phase
+                val needsEnvironment = phase == ExtensionAgentPhase.NOT_INSTALLED ||
+                    phase == ExtensionAgentPhase.CHECKING ||
+                    (phase == ExtensionAgentPhase.FAILED &&
+                        state.errorCode in setOf("ROOT_REQUIRED", "LINUX_ENVIRONMENT_NOT_READY"))
+                if (!needsEnvironment && (phase == ExtensionAgentPhase.READY ||
+                        phase == ExtensionAgentPhase.RUNNING || phase == ExtensionAgentPhase.STARTING ||
+                        phase == ExtensionAgentPhase.FAILED)
                 ) {
                     appViewModel.launchExtensionAgent { result ->
                         if (result is ExtensionAgentLaunchResult.Failed) {

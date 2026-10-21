@@ -52,6 +52,7 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
     var extensionAgentState by mutableStateOf(ExtensionAgentUiState(agent = extensionAgent))
         private set
     private var extensionAgentJob: Job? = null
+    private var extensionAgentRefreshJob: Job? = null
 
     init {
         viewModelScope.launch {
@@ -77,17 +78,20 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
 
     fun refreshExtensionAgent() {
         if (extensionAgentJob?.isActive == true) return
-        viewModelScope.launch {
+        // 同一时刻只保留一个刷新协程：切换发行版/后端时旧结果不能覆盖新状态。
+        extensionAgentRefreshJob?.cancel()
+        extensionAgentRefreshJob = viewModelScope.launch {
             val agent = extensionAgent
             val status = withContext(Dispatchers.IO) {
                 val distribution = LinuxEnvironmentSettingsRepository.current(getApplication())
-                val rootfs = LinuxEnvironmentPaths.rootfsDir(getApplication(), distribution)
+                val backend = LinuxEnvironmentSettingsRepository.backend(getApplication(), distribution)
+                val rootfs = LinuxEnvironmentPaths.rootfsDir(getApplication(), distribution, backend)
                 val profile = io.github.mangi.eta.agent.terminal.LinuxPackageProfiles.ALL
                     .firstOrNull { it.id == agent.packageProfileId }
                 if (profile == null || !linuxPackageProfileReady(rootfs, profile)) {
                     ExtensionAgentUiState(agent, ExtensionAgentPhase.NOT_INSTALLED)
                 } else {
-                    val runtime = extensionAgentLauncher.status(agent, distribution.terminalEnvironment)
+                    val runtime = extensionAgentLauncher.status(agent, distribution.terminalEnvironment, backend)
                     when {
                         runtime.running -> ExtensionAgentUiState(agent, ExtensionAgentPhase.RUNNING)
                         runtime.code != null -> ExtensionAgentUiState(agent, ExtensionAgentPhase.FAILED, runtime.code)
@@ -96,18 +100,20 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
                     }
                 }
             }
-            if (extensionAgentJob?.isActive != true) extensionAgentState = status
+            if (extensionAgent == agent) extensionAgentState = status
         }
     }
 
     fun launchExtensionAgent(onFinished: (ExtensionAgentLaunchResult) -> Unit) {
         if (extensionAgentJob?.isActive == true) return
+        extensionAgentRefreshJob?.cancel()
         val agent = extensionAgent
         extensionAgentState = ExtensionAgentUiState(agent, ExtensionAgentPhase.STARTING)
         extensionAgentJob = viewModelScope.launch {
             val distribution = LinuxEnvironmentSettingsRepository.current(getApplication())
+            val backend = LinuxEnvironmentSettingsRepository.backend(getApplication(), distribution)
             val result = try {
-                extensionAgentLauncher.launch(agent, distribution.terminalEnvironment)
+                extensionAgentLauncher.launch(agent, distribution.terminalEnvironment, backend)
             } finally {
                 if (extensionAgentState.phase == ExtensionAgentPhase.STARTING) {
                     extensionAgentState = ExtensionAgentUiState(agent, ExtensionAgentPhase.READY)
@@ -122,15 +128,17 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
     }
 
     fun stopExtensionAgent() {
+        extensionAgentRefreshJob?.cancel()
         val preparation = extensionAgentJob
         preparation?.cancel()
         extensionAgentJob = viewModelScope.launch {
             preparation?.join()
             val agent = extensionAgent
             val distribution = LinuxEnvironmentSettingsRepository.current(getApplication())
-            val status = extensionAgentLauncher.status(agent, distribution.terminalEnvironment)
+            val backend = LinuxEnvironmentSettingsRepository.backend(getApplication(), distribution)
+            val status = extensionAgentLauncher.status(agent, distribution.terminalEnvironment, backend)
             val stopped = if (status.taskId == null) status.code == null
-            else extensionAgentLauncher.stop(agent, distribution.terminalEnvironment)
+            else extensionAgentLauncher.stop(agent, distribution.terminalEnvironment, backend)
             extensionAgentState = if (stopped) {
                 ExtensionAgentUiState(agent, ExtensionAgentPhase.READY)
             } else {

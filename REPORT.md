@@ -8,6 +8,7 @@
 | `dist/Eta-v3.3.1-sta-debug.apk` | 可调试的 debug APK（86 MB） |
 | `docs/ANDROID_17_IME_FIX.md` | Android 17 输入法动画问题根因与修复说明 |
 | `docs/EXTENSION_AGENTS.md` | OpenCode 2 / ZCode / DeepSeek Harness 选型报告 |
+| `docs/CODE_REVIEW.md` | 严格代码审查记录（含 chroot/root 调用链） |
 | 分支 `sta/android17-extension-agents` | 基于 `Mangi-11/Eta` main（c8e05d6）的 fork 提交 |
 
 release APK 使用本地生成的 `CN=Sta Fork` 证书签名；如需上架或长期分发，请替换为自己的正式密钥。
@@ -61,8 +62,11 @@ DeepSeek Harness 的依赖体量（611 个包）与桌面优先的 Web UI 不适
 
 - `LinuxPackageProfiles` 新增 `OPENCODE` 与 `ZCODE` 安装 profile（依赖 Node.js，
   npm 国内镜像优先、官方 registry 兜底），删除 `KIMI` profile。
+- 安装、启动、状态、停止均显式传入当前 `LinuxExecutionBackend`，root/chroot 固定使用
+  `filesDir/terminal/<dist>/rootfs`，不会因缓存后端误用 PRoot 目录。
 - 新增 `ExtensionAgent` 目录、`ExtensionAgentWebSession`、`ExtensionAgentLauncher`、
-  `ExtensionAgentUiState`，统一安装、启动、复用、停止与 URL 解析。
+  `ExtensionAgentUiState`，统一安装、启动、复用、停止与 URL 解析；chroot/root 下
+  由 `su -c` + `unshare -m` + `chroot` 启动，`/workspace` 为可写 bind mount。
 - 首页顶栏溢出菜单的 Kimi Web 改为当前默认扩展 Agent 的启动/打开/停止入口。
 - Linux 工具环境页用 OpenCode、ZCode 两行替换 Kimi Code 行，支持安装、启动 Web、
   停止与设为默认。
@@ -72,8 +76,13 @@ DeepSeek Harness 的依赖体量（611 个包）与桌面优先的 Web UI 不适
 ### 验证
 
 - `ExtensionAgentWebSessionTest`：URL 提取、复用已有任务、超时回收、浏览器不可用。
-- `ExtensionAgentTest`：目录只包含 OpenCode/ZCode、未知 id 回退、固定 loopback 端口。
+- `ExtensionAgentTest`：目录只包含 OpenCode/ZCode、未知 id 回退、固定 loopback 端口，
+  并验证 chroot rootfs 使用 `root` 身份、PRoot rootfs 使用 `user` 身份。
 - `AlpineEnvironmentInstallerTest`：两个 profile 的 npm 安装脚本、依赖与镜像参数。
+- `ShellProcessSupervisorTest.linuxPayload...`：chroot payload 包含 `unshare + chroot`、
+  `/usr/local/bin` PATH 和 `/workspace` bind mount。
+- 代码审查发现并修复了后端/rootfs 串用、ViewModel 刷新竞态、启动超时过短等问题，
+  详见 [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md)。
 - Android 37 模拟器安装 release APK 可正常启动、打开键盘、切换页面，无崩溃。
 
 ## 构建

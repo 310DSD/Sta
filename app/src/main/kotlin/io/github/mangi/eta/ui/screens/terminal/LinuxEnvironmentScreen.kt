@@ -19,6 +19,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.mangi.eta.R
+import io.github.mangi.eta.agent.extension.ExtensionAgent
 import io.github.mangi.eta.agent.terminal.AlpineEnvironmentInstaller
 import io.github.mangi.eta.agent.terminal.AlpineEnvironmentState
 import io.github.mangi.eta.agent.terminal.AlpineInstallProgress
@@ -46,7 +47,10 @@ import io.github.mangi.eta.agent.terminal.PackageProfileInstallStage
 import io.github.mangi.eta.agent.terminal.SharedFolderMounts
 import io.github.mangi.eta.agent.terminal.terminalEnvironment
 import io.github.mangi.eta.core.AndroidAgentLogger
+import io.github.mangi.eta.data.repository.ExtensionAgentSettingsRepository
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
+import io.github.mangi.eta.ui.app.ExtensionAgentLaunchResult
+import io.github.mangi.eta.ui.app.ExtensionAgentLauncher
 import io.github.mangi.eta.ui.app.launchForegroundExecution
 import io.github.mangi.eta.ui.app.message
 import io.github.mangi.eta.ui.app.rememberDeviceCapabilities
@@ -78,9 +82,9 @@ private enum class InstallTarget {
     ZCODE,
 }
 
-private fun InstallTarget.extensionAgent(): io.github.mangi.eta.agent.extension.ExtensionAgent? = when (this) {
-    InstallTarget.OPENCODE -> io.github.mangi.eta.agent.extension.ExtensionAgent.OPENCODE
-    InstallTarget.ZCODE -> io.github.mangi.eta.agent.extension.ExtensionAgent.ZCODE
+private fun InstallTarget.extensionAgent(): ExtensionAgent? = when (this) {
+    InstallTarget.OPENCODE -> ExtensionAgent.OPENCODE
+    InstallTarget.ZCODE -> ExtensionAgent.ZCODE
     else -> null
 }
 
@@ -167,6 +171,7 @@ internal fun LinuxEnvironmentScreen(
             profileUi.target to LinuxPackageProfileInstaller(
                 context = appContext,
                 distribution = selectedDistribution,
+                backend = backend,
                 profile = profileUi.profile,
             )
         }
@@ -185,18 +190,18 @@ internal fun LinuxEnvironmentScreen(
         mutableStateOf(apkAnalysisInstaller.isReady())
     }
     var apkAnalysisProgress by remember { mutableStateOf<ApkAnalysisInstallProgress?>(null) }
-    var launchingAgent by remember { mutableStateOf<io.github.mangi.eta.agent.extension.ExtensionAgent?>(null) }
+    var launchingAgent by remember { mutableStateOf<ExtensionAgent?>(null) }
     var runningAgents by remember(selectedDistribution, backend) {
-        mutableStateOf<Set<io.github.mangi.eta.agent.extension.ExtensionAgent>>(emptySet())
+        mutableStateOf<Set<ExtensionAgent>>(emptySet())
     }
     val extensionAgentFlow = remember(appContext) {
-        io.github.mangi.eta.data.repository.ExtensionAgentSettingsRepository.flow(appContext)
+        ExtensionAgentSettingsRepository.flow(appContext)
     }
     val defaultAgent by extensionAgentFlow.collectAsState(
-        initial = io.github.mangi.eta.data.repository.ExtensionAgentSettingsRepository.current(appContext),
+        initial = ExtensionAgentSettingsRepository.current(appContext),
     )
     val extensionAgentLauncher = remember(appContext) {
-        io.github.mangi.eta.ui.app.ExtensionAgentLauncher(
+        ExtensionAgentLauncher(
             context = appContext,
             daemonSupervisor = DetachedTaskSupervisor(
                 logger = AndroidAgentLogger,
@@ -212,9 +217,9 @@ internal fun LinuxEnvironmentScreen(
     }
     LaunchedEffect(selectedDistribution, backend, launchingAgent) {
         if (launchingAgent == null) {
-            runningAgents = io.github.mangi.eta.agent.extension.ExtensionAgent.entries
+            runningAgents = ExtensionAgent.entries
                 .filter { agent ->
-                    extensionAgentLauncher.status(agent, selectedDistribution.terminalEnvironment).running
+                    extensionAgentLauncher.status(agent, selectedDistribution.terminalEnvironment, backend).running
                 }
                 .toSet()
         }
@@ -302,15 +307,15 @@ internal fun LinuxEnvironmentScreen(
     }
 
     /** 启动扩展 Agent 的 Web UI：守护任务常驻 web 模式，解析地址后拉起浏览器。 */
-    fun launchAgent(agent: io.github.mangi.eta.agent.extension.ExtensionAgent) {
+    fun launchAgent(agent: ExtensionAgent) {
         if (launchingAgent != null || requiresRoot) return
         requestExecutionNotifications()
         launchingAgent = agent
         resultMessage = null
         coroutineScope.launch {
-            val result = extensionAgentLauncher.launch(agent, selectedDistribution.terminalEnvironment)
+            val result = extensionAgentLauncher.launch(agent, selectedDistribution.terminalEnvironment, backend)
             launchingAgent = null
-            if (result is io.github.mangi.eta.ui.app.ExtensionAgentLaunchResult.Failed) {
+            if (result is ExtensionAgentLaunchResult.Failed) {
                 resultMessage = result.message(context)
             } else {
                 runningAgents = runningAgents + agent
@@ -318,9 +323,9 @@ internal fun LinuxEnvironmentScreen(
         }
     }
 
-    fun stopAgent(agent: io.github.mangi.eta.agent.extension.ExtensionAgent) {
+    fun stopAgent(agent: ExtensionAgent) {
         coroutineScope.launch {
-            val stopped = extensionAgentLauncher.stop(agent, selectedDistribution.terminalEnvironment)
+            val stopped = extensionAgentLauncher.stop(agent, selectedDistribution.terminalEnvironment, backend)
             runningAgents = if (stopped) runningAgents - agent else runningAgents
         }
     }
@@ -472,7 +477,7 @@ internal fun LinuxEnvironmentScreen(
                                             enabled = launchingAgent == null && busyTarget == null,
                                             onClick = {
                                                 coroutineScope.launch {
-                                                    io.github.mangi.eta.data.repository.ExtensionAgentSettingsRepository
+                                                    ExtensionAgentSettingsRepository
                                                         .select(agent)
                                                 }
                                             },

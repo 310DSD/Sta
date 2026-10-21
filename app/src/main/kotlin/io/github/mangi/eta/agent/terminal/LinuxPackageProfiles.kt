@@ -122,11 +122,11 @@ internal object LinuxPackageProfiles {
         specs = mapOf(
             LinuxDistribution.ALPINE to LinuxPackageSpec(
                 setupScript = OPENCODE_INSTALL_SCRIPT,
-                verifyCommand = "opencode --version >/dev/null && opencode web --help >/dev/null",
+                verifyCommand = "command -v opencode >/dev/null && opencode --version >/dev/null",
             ),
             LinuxDistribution.DEBIAN to LinuxPackageSpec(
                 setupScript = OPENCODE_INSTALL_SCRIPT,
-                verifyCommand = "opencode --version >/dev/null && opencode web --help >/dev/null",
+                verifyCommand = "command -v opencode >/dev/null && opencode --version >/dev/null",
             ),
         ),
     )
@@ -139,11 +139,11 @@ internal object LinuxPackageProfiles {
         specs = mapOf(
             LinuxDistribution.ALPINE to LinuxPackageSpec(
                 setupScript = ZCODE_INSTALL_SCRIPT,
-                verifyCommand = "zcode --help >/dev/null",
+                verifyCommand = "command -v zcode >/dev/null && zcode --help >/dev/null",
             ),
             LinuxDistribution.DEBIAN to LinuxPackageSpec(
                 setupScript = ZCODE_INSTALL_SCRIPT,
-                verifyCommand = "zcode --help >/dev/null",
+                verifyCommand = "command -v zcode >/dev/null && zcode --help >/dev/null",
             ),
         ),
     )
@@ -162,9 +162,10 @@ internal fun linuxPackageProfileReady(rootfs: File, profile: LinuxPackageProfile
 internal class LinuxPackageProfileInstaller(
     private val context: Context,
     private val distribution: LinuxDistribution,
+    private val backend: LinuxExecutionBackend,
     private val profile: LinuxPackageProfile,
 ) {
-    private val rootfs = LinuxEnvironmentPaths.rootfsDir(context, distribution)
+    private val rootfs = LinuxEnvironmentPaths.rootfsDir(context, distribution, backend)
     private val managedToolInstaller = PinnedLinuxToolInstaller(context)
 
     fun isReady(): Boolean = linuxPackageProfileReady(rootfs, profile)

@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.offset
@@ -64,6 +63,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
 import io.github.mangi.eta.ui.components.AgentConversationMessages
+import io.github.mangi.eta.ui.insets.rememberSafeImeInsets
 import io.github.mangi.eta.ui.model.AgentChatMessageUi
 import kotlin.math.abs
 import kotlinx.coroutines.coroutineScope
@@ -174,6 +174,7 @@ internal fun EtaVoicePanel(
     val colors = rememberEtaVoicePanelColors()
     val keyboard = LocalSoftwareKeyboardController.current
     val density = LocalDensity.current
+    val safeImeInsets = rememberSafeImeInsets()
     val entryProgress = remember { Animatable(0f) }
     val entryAlpha = remember { Animatable(0f) }
     val scrimProgress = remember { Animatable(0f) }
@@ -244,7 +245,7 @@ internal fun EtaVoicePanel(
                     translationY = (1f - entryProgress.value) * textEntryOffsetPx
                 },
         ) {
-            val imeInsets = WindowInsets.ime
+            val imeInsets = safeImeInsets
             val navigationInsets = WindowInsets.navigationBars
             val keyboardVisible by remember(density, imeInsets, navigationInsets) {
                 derivedStateOf { imeInsets.getBottom(density) > navigationInsets.getBottom(density) }
@@ -327,6 +328,7 @@ private fun BoxScope.AssistantPanel(
 ) {
     val density = LocalDensity.current
     val haptic = LocalHapticFeedback.current
+    val safeImeInsets = rememberSafeImeInsets()
     val listState = rememberLazyListState()
     var settledHeightPx by remember { mutableFloatStateOf(baseContentHeightPx) }
     var draggedHeightPx by remember { mutableStateOf<Float?>(null) }
@@ -609,8 +611,8 @@ private fun BoxScope.AssistantPanel(
         modifier = Modifier
             .align(Alignment.BottomCenter)
             .fillMaxWidth()
-            // IME 已由系统逐帧插值；布局阶段直接消费，避免组合阶段旧值或二次动画造成追赶。
-            .windowInsetsPadding(WindowInsets.ime.union(WindowInsets.navigationBars).only(WindowInsetsSides.Bottom))
+            // IME 使用 SafeImeInsets：正常逐帧跟随系统，Compose insets 冻结时回退到目标动画。
+            .windowInsetsPadding(safeImeInsets.union(WindowInsets.navigationBars).only(WindowInsetsSides.Bottom))
             .offset(y = with(density) { sheetTranslationPx.toDp() })
             .clip(sheetShape)
             .drawBehind {
