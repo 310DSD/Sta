@@ -56,8 +56,8 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
 - `DSH`：依赖 `NODE` profile，执行
   `npm install -g --prefix /usr/local @deepseek-ai/dsh@0.2.1-rc.2`，安装后校验
   `command -v dsh` + `dsh --version`。
-- 两个 profile 都优先使用 `registry.npmmirror.com`，失败后回退官方 registry；安装超时
-  30 分钟。
+- 两个 profile 都优先使用 `registry.npmmirror.com`，失败后回退官方 registry；OpenCode
+  安装超时 30 分钟，DSH 610 个包使用 60 分钟。
 - DSH 的 `koffi` / `node-pty` 会使用 `@koromix/koffi-linux-arm64`、`node-pty/prebuilds/linux-arm64`
   预编译文件；若镜像缺少 optional dependency，npm 会尝试源码编译，而基础 rootfs 没有
   build-essential/cmake，安装会失败。选型验证使用了完整 ARM64 optional 依赖。

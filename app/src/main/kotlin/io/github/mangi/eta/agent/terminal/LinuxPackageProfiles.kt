@@ -45,6 +45,8 @@ internal data class LinuxPackageProfile(
     val specs: Map<LinuxDistribution, LinuxPackageSpec>,
     /** 安装前必须就绪的前置 profile。 */
     val dependsOn: LinuxPackageProfile? = null,
+    /** npm/apt 安装与校验的最长等待时间；DSH 的 610 个包需要更长窗口。 */
+    val installTimeoutSeconds: Long = 1800L,
 ) {
     fun spec(distribution: LinuxDistribution): LinuxPackageSpec = requireNotNull(specs[distribution])
 }
@@ -137,6 +139,7 @@ internal object LinuxPackageProfiles {
         markerName = AlpineEnvironmentPaths.DSH_TOOLS_MARKER,
         revision = AlpineEnvironmentPaths.DSH_TOOLS_REVISION,
         dependsOn = NODE,
+        installTimeoutSeconds = 3600L,
         specs = mapOf(
             LinuxDistribution.ALPINE to LinuxPackageSpec(
                 setupScript = DSH_INSTALL_SCRIPT,
@@ -228,7 +231,7 @@ internal class LinuxPackageProfileInstaller(
         if (spec.packages.isNotEmpty()) {
             val installResult = InstallerShellRunner.run(
                 command = "$packageHelper install ${spec.packages.joinToString(" ")}",
-                timeoutSeconds = INSTALL_TIMEOUT_SECONDS,
+                timeoutSeconds = profile.installTimeoutSeconds,
                 environment = distribution.terminalEnvironment,
                 linuxRootfsPath = rootfs.absolutePath,
             )
@@ -250,7 +253,7 @@ internal class LinuxPackageProfileInstaller(
         }
         val result = InstallerShellRunner.run(
             command = activateCommand,
-            timeoutSeconds = INSTALL_TIMEOUT_SECONDS,
+            timeoutSeconds = profile.installTimeoutSeconds,
             environment = distribution.terminalEnvironment,
             linuxRootfsPath = rootfs.absolutePath,
         )
@@ -269,7 +272,6 @@ internal class LinuxPackageProfileInstaller(
 
     companion object {
         // npm 包体积较大（OpenCode ARM64 约 200 MB），手机网络下 10 分钟不够。
-        private const val INSTALL_TIMEOUT_SECONDS = 1800L
         private val installMutex = Mutex()
     }
 }

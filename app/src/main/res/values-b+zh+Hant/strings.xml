@@ -1356,6 +1356,7 @@
   <string name="extension_agent_error_url">未取得 Web UI 位址，請到背景任務查看日誌</string>
   <string name="extension_agent_error_browser">沒有可用的瀏覽器</string>
   <string name="extension_agent_error_pairing">未取得擴充 Agent 登入連結，請到背景任務查看日誌</string>
+  <string name="extension_agent_error_stop">無法停止擴充 Agent，請檢查它是否仍在執行</string>
   <string name="extension_agent_error_start">擴充 Agent 啟動失敗</string>
   <string name="linux_opencode_tools">OpenCode</string>
   <string name="linux_opencode_tools_summary">透過 npm 安裝最新 OpenCode 2；需要先安裝 Node.js。Web UI：opencode web</string>

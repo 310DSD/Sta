@@ -69,6 +69,7 @@ import io.github.mangi.eta.ui.components.EtaTextButton
 import io.github.mangi.eta.ui.components.MiuixScaffoldPage
 import io.github.mangi.eta.ui.navigation.AppRoute
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -212,11 +213,14 @@ internal fun LinuxEnvironmentScreen(
     }
     LaunchedEffect(selectedDistribution, backend, launchingAgent) {
         if (launchingAgent == null) {
-            runningAgents = ExtensionAgent.entries
-                .filter { agent ->
-                    extensionAgentLauncher.status(agent, selectedDistribution.terminalEnvironment, backend).running
-                }
-                .toSet()
+            while (true) {
+                runningAgents = ExtensionAgent.entries
+                    .filter { agent ->
+                        extensionAgentLauncher.status(agent, selectedDistribution.terminalEnvironment, backend).running
+                    }
+                    .toSet()
+                delay(15_000)
+            }
         }
     }
     val selectedBaseReady = when (selectedDistribution) {
@@ -305,23 +309,43 @@ internal fun LinuxEnvironmentScreen(
         requestExecutionNotifications()
         launchingAgent = agent
         resultMessage = null
-        coroutineScope.launch {
+        val operation: suspend () -> Unit = {
             val result = extensionAgentLauncher.launch(agent, selectedDistribution.terminalEnvironment, backend)
-            launchingAgent = null
-            if (result is ExtensionAgentLaunchResult.Failed) {
-                resultMessage = result.message(context)
-            } else {
-                runningAgents = runningAgents + agent
-                // 最近一次成功启动的 Agent 作为首页顶栏默认入口。
-                ExtensionAgentSettingsRepository.select(agent)
+            withContext(Dispatchers.Main.immediate) {
+                launchingAgent = null
+                if (result is ExtensionAgentLaunchResult.Failed) {
+                    resultMessage = result.message(context)
+                } else {
+                    runningAgents = runningAgents + agent
+                    // 最近一次成功启动的 Agent 作为首页顶栏默认入口。
+                    ExtensionAgentSettingsRepository.select(agent)
+                }
             }
+        }
+        // 启动等待最长 45 秒；离开页面不应取消刚刚拉起的守护任务。chroot/root 不需要
+        // 前台执行租约，PRoot/user 仍由 AgentExecutionService 保证进程存活。
+        if (backend == LinuxExecutionBackend.CHROOT) {
+            EtaApp.applicationScope.launch { operation() }
+        } else {
+            EtaApp.applicationScope.launchForegroundExecution(
+                context = appContext,
+                onUnavailable = {
+                    launchingAgent = null
+                    resultMessage = context.getString(R.string.capability_background_failed)
+                },
+                block = operation,
+            )
         }
     }
 
     fun stopAgent(agent: ExtensionAgent) {
         coroutineScope.launch {
-            val stopped = extensionAgentLauncher.stop(agent, selectedDistribution.terminalEnvironment, backend)
-            runningAgents = if (stopped) runningAgents - agent else runningAgents
+            val stopCode = extensionAgentLauncher.stop(agent, selectedDistribution.terminalEnvironment, backend)
+            if (stopCode == null) {
+                runningAgents = runningAgents - agent
+            } else {
+                resultMessage = ExtensionAgentLaunchResult.Failed(stopCode).message(context)
+            }
         }
     }
 

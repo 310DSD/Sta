@@ -17,7 +17,7 @@
 | --- | --- | --- |
 | High | 安装/启动/状态查询使用 `LinuxEnvironmentPaths.rootfsDir(context, distribution)` 的默认后端，而该值来自可变的 `LinuxEnvironmentSettingsRepository` 缓存；同时存在 PRoot 与 chroot 环境时，UI 选择的 chroot 可能被错误解析到 PRoot rootfs。 | 已修复：`LinuxPackageProfileInstaller`、`ExtensionAgentLauncher.launch/status/stop`、`AgentAppViewModel` 全部显式传递 `LinuxExecutionBackend`，rootfs 使用 `rootfsDir(context, distribution, backend)`。 |
 | High | `AgentAppViewModel.refreshExtensionAgent()` 每次启动独立协程，且用 `extensionAgentJob` 判断状态；启动/停止期间后台刷新可能用旧的 `READY` 覆盖 `STARTING/RUNNING`，切换 Agent 时旧刷新也可能覆盖新 Agent。 | 已修复：增加单独的 `extensionAgentRefreshJob`，刷新前取消旧任务；启动/停止前取消刷新；写入状态前校验 `extensionAgent == agent`。 |
-| Medium | chroot 下 Node 启动 OpenCode/DeepSeek Harness 的冷启动可能超过 20 秒（原 `waitAttempts=40 × 500ms`），在手机上会误报 `URL_TIMEOUT`。 | 已修复：等待提升到 90 次（45 秒）。 |
+| Medium | chroot 下 Node 启动 OpenCode/DeepSeek Harness 的冷启动可能超过 20 秒（原 `waitAttempts=40 × 500ms`），在手机上会误报 `URL_TIMEOUT`。 | 已修复：等待提升到 60 次 × 1 秒（60 秒），同时减少状态探测次数。 |
 | Medium | 安装校验使用 `opencode web --help` / `zcode --help`（旧方案），CLI 的 help 退出码或分页行为可能导致“安装成功但校验失败”。 | 已修复：改为 `command -v <cmd>` + `--version`（新方案统一为 `command -v` + `--version`）。 |
 | Medium | `EtaVoicePanel` 仍直接使用 `WindowInsets.ime`，语音面板的输入区同样可能被 Compose insets 冻结影响。 | 已修复：改用 `rememberSafeImeInsets()`，padding 使用 safe insets。 |
 | Medium | 项目内仍有 `Modifier.imePadding()` 调用点，未覆盖全部输入场景。 | 已修复：全部替换为 `imePaddingSafe()`；`grep` 确认只剩文档与 `SafeImeInsets` 内部实现引用。 |

@@ -35,6 +35,7 @@ internal fun ExtensionAgentLaunchResult.Failed.message(context: Context): String
             "LOGS_UNAVAILABLE" -> R.string.extension_agent_error_logs
             "URL_TIMEOUT" -> R.string.extension_agent_error_url
             "BROWSER_UNAVAILABLE" -> R.string.extension_agent_error_browser
+            "STOP_FAILED" -> R.string.extension_agent_error_stop
             "PAIRING_FAILED" -> R.string.extension_agent_error_pairing
             else -> R.string.extension_agent_error_start
         },
@@ -43,6 +44,16 @@ internal fun ExtensionAgentLaunchResult.Failed.message(context: Context): String
         .lineSequence()
         .map(String::trim)
         .filter(String::isNotEmpty)
+        .map { line ->
+            if (line.contains("server password", ignoreCase = true) ||
+                line.contains("token", ignoreCase = true) ||
+                line.contains("auth/connect", ignoreCase = true)
+            ) {
+                "[redacted]"
+            } else {
+                line
+            }
+        }
         .toList()
         .takeLast(6)
         .joinToString("\n")

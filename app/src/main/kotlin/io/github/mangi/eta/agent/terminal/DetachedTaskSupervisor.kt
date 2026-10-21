@@ -79,7 +79,7 @@ internal class DetachedTaskSupervisor(
         val wirePidFile = "$wireDir/$id.pid"
         val wireLogFile = "$wireDir/$id.log"
         // 内层 sh 先落 pidfile 再 exec 目标命令，PID 在 exec 前后不变。
-        val innerScript = "echo \$\$ > ${shellQuote(wirePidFile)}; " +
+        val innerScript = "umask 077; echo \$\$ > ${shellQuote(wirePidFile)}; " +
             "export $ETA_PROCESS_OWNER_ENV=${shellQuote(token)}; " +
             "exec sh -c ${shellQuote(command)} >> ${shellQuote(wireLogFile)} 2>&1"
         val launcherScript = buildString {
@@ -218,7 +218,7 @@ internal class DetachedTaskSupervisor(
             else -> daemonDir
         }
         val logPath = "$wireDir/$id.log"
-        val script = "mkdir -p ${shellQuote(wireDir)} && { cd ${shellQuote(cwd)} && " +
+        val script = "umask 077; mkdir -p ${shellQuote(wireDir)} && { cd ${shellQuote(cwd)} && " +
             commandPayload(command, "$wireDir/$id.exit") + "; } > ${shellQuote(logPath)} 2>&1"
         val process = oneShotSupervisor.startShellProcess(identity, script, true, environment,
             linuxRootfsPath = rootfsPath(environment), linuxSharedMounts = linuxSharedMountsProvider())

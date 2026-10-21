@@ -1448,6 +1448,7 @@
   <string name="extension_agent_error_url">Web UI address not found; check background task logs</string>
   <string name="extension_agent_error_browser">No browser available</string>
   <string name="extension_agent_error_pairing">Could not obtain the agent login link; check the background task logs.</string>
+  <string name="extension_agent_error_stop">Could not stop the extension agent; check whether it is still running.</string>
   <string name="extension_agent_error_start">Failed to start the agent</string>
   <string name="linux_opencode_tools">OpenCode</string>
   <string name="linux_opencode_tools_summary">Install the latest OpenCode 2 via npm; requires Node.js. Web UI: opencode web</string>

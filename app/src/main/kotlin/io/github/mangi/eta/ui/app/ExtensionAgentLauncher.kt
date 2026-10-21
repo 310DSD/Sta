@@ -151,16 +151,17 @@ internal class ExtensionAgentLauncher(
         )
     }
 
+    /** Returns null on success, otherwise a stable error code suitable for [ExtensionAgentUiState]. */
     suspend fun stop(
         agent: ExtensionAgent,
         environment: TerminalEnvironment,
         backend: LinuxExecutionBackend,
-    ): Boolean =
+    ): String? =
         mutexFor(agent).withLock {
             withContext(Dispatchers.IO) {
                 val status = status(agent, environment, backend)
-                if (status.taskId == null) return@withContext status.code == null
-                daemonSupervisor.stop(status.taskId)
+                if (status.taskId == null) return@withContext status.code
+                if (daemonSupervisor.stop(status.taskId)) null else "STOP_FAILED"
             }
         }
 

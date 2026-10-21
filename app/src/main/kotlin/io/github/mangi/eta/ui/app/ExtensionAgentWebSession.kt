@@ -20,8 +20,8 @@ internal sealed interface ExtensionAgentLaunchResult {
 internal class ExtensionAgentWebSession(
     private val tasks: Tasks,
     private val openUrl: (String) -> Boolean,
-    private val waitAttempts: Int = 90,
-    private val waitIntervalMs: Long = 500,
+    private val waitAttempts: Int = 60,
+    private val waitIntervalMs: Long = 1_000,
 ) {
     interface Tasks {
         fun list(): List<DetachedTaskStatus>
@@ -41,7 +41,7 @@ internal class ExtensionAgentWebSession(
         var createdTaskId: String? = null
         var opened = false
         try {
-            val existing = tasks.list().firstOrNull {
+            val existing = tasks.list().lastOrNull {
                 it.running && it.task.environment == environment && it.task.identity == identity &&
                     it.task.backend == backend && it.task.command.trim() in agent.acceptedCommands
             }

@@ -114,10 +114,10 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
             val backend = LinuxEnvironmentSettingsRepository.backend(getApplication(), distribution)
             val result = try {
                 extensionAgentLauncher.launch(agent, distribution.terminalEnvironment, backend)
-            } finally {
-                if (extensionAgentState.phase == ExtensionAgentPhase.STARTING) {
-                    extensionAgentState = ExtensionAgentUiState(agent, ExtensionAgentPhase.READY)
-                }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (failure: Throwable) {
+                ExtensionAgentLaunchResult.Failed("START_FAILED", failure.message)
             }
             extensionAgentState = when (result) {
                 is ExtensionAgentLaunchResult.Opened -> ExtensionAgentUiState(agent, ExtensionAgentPhase.RUNNING)
@@ -136,11 +136,11 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
             val agent = extensionAgent
             val distribution = LinuxEnvironmentSettingsRepository.current(getApplication())
             val backend = LinuxEnvironmentSettingsRepository.backend(getApplication(), distribution)
-            val stopped = extensionAgentLauncher.stop(agent, distribution.terminalEnvironment, backend)
-            extensionAgentState = if (stopped) {
+            val stopCode = extensionAgentLauncher.stop(agent, distribution.terminalEnvironment, backend)
+            extensionAgentState = if (stopCode == null) {
                 ExtensionAgentUiState(agent, ExtensionAgentPhase.READY)
             } else {
-                ExtensionAgentUiState(agent, ExtensionAgentPhase.FAILED, "STOP_FAILED")
+                ExtensionAgentUiState(agent, ExtensionAgentPhase.FAILED, stopCode)
             }
         }
     }

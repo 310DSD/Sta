@@ -64,7 +64,8 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 ### 实现
 
 - `LinuxPackageProfiles` 新增 `OPENCODE` 与 `DSH` 安装 profile（依赖 Node.js，
-  npm 国内镜像优先、官方 registry 兜底），删除 `KIMI` profile。
+  npm 国内镜像优先、官方 registry 兜底），固定 OpenCode 2.1.2 / DSH 0.2.1-rc.2，
+  使用 `--include=optional` 保留 koffi/node-pty 的 ARM64 预编译依赖；删除 `KIMI` profile。
 - 安装、启动、状态、停止均显式传入当前 `LinuxExecutionBackend`，root/chroot 固定使用
   `filesDir/terminal/<dist>/rootfs`，不会因缓存后端误用 PRoot 目录。
 - 新增 `ExtensionAgent` 目录、`ExtensionAgentWebSession`、`ExtensionAgentLauncher`、
@@ -110,8 +111,9 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 
 ## 已知风险与后续
 
-1. DeepSeek Harness 是开发者预览，611 个包、约 827 MB；升级可能破坏兼容，安装耗时长。
-   后续应固定版本并清理 npm/pnpm 缓存；ZCode 若要启用 Web，必须自建并托管官方 CLI tarball。
+1. DeepSeek Harness 是开发者预览，ARM64 约 787 MB / 610 个包；升级可能破坏兼容，安装耗时长。
+   已固定版本并启用 optional 预编译依赖；若镜像缺少 koffi/node-pty ARM64 预编译包，
+   安装会尝试源码编译而失败。ZCode 若要启用 Web，必须自建并托管官方 CLI tarball。
 2. 扩展 Agent 的 Web UI 仍由系统浏览器打开，未做 Eta 内置 WebView 容器。
 3. Android 17 的 IME 修复依赖 `imeAnimationTarget`（Compose 实验 API），
    已在 1.12.0 上验证；升级 Compose 后应保留 `SafeImeInsetsTest` 作为看门测试。
