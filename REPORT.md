@@ -47,7 +47,7 @@ Android 17 的预测性返回手势与键盘收起动画竞争时容易触发。
 
 ### 选型
 
-选择 **OpenCode 2.1.2** 与 **DeepSeek Harness 0.2.1-rc.2**，ZCode 在实现阶段落选。
+选择 **OpenCode 2.1.2** 与 **DeepSeek Harness 0.2.1-rc.2**，ZCode 在实现阶段落选；**Kimi Code 保留为第三个扩展 Agent**。
 关键数据：
 
 | 指标 | OpenCode | ZCode | DeepSeek Harness |
@@ -78,6 +78,7 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 - 扩展 Agent 的 Web UI 改由内置 `ExtensionAgentWebActivity` 承载：移动端 Enter 插入换行，
   支持文件选择、返回栈和外部链接转系统浏览器；顶栏溢出菜单同时提供 OpenCode / DSH 两个入口。
 - 原生对话的用户消息也走 Markdown；新增常见 LaTeX 希腊字母、运算/集合/箭头符号归一化。
+- Kimi Code 原 profile、Linux 工具行、顶栏入口和停止入口一并恢复/保留。
 - 更新中英文 README 与三语字符串。
 
 ### 验证
