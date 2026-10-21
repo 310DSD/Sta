@@ -25,8 +25,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.ime
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -80,6 +78,8 @@ import io.github.mangi.eta.agent.browser.AgentBrowserSession
 import io.github.mangi.eta.data.model.ReasoningEffort
 import io.github.mangi.eta.ui.app.AgentConversationRevisionReducer
 import io.github.mangi.eta.ui.app.LocalBlurEnabled
+import io.github.mangi.eta.ui.insets.imePaddingSafe
+import io.github.mangi.eta.ui.insets.rememberImeVisible
 import io.github.mangi.eta.ui.markdown.StreamingMarkdownStateCache
 import io.github.mangi.eta.ui.model.ConversationHistoryLoadState
 import io.github.mangi.eta.ui.model.AgentChatMessageUi
@@ -172,9 +172,7 @@ internal fun AgentChatBody(
 ) {
     val scrollState = rememberLazyListState(initialFirstVisibleItemIndex = messages.size + if (hasEarlierMessages) 1 else 0)
     val keyboard = LocalSoftwareKeyboardController.current
-    val density = LocalDensity.current
-    val imeBottomPx = WindowInsets.ime.getBottom(density)
-    val isKeyboardVisible = imeBottomPx > 0
+    val isKeyboardVisible = rememberImeVisible()
     val browserSnapshot by AgentBrowserSession.snapshots.collectAsState()
     val contextUsage = remember(messages, modelPickerState.selectedModel) {
         latestContextUsage(messages, modelPickerState.selectedModel)
@@ -985,7 +983,7 @@ private fun AgentChatBottomBar(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .imePadding(),
+            .imePaddingSafe(),
     ) {
         if (messageBackdrop != null) {
             val blurColors = BlurDefaults.blurColors(

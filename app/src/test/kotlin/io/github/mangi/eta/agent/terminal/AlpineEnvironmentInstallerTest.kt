@@ -118,15 +118,23 @@ class AlpineEnvironmentInstallerTest {
         assertTrue(
             LinuxPackageProfiles.NODE.spec(LinuxDistribution.DEBIAN).packages.contains("libatomic1"),
         )
-        // Kimi Code 是纯 JavaScript 的 npm 包，跑在 Node profile 之上；始终装最新正式版。
-        val kimi = LinuxPackageProfiles.KIMI
-        assertEquals(LinuxPackageProfiles.NODE, kimi.dependsOn)
+        // 扩展 Agent 都是 npm 包，跑在 Node profile 之上；始终装最新正式版。
+        val opencode = LinuxPackageProfiles.OPENCODE
+        val zcode = LinuxPackageProfiles.ZCODE
+        assertEquals(LinuxPackageProfiles.NODE, opencode.dependsOn)
+        assertEquals(LinuxPackageProfiles.NODE, zcode.dependsOn)
         LinuxDistribution.entries.forEach { distribution ->
-            val script = kimi.spec(distribution).setupScript.orEmpty()
-            assertTrue(script.contains("npm install -g"))
-            assertTrue(script.contains("@moonshot-ai/kimi-code@latest"))
-            assertTrue(script.contains("--prefix /usr/local"))
-            assertTrue(script.contains("registry.npmmirror.com"))
+            val opencodeScript = opencode.spec(distribution).setupScript.orEmpty()
+            assertTrue(opencodeScript.contains("npm install -g"))
+            assertTrue(opencodeScript.contains("@opencode/cli@latest"))
+            assertTrue(opencodeScript.contains("--prefix /usr/local"))
+            assertTrue(opencodeScript.contains("registry.npmmirror.com"))
+
+            val zcodeScript = zcode.spec(distribution).setupScript.orEmpty()
+            assertTrue(zcodeScript.contains("npm install -g"))
+            assertTrue(zcodeScript.contains("zcode-app-cli@latest"))
+            assertTrue(zcodeScript.contains("--prefix /usr/local"))
+            assertTrue(zcodeScript.contains("registry.npmmirror.com"))
         }
         LinuxDistribution.entries.forEach { distribution ->
             assertTrue(LinuxPackageProfiles.SSH.spec(distribution).packages.isNotEmpty())

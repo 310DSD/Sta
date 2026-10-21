@@ -318,7 +318,7 @@
   <string name="ui_endpoint_mode_3c8546">Endpoint mode</string>
   <string name="ui_eta_system_assistant_003e9b">Digital assistant app</string>
   <string name="ui_lsposed_service_is_not_connected_44734d">LSPosed service is not connected</string>
-  <string name="ui_linux_tool_environment_314d22">Linux tool environment</string>
+  <string name="ui_linux_tool_environment_314d22">Linux tools &amp; extension agents</string>
   <string name="ui_the_entire_contents_of_memory_md_will_be_deleted_and_83a8ac">The entire contents of MEMORY.md will be deleted and the memory switch will remain in its current state.</string>
   <string name="ui_provider_does_not_exist_83cee6">Provider does not exist</string>
   <string name="ui_search_in_one_turn_179584">Circle to Search</string>
@@ -1430,4 +1430,28 @@
   <string name="speech_recognition_enabled_summary">使用 Eta 的系统或云端语音输入</string>
   <string name="speech_recognition_disabled">已关闭</string>
   <string name="speech_recognition_disabled_note">保存后隐藏聊天和助手浮窗中的麦克风入口。全局唤醒会在入场动画结束后打开文字输入和键盘，可使用输入法自带的语音输入。原服务配置会保留。</string>
+  <string name="extension_agent_checking">Checking…</string>
+  <string name="extension_agent_install">Install</string>
+  <string name="extension_agent_preparing">Starting…</string>
+  <string name="extension_agent_open">Open %1$s</string>
+  <string name="extension_agent_retry">Retry</string>
+  <string name="extension_agent_stop">Stop agent</string>
+  <string name="extension_agent_set_default">Default</string>
+  <string name="extension_agent_launch_web">Launch Web</string>
+  <string name="action_launch_agent_web">Launch %1$s Web</string>
+  <string name="extension_agent_error_root">Root access is required</string>
+  <string name="extension_agent_error_background">Background start is not allowed</string>
+  <string name="extension_agent_exited">The agent process exited</string>
+  <string name="extension_agent_not_installed">Install the Linux environment and this agent first</string>
+  <string name="extension_agent_error_proot">PRoot is unavailable</string>
+  <string name="extension_agent_error_logs">Could not read the agent logs</string>
+  <string name="extension_agent_error_url">Web UI address not found; check background task logs</string>
+  <string name="extension_agent_error_browser">No browser available</string>
+  <string name="extension_agent_error_start">Failed to start the agent</string>
+  <string name="linux_opencode_tools">OpenCode</string>
+  <string name="linux_opencode_tools_summary">Install the latest OpenCode 2 via npm; requires Node.js. Web UI: opencode web</string>
+  <string name="linux_opencode_tools_ready">OpenCode is ready; run opencode in the terminal</string>
+  <string name="linux_zcode_tools">ZCode</string>
+  <string name="linux_zcode_tools_summary">Install the latest ZCode CLI via npm; requires Node.js 22+. Web UI: zcode --web</string>
+  <string name="linux_zcode_tools_ready">ZCode is ready; run zcode in the terminal</string>
 </resources>

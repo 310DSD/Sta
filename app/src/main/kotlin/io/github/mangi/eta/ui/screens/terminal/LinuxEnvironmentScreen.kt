@@ -47,8 +47,6 @@ import io.github.mangi.eta.agent.terminal.SharedFolderMounts
 import io.github.mangi.eta.agent.terminal.terminalEnvironment
 import io.github.mangi.eta.core.AndroidAgentLogger
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
-import io.github.mangi.eta.ui.app.KimiWebLaunchResult
-import io.github.mangi.eta.ui.app.KimiWebLauncher
 import io.github.mangi.eta.ui.app.launchForegroundExecution
 import io.github.mangi.eta.ui.app.message
 import io.github.mangi.eta.ui.app.rememberDeviceCapabilities
@@ -76,7 +74,14 @@ private enum class InstallTarget {
     PYTHON,
     NODE,
     SSH,
-    KIMI,
+    OPENCODE,
+    ZCODE,
+}
+
+private fun InstallTarget.extensionAgent(): io.github.mangi.eta.agent.extension.ExtensionAgent? = when (this) {
+    InstallTarget.OPENCODE -> io.github.mangi.eta.agent.extension.ExtensionAgent.OPENCODE
+    InstallTarget.ZCODE -> io.github.mangi.eta.agent.extension.ExtensionAgent.ZCODE
+    else -> null
 }
 
 private data class PackageProfileUi(
@@ -114,11 +119,18 @@ private val packageProfileUis = listOf(
         readyRes = R.string.linux_ssh_tools_ready,
     ),
     PackageProfileUi(
-        target = InstallTarget.KIMI,
-        profile = LinuxPackageProfiles.KIMI,
-        titleRes = R.string.linux_kimi_tools,
-        summaryRes = R.string.linux_kimi_tools_summary,
-        readyRes = R.string.linux_kimi_tools_ready,
+        target = InstallTarget.OPENCODE,
+        profile = LinuxPackageProfiles.OPENCODE,
+        titleRes = R.string.linux_opencode_tools,
+        summaryRes = R.string.linux_opencode_tools_summary,
+        readyRes = R.string.linux_opencode_tools_ready,
+    ),
+    PackageProfileUi(
+        target = InstallTarget.ZCODE,
+        profile = LinuxPackageProfiles.ZCODE,
+        titleRes = R.string.linux_zcode_tools,
+        summaryRes = R.string.linux_zcode_tools_summary,
+        readyRes = R.string.linux_zcode_tools_ready,
     ),
 )
 
@@ -173,10 +185,18 @@ internal fun LinuxEnvironmentScreen(
         mutableStateOf(apkAnalysisInstaller.isReady())
     }
     var apkAnalysisProgress by remember { mutableStateOf<ApkAnalysisInstallProgress?>(null) }
-    var kimiWebLaunching by remember { mutableStateOf(false) }
-    var kimiWebRunning by remember(selectedDistribution, backend) { mutableStateOf(false) }
-    val kimiWebLauncher = remember(appContext) {
-        KimiWebLauncher(
+    var launchingAgent by remember { mutableStateOf<io.github.mangi.eta.agent.extension.ExtensionAgent?>(null) }
+    var runningAgents by remember(selectedDistribution, backend) {
+        mutableStateOf<Set<io.github.mangi.eta.agent.extension.ExtensionAgent>>(emptySet())
+    }
+    val extensionAgentFlow = remember(appContext) {
+        io.github.mangi.eta.data.repository.ExtensionAgentSettingsRepository.flow(appContext)
+    }
+    val defaultAgent by extensionAgentFlow.collectAsState(
+        initial = io.github.mangi.eta.data.repository.ExtensionAgentSettingsRepository.current(appContext),
+    )
+    val extensionAgentLauncher = remember(appContext) {
+        io.github.mangi.eta.ui.app.ExtensionAgentLauncher(
             context = appContext,
             daemonSupervisor = DetachedTaskSupervisor(
                 logger = AndroidAgentLogger,
@@ -190,9 +210,13 @@ internal fun LinuxEnvironmentScreen(
             ),
         )
     }
-    LaunchedEffect(selectedDistribution, backend, kimiWebLaunching) {
-        if (!kimiWebLaunching) {
-            kimiWebRunning = kimiWebLauncher.status(selectedDistribution.terminalEnvironment).running
+    LaunchedEffect(selectedDistribution, backend, launchingAgent) {
+        if (launchingAgent == null) {
+            runningAgents = io.github.mangi.eta.agent.extension.ExtensionAgent.entries
+                .filter { agent ->
+                    extensionAgentLauncher.status(agent, selectedDistribution.terminalEnvironment).running
+                }
+                .toSet()
         }
     }
     val selectedBaseReady = when (selectedDistribution) {
@@ -277,18 +301,27 @@ internal fun LinuxEnvironmentScreen(
         }
     }
 
-    /** Kimi 就绪后按钮变为启动 Web UI：守护任务常驻 kimi web，解析地址后拉起浏览器。 */
-    fun launchKimiWeb() {
-        if (kimiWebLaunching || requiresRoot) return
+    /** 启动扩展 Agent 的 Web UI：守护任务常驻 web 模式，解析地址后拉起浏览器。 */
+    fun launchAgent(agent: io.github.mangi.eta.agent.extension.ExtensionAgent) {
+        if (launchingAgent != null || requiresRoot) return
         requestExecutionNotifications()
-        kimiWebLaunching = true
+        launchingAgent = agent
         resultMessage = null
         coroutineScope.launch {
-            val result = kimiWebLauncher.launch(selectedDistribution.terminalEnvironment)
-            kimiWebLaunching = false
-            if (result is KimiWebLaunchResult.Failed) {
+            val result = extensionAgentLauncher.launch(agent, selectedDistribution.terminalEnvironment)
+            launchingAgent = null
+            if (result is io.github.mangi.eta.ui.app.ExtensionAgentLaunchResult.Failed) {
                 resultMessage = result.message(context)
+            } else {
+                runningAgents = runningAgents + agent
             }
+        }
+    }
+
+    fun stopAgent(agent: io.github.mangi.eta.agent.extension.ExtensionAgent) {
+        coroutineScope.launch {
+            val stopped = extensionAgentLauncher.stop(agent, selectedDistribution.terminalEnvironment)
+            runningAgents = if (stopped) runningAgents - agent else runningAgents
         }
     }
 
@@ -315,7 +348,7 @@ internal fun LinuxEnvironmentScreen(
                 mode = backend.displayName(),
                 summary = when {
                     requiresRoot -> stringResource(R.string.capability_linux_root_lost)
-                    kimiWebLaunching -> stringResource(R.string.linux_kimi_web_starting)
+                    launchingAgent != null -> stringResource(R.string.extension_agent_preparing)
                     busyTarget != null -> activeProgress ?: stringResource(R.string.linux_installing)
                     selectedToolsReady -> stringResource(R.string.linux_environment_tools_ready)
                     selectedBaseReady -> stringResource(R.string.linux_environment_base_ready)
@@ -327,7 +360,7 @@ internal fun LinuxEnvironmentScreen(
                         },
                     )
                 },
-                busy = busyTarget != null || kimiWebLaunching,
+                busy = busyTarget != null || launchingAgent != null,
                 message = resultMessage,
                 actionText = when {
                     requiresRoot -> stringResource(R.string.capability_enhancements)
@@ -336,7 +369,7 @@ internal fun LinuxEnvironmentScreen(
                     selectedBaseReady -> stringResource(R.string.linux_install_base_tools)
                     else -> stringResource(R.string.linux_install_base)
                 },
-                actionEnabled = busyTarget == null && !kimiWebLaunching,
+                actionEnabled = busyTarget == null && launchingAgent == null,
                 onAction = {
                     if (requiresRoot) onNavigate(AppRoute.SystemEnhance)
                     else if (selectedBaseReady) installTools() else installBase()
@@ -349,15 +382,15 @@ internal fun LinuxEnvironmentScreen(
                 distribution = selectedDistribution,
                 backend = backend,
                 rootGranted = capabilities.root.isGranted,
-                enabled = busyTarget == null && !kimiWebLaunching,
+                enabled = busyTarget == null && launchingAgent == null,
                 onDistributionSelected = { distribution ->
-                    if (busyTarget == null && !kimiWebLaunching && distribution != selectedDistribution) {
+                    if (busyTarget == null && launchingAgent == null && distribution != selectedDistribution) {
                         resultMessage = null
                         coroutineScope.launch { LinuxEnvironmentSettingsRepository.select(distribution) }
                     }
                 },
                 onBackendSelected = { selectedBackend ->
-                    if (busyTarget == null && !kimiWebLaunching && selectedBackend != backend &&
+                    if (busyTarget == null && launchingAgent == null && selectedBackend != backend &&
                         (selectedBackend == LinuxExecutionBackend.PROOT || capabilities.root.isGranted)
                     ) {
                         resultMessage = null
@@ -409,7 +442,8 @@ internal fun LinuxEnvironmentScreen(
                 ) {
                     packageProfileUis.forEachIndexed { index, profileUi ->
                         val ready = profileReady[profileUi.target] == true
-                        val isKimi = profileUi.target == InstallTarget.KIMI
+                        val agent = profileUi.target.extensionAgent()
+                        val agentRunning = agent != null && agent in runningAgents
                         val summaryRes = if (selectedDistribution == LinuxDistribution.DEBIAN) {
                             profileUi.debianSummaryRes
                         } else {
@@ -431,62 +465,66 @@ internal fun LinuxEnvironmentScreen(
                                 stringResource(summaryRes)
                             },
                             endActions = {
-                                if (isKimi && kimiWebRunning) {
+                                if (agent != null && ready) {
+                                    if (defaultAgent != agent) {
+                                        EtaTextButton(
+                                            text = stringResource(R.string.extension_agent_set_default),
+                                            enabled = launchingAgent == null && busyTarget == null,
+                                            onClick = {
+                                                coroutineScope.launch {
+                                                    io.github.mangi.eta.data.repository.ExtensionAgentSettingsRepository
+                                                        .select(agent)
+                                                }
+                                            },
+                                        )
+                                    }
+                                    if (agentRunning) {
+                                        EtaTextButton(
+                                            text = stringResource(R.string.action_stop),
+                                            enabled = launchingAgent == null && !requiresRoot,
+                                            onClick = { stopAgent(agent) },
+                                        )
+                                    }
                                     EtaTextButton(
-                                        text = stringResource(R.string.action_stop),
-                                        enabled = !kimiWebLaunching && !requiresRoot,
+                                        text = stringResource(
+                                            when {
+                                                launchingAgent == agent -> R.string.extension_agent_preparing
+                                                agentRunning -> R.string.action_open
+                                                else -> R.string.extension_agent_launch_web
+                                            },
+                                        ),
+                                        enabled = launchingAgent == null && busyTarget == null && !requiresRoot,
+                                        onClick = { launchAgent(agent) },
+                                    )
+                                } else {
+                                    EtaTextButton(
+                                        text = when {
+                                            ready -> stringResource(R.string.linux_installed)
+                                            busyTarget == profileUi.target -> stringResource(R.string.linux_installing)
+                                            else -> stringResource(R.string.linux_install)
+                                        },
+                                        enabled = !requiresRoot && busyTarget == null && !ready,
                                         onClick = {
-                                            coroutineScope.launch {
-                                                val stopped = kimiWebLauncher.stop(selectedDistribution.terminalEnvironment)
-                                                kimiWebRunning = !stopped
+                                            if (busyTarget != null || ready) return@EtaTextButton
+                                            busyTarget = profileUi.target
+                                            resultMessage = null
+                                            val profileTitle = context.getString(profileUi.titleRes)
+                                            launchInstallation {
+                                                val profileInstaller = profileInstallers.getValue(profileUi.target)
+                                                val result = profileInstaller.install { update ->
+                                                    withContext(Dispatchers.Main.immediate) {
+                                                        profileProgressSummary = update.summary(context, profileTitle)
+                                                    }
+                                                }
+                                                profileReady = profileReady +
+                                                    (profileUi.target to profileInstaller.isReady())
+                                                profileProgressSummary = null
+                                                busyTarget = null
+                                                resultMessage = result.toMessage(context, profileTitle)
                                             }
                                         },
                                     )
                                 }
-                                EtaTextButton(
-                                    text = when {
-                                        isKimi && ready -> stringResource(
-                                            if (kimiWebLaunching) {
-                                                R.string.linux_kimi_web_starting
-                                            } else if (kimiWebRunning) {
-                                                R.string.action_open
-                                            } else {
-                                                R.string.linux_kimi_web_launch
-                                            },
-                                        )
-                                        ready -> stringResource(R.string.linux_installed)
-                                        busyTarget == profileUi.target -> stringResource(R.string.linux_installing)
-                                        else -> stringResource(R.string.linux_install)
-                                    },
-                                    enabled = !requiresRoot && if (isKimi && ready) {
-                                        !kimiWebLaunching && busyTarget == null
-                                    } else {
-                                        busyTarget == null && !ready
-                                    },
-                                    onClick = {
-                                        if (isKimi && ready) {
-                                            launchKimiWeb()
-                                            return@EtaTextButton
-                                        }
-                                        if (busyTarget != null || ready) return@EtaTextButton
-                                        busyTarget = profileUi.target
-                                        resultMessage = null
-                                        val profileTitle = context.getString(profileUi.titleRes)
-                                        launchInstallation {
-                                            val profileInstaller = profileInstallers.getValue(profileUi.target)
-                                            val result = profileInstaller.install { update ->
-                                                withContext(Dispatchers.Main.immediate) {
-                                                    profileProgressSummary = update.summary(context, profileTitle)
-                                                }
-                                            }
-                                            profileReady = profileReady +
-                                                (profileUi.target to profileInstaller.isReady())
-                                            profileProgressSummary = null
-                                            busyTarget = null
-                                            resultMessage = result.toMessage(context, profileTitle)
-                                        }
-                                    },
-                                )
                             },
                         )
                     }

@@ -154,7 +154,7 @@ fun AgentAppRoot(
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
                 RootAccess.refresh(context)
-                appViewModel.refreshKimiWeb()
+                appViewModel.refreshExtensionAgent()
                 permissionHealth.refreshPermissionHealth()
                 agentState.refreshRuntimeResults()
             }
@@ -277,11 +277,14 @@ fun AgentAppRoot(
             onSearchConversations = { query -> agentState.updateSearchQuery(query) },
             onNewConversation = { createConversation() },
             onOpenTerminal = { pushRoute(AppRoute.Terminal) },
-            onLaunchKimiWeb = {
+            onLaunchExtensionAgent = {
                 requestExecutionNotifications()
-                if (appViewModel.kimiWebState.phase != KimiWebPhase.NOT_INSTALLED) {
-                    appViewModel.launchKimiWeb { result ->
-                        if (result is KimiWebLaunchResult.Failed) {
+                val phase = appViewModel.extensionAgentState.phase
+                if (phase == ExtensionAgentPhase.READY || phase == ExtensionAgentPhase.RUNNING ||
+                    phase == ExtensionAgentPhase.STARTING || phase == ExtensionAgentPhase.FAILED
+                ) {
+                    appViewModel.launchExtensionAgent { result ->
+                        if (result is ExtensionAgentLaunchResult.Failed) {
                             Toast.makeText(
                                 context,
                                 result.message(context),
@@ -293,10 +296,10 @@ fun AgentAppRoot(
                     pushRoute(AppRoute.LinuxEnvironment)
                 }
             },
-            kimiWebLabel = appViewModel.kimiWebState.actionLabel(context),
-            canStopKimiWeb = appViewModel.kimiWebState.canStop,
-            onStopKimiWeb = appViewModel::stopKimiWeb,
-            onRefreshKimiWeb = appViewModel::refreshKimiWeb,
+            extensionAgentLabel = appViewModel.extensionAgentState.actionLabel(context),
+            canStopExtensionAgent = appViewModel.extensionAgentState.canStop,
+            onStopExtensionAgent = appViewModel::stopExtensionAgent,
+            onRefreshExtensionAgent = appViewModel::refreshExtensionAgent,
             onOpenBrowser = { pushRoute(AppRoute.Browser) },
             onSelectConversation = { conversationId -> selectConversation(conversationId) },
             onConversationRename = { conversation ->

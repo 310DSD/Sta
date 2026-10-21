@@ -2,7 +2,7 @@ package io.github.mangi.eta.ui.voice
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.imePadding
+import io.github.mangi.eta.ui.insets.imePaddingSafe
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.CloudUpload
 import androidx.compose.runtime.Composable
@@ -43,7 +43,7 @@ internal fun SpeechRecognitionScreen(onBack: () -> Unit, onOpenOss: () -> Unit) 
     MiuixScaffoldPage(
         title = stringResource(R.string.speech_recognition_title),
         onBack = onBack,
-        modifier = Modifier.imePadding(),
+        modifier = Modifier.imePaddingSafe(),
     ) {
         if (!store.loaded) {
             item(key = "loading") { SpeechLoadingState(store.message) }

@@ -34,7 +34,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -87,11 +86,11 @@ internal fun AgentAppShell(
     onSearchConversations: (String) -> Unit,
     onNewConversation: () -> Unit,
     onOpenTerminal: () -> Unit,
-    onLaunchKimiWeb: () -> Unit,
-    kimiWebLabel: String,
-    canStopKimiWeb: Boolean,
-    onStopKimiWeb: () -> Unit,
-    onRefreshKimiWeb: () -> Unit,
+    onLaunchExtensionAgent: () -> Unit,
+    extensionAgentLabel: String,
+    canStopExtensionAgent: Boolean,
+    onStopExtensionAgent: () -> Unit,
+    onRefreshExtensionAgent: () -> Unit,
     onOpenBrowser: () -> Unit,
     onSelectConversation: (String) -> Unit,
     onConversationRename: (ConversationSummaryUi) -> Unit,
@@ -128,11 +127,11 @@ internal fun AgentAppShell(
                             onOpenConversationPane = onOpenConversationPane,
                             onNewConversation = onNewConversation,
                             onOpenTerminal = onOpenTerminal,
-                            onLaunchKimiWeb = onLaunchKimiWeb,
-                            kimiWebLabel = kimiWebLabel,
-                            canStopKimiWeb = canStopKimiWeb,
-                            onStopKimiWeb = onStopKimiWeb,
-                            onRefreshKimiWeb = onRefreshKimiWeb,
+                            onLaunchExtensionAgent = onLaunchExtensionAgent,
+                            extensionAgentLabel = extensionAgentLabel,
+                            canStopExtensionAgent = canStopExtensionAgent,
+                            onStopExtensionAgent = onStopExtensionAgent,
+                            onRefreshExtensionAgent = onRefreshExtensionAgent,
                             onOpenBrowser = onOpenBrowser,
                             homeCharacter = homeCharacter,
                             onOpenCharacter = onOpenCharacter,
@@ -189,11 +188,11 @@ private fun AgentTopBar(
     onOpenConversationPane: () -> Unit,
     onNewConversation: () -> Unit,
     onOpenTerminal: () -> Unit,
-    onLaunchKimiWeb: () -> Unit,
-    kimiWebLabel: String,
-    canStopKimiWeb: Boolean,
-    onStopKimiWeb: () -> Unit,
-    onRefreshKimiWeb: () -> Unit,
+    onLaunchExtensionAgent: () -> Unit,
+    extensionAgentLabel: String,
+    canStopExtensionAgent: Boolean,
+    onStopExtensionAgent: () -> Unit,
+    onRefreshExtensionAgent: () -> Unit,
     onOpenBrowser: () -> Unit,
     homeCharacter: RoleplayChatUi?,
     onOpenCharacter: () -> Unit,
@@ -224,11 +223,11 @@ private fun AgentTopBar(
             TopBarOverflowMenu(
                 onNewConversation = onNewConversation,
                 onOpenTerminal = onOpenTerminal,
-                onLaunchKimiWeb = onLaunchKimiWeb,
-                kimiWebLabel = kimiWebLabel,
-                canStopKimiWeb = canStopKimiWeb,
-                onStopKimiWeb = onStopKimiWeb,
-                onRefreshKimiWeb = onRefreshKimiWeb,
+                onLaunchExtensionAgent = onLaunchExtensionAgent,
+                extensionAgentLabel = extensionAgentLabel,
+                canStopExtensionAgent = canStopExtensionAgent,
+                onStopExtensionAgent = onStopExtensionAgent,
+                onRefreshExtensionAgent = onRefreshExtensionAgent,
                 onOpenBrowser = onOpenBrowser,
             )
         }
@@ -266,16 +265,16 @@ private val TopBarMenuIconSize = 20.dp
 private fun TopBarOverflowMenu(
     onNewConversation: () -> Unit,
     onOpenTerminal: () -> Unit,
-    onLaunchKimiWeb: () -> Unit,
-    kimiWebLabel: String,
-    canStopKimiWeb: Boolean,
-    onStopKimiWeb: () -> Unit,
-    onRefreshKimiWeb: () -> Unit,
+    onLaunchExtensionAgent: () -> Unit,
+    extensionAgentLabel: String,
+    canStopExtensionAgent: Boolean,
+    onStopExtensionAgent: () -> Unit,
+    onRefreshExtensionAgent: () -> Unit,
     onOpenBrowser: () -> Unit,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { onRefreshKimiWeb(); showMenu = true }) {
+        IconButton(onClick = { onRefreshExtensionAgent(); showMenu = true }) {
             Icon(
                 imageVector = Icons.Outlined.MoreHoriz,
                 modifier = Modifier.size(24.dp),
@@ -289,16 +288,16 @@ private fun TopBarOverflowMenu(
         ) {
             val newConversationText = stringResource(R.string.action_new_conversation)
             val openTerminalText = stringResource(R.string.action_open_terminal)
-            val launchKimiWebText = kimiWebLabel
-            val stopKimiWebText = stringResource(R.string.capability_kimi_stop)
+            val launchExtensionAgentText = extensionAgentLabel
+            val stopExtensionAgentText = stringResource(R.string.extension_agent_stop)
             val openBrowserText = stringResource(R.string.action_open_browser)
             val menuItems = remember(
                 newConversationText,
                 openTerminalText,
-                launchKimiWebText,
+                launchExtensionAgentText,
                 openBrowserText,
-                stopKimiWebText,
-                canStopKimiWeb,
+                stopExtensionAgentText,
+                canStopExtensionAgent,
             ) {
                 listOf(
                     DropdownItem(
@@ -322,10 +321,10 @@ private fun TopBarOverflowMenu(
                         },
                     ),
                     DropdownItem(
-                        text = launchKimiWebText,
+                        text = launchExtensionAgentText,
                         icon = { modifier ->
                             Icon(
-                                painter = painterResource(R.drawable.ic_kimi_code),
+                                imageVector = Icons.Rounded.Terminal,
                                 contentDescription = null,
                                 modifier = modifier.size(TopBarMenuIconSize),
                             )
@@ -341,10 +340,10 @@ private fun TopBarOverflowMenu(
                             )
                         },
                     ),
-                ) + if (canStopKimiWeb) {
+                ) + if (canStopExtensionAgent) {
                     listOf(
                         DropdownItem(
-                            text = stopKimiWebText,
+                            text = stopExtensionAgentText,
                             icon = { modifier ->
                                 Icon(
                                     imageVector = Icons.Rounded.Stop,
@@ -370,9 +369,9 @@ private fun TopBarOverflowMenu(
                             when (index) {
                                 0 -> onNewConversation()
                                 1 -> onOpenTerminal()
-                                2 -> onLaunchKimiWeb()
+                                2 -> onLaunchExtensionAgent()
                                 3 -> onOpenBrowser()
-                                4 -> onStopKimiWeb()
+                                4 -> onStopExtensionAgent()
                             }
                         },
                     )

@@ -3,7 +3,7 @@ package io.github.mangi.eta.ui.screens.characters
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
+import io.github.mangi.eta.ui.insets.imePaddingSafe
 import androidx.compose.foundation.layout.padding
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -15,7 +15,7 @@ import top.yukonga.miuix.kmp.basic.ButtonDefaults
 
 @Composable
 internal fun CharacterPersonaScreen(store: CharacterLibraryStore, onBack: () -> Unit) {
-    MiuixScaffoldPage(title = "我的人设", onBack = onBack, modifier = Modifier.imePadding()) {
+    MiuixScaffoldPage(title = "我的人设", onBack = onBack, modifier = Modifier.imePaddingSafe()) {
         item { CharacterPageMessage("设置你在故事中的身份。开始对话时可以选择是否使用；已开始的故事保留当时的人设。") }
         item(key = "name") { CharacterTextField("称呼", store.personaDraft.name, { store.updatePersona(name = it) }, !store.busy, singleLine = true) }
         item(key = "persona") { CharacterTextField("身份与关系", store.personaDraft.description, { store.updatePersona(description = it) }, !store.busy, minLines = 6) }
@@ -28,7 +28,7 @@ internal fun CharacterPersonaScreen(store: CharacterLibraryStore, onBack: () -> 
 
 @Composable
 internal fun CharacterMemoryScreen(id: String, store: CharacterLibraryStore, onBack: () -> Unit) {
-    MiuixScaffoldPage(title = "剧情记忆", onBack = onBack, modifier = Modifier.imePadding()) {
+    MiuixScaffoldPage(title = "剧情记忆", onBack = onBack, modifier = Modifier.imePaddingSafe()) {
         item { CharacterPageMessage("记录这个角色的重要经历、关系与约定。它由此角色的各次对话共享，受记忆总开关控制。") }
         item(key = "memory") {
             CharacterTextField("剧情与关系", store.memoryDraft, store::updateMemory, !store.busy, minLines = 10)

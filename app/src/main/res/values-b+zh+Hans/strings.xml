@@ -45,7 +45,7 @@
   <string name="route_system_enhancements">系统增强</string>
   <string name="route_settings">设置</string>
   <string name="route_memory">记忆</string>
-  <string name="route_linux_environment">Linux 工具环境</string>
+  <string name="route_linux_environment">Linux 工具环境与扩展 Agent</string>
   <string name="route_terminal">终端</string>
   <string name="terminal_input_hint">输入命令</string>
   <string name="terminal_input_running_hint">向运行中的命令发送输入</string>
@@ -308,7 +308,7 @@
   <string name="ui_endpoint_mode_3c8546">Endpoint 模式</string>
   <string name="ui_eta_system_assistant_003e9b">数字助理应用</string>
   <string name="ui_lsposed_service_is_not_connected_44734d">LSPosed 服务未连接</string>
-  <string name="ui_linux_tool_environment_314d22">Linux 工具环境</string>
+  <string name="ui_linux_tool_environment_314d22">Linux 工具环境与扩展 Agent</string>
   <string name="ui_the_entire_contents_of_memory_md_will_be_deleted_and_83a8ac">MEMORY.md 的全部内容将被删除，记忆开关保持当前状态。</string>
   <string name="ui_provider_does_not_exist_83cee6">Provider 不存在</string>
   <string name="ui_search_in_one_turn_179584">一圈即搜</string>
@@ -1408,4 +1408,28 @@
   <string name="speech_recognition_enabled_summary">使用 Eta 的系统或云端语音输入</string>
   <string name="speech_recognition_disabled">已关闭</string>
   <string name="speech_recognition_disabled_note">保存后隐藏聊天和助手浮窗中的麦克风入口。全局唤醒会在入场动画结束后打开文字输入和键盘，可使用输入法自带的语音输入。原服务配置会保留。</string>
+  <string name="extension_agent_checking">检查中…</string>
+  <string name="extension_agent_install">安装</string>
+  <string name="extension_agent_preparing">正在启动…</string>
+  <string name="extension_agent_open">打开 %1$s</string>
+  <string name="extension_agent_retry">重试</string>
+  <string name="extension_agent_stop">停止扩展 Agent</string>
+  <string name="extension_agent_set_default">设为默认</string>
+  <string name="extension_agent_launch_web">启动 Web</string>
+  <string name="action_launch_agent_web">启动 %1$s Web</string>
+  <string name="extension_agent_error_root">需要 Root 授权</string>
+  <string name="extension_agent_error_background">当前不允许后台启动</string>
+  <string name="extension_agent_exited">扩展 Agent 进程已退出</string>
+  <string name="extension_agent_not_installed">请先安装 Linux 环境和该扩展 Agent</string>
+  <string name="extension_agent_error_proot">PRoot 不可用</string>
+  <string name="extension_agent_error_logs">无法读取扩展 Agent 日志</string>
+  <string name="extension_agent_error_url">未获取到 Web UI 地址，请到后台任务查看日志</string>
+  <string name="extension_agent_error_browser">没有可用的浏览器</string>
+  <string name="extension_agent_error_start">扩展 Agent 启动失败</string>
+  <string name="linux_opencode_tools">OpenCode</string>
+  <string name="linux_opencode_tools_summary">通过 npm 安装最新 OpenCode 2；需要先安装 Node.js。Web UI：opencode web</string>
+  <string name="linux_opencode_tools_ready">OpenCode 已就绪，在终端运行 opencode 即可开始</string>
+  <string name="linux_zcode_tools">ZCode</string>
+  <string name="linux_zcode_tools_summary">通过 npm 安装最新 ZCode CLI；需要 Node.js 22+。Web UI：zcode --web</string>
+  <string name="linux_zcode_tools_ready">ZCode 已就绪，在终端运行 zcode 即可开始</string>
 </resources>

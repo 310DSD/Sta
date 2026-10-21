@@ -20,7 +20,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
+import io.github.mangi.eta.ui.insets.imePaddingSafe
 import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
@@ -125,7 +125,7 @@ internal fun AgentMemoryScreen(
                 .padding(top = paddingValues.calculateTopPadding())
                 .padding(horizontal = sidePadding)
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
-                .imePadding()
+                .imePaddingSafe()
                 .navigationBarsPadding(),
         ) {
             // 键盘弹出时收起设置区，把有限高度全部让给正在编辑的文档。

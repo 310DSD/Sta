@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
+import io.github.mangi.eta.ui.insets.imePaddingSafe
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -215,7 +215,7 @@ private fun ProviderConfigTab(
         modifier = Modifier
             .fillMaxSize()
             // 低层 MiuixScaffold 只负责把顶栏 Insets 传给调用方，输入法 Insets 由列表自行消费。
-            .imePadding()
+            .imePaddingSafe()
             .scrollEndHaptic()
             .overScrollVertical()
             .nestedScroll(scrollBehavior.nestedScrollConnection),

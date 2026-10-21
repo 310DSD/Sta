@@ -34,6 +34,8 @@ internal data class LinuxPackageSpec(
     val packages: List<String> = emptyList(),
     val managedTool: ManagedLinuxTool? = null,
     val setupScript: String? = null,
+    /** Optional smoke check run after setup, before the ready marker is written. */
+    val verifyCommand: String? = null,
 )
 
 internal data class LinuxPackageProfile(
@@ -99,26 +101,53 @@ internal object LinuxPackageProfiles {
     )
 
     /**
-     * Kimi Code 使用 npm 分发，运行在 Node profile 之上；可选原生扩展由 npm 按平台安装。
-     * 始终安装最新正式版（升级重装即可）；--prefix /usr/local 让 kimi 进入 PATH 首位，
-     * 与 Node 归档自身的 prefix 无关。国内镜像优先，官方 registry 兜底。
+     * 扩展 Agent 使用 npm 分发，运行在 Node profile 之上。始终安装最新正式版；
+     * `--prefix /usr/local` 让命令进入 PATH 首位。国内镜像优先，官方 registry 兜底。
      */
-    private const val KIMI_INSTALL_SCRIPT =
+    private const val OPENCODE_INSTALL_SCRIPT =
         "npm install -g --prefix /usr/local --registry=https://registry.npmmirror.com " +
-            "@moonshot-ai/kimi-code@latest || " +
-            "npm install -g --prefix /usr/local @moonshot-ai/kimi-code@latest"
+            "@opencode/cli@latest || " +
+            "npm install -g --prefix /usr/local @opencode/cli@latest"
 
-    val KIMI = LinuxPackageProfile(
-        id = "kimi",
-        markerName = AlpineEnvironmentPaths.KIMI_TOOLS_MARKER,
-        revision = AlpineEnvironmentPaths.KIMI_TOOLS_REVISION,
+    private const val ZCODE_INSTALL_SCRIPT =
+        "npm install -g --prefix /usr/local --registry=https://registry.npmmirror.com " +
+            "zcode-app-cli@latest || " +
+            "npm install -g --prefix /usr/local zcode-app-cli@latest"
+
+    val OPENCODE = LinuxPackageProfile(
+        id = "opencode",
+        markerName = AlpineEnvironmentPaths.OPENCODE_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.OPENCODE_TOOLS_REVISION,
         dependsOn = NODE,
         specs = mapOf(
-            LinuxDistribution.ALPINE to LinuxPackageSpec(setupScript = KIMI_INSTALL_SCRIPT),
-            LinuxDistribution.DEBIAN to LinuxPackageSpec(setupScript = KIMI_INSTALL_SCRIPT),
+            LinuxDistribution.ALPINE to LinuxPackageSpec(
+                setupScript = OPENCODE_INSTALL_SCRIPT,
+                verifyCommand = "opencode --version >/dev/null && opencode web --help >/dev/null",
+            ),
+            LinuxDistribution.DEBIAN to LinuxPackageSpec(
+                setupScript = OPENCODE_INSTALL_SCRIPT,
+                verifyCommand = "opencode --version >/dev/null && opencode web --help >/dev/null",
+            ),
         ),
     )
-    val ALL = listOf(PYTHON, NODE, SSH, KIMI)
+
+    val ZCODE = LinuxPackageProfile(
+        id = "zcode",
+        markerName = AlpineEnvironmentPaths.ZCODE_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.ZCODE_TOOLS_REVISION,
+        dependsOn = NODE,
+        specs = mapOf(
+            LinuxDistribution.ALPINE to LinuxPackageSpec(
+                setupScript = ZCODE_INSTALL_SCRIPT,
+                verifyCommand = "zcode --help >/dev/null",
+            ),
+            LinuxDistribution.DEBIAN to LinuxPackageSpec(
+                setupScript = ZCODE_INSTALL_SCRIPT,
+                verifyCommand = "zcode --help >/dev/null",
+            ),
+        ),
+    )
+    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, ZCODE)
 }
 
 internal fun linuxPackageProfileReady(rootfs: File, profile: LinuxPackageProfile): Boolean {
@@ -211,7 +240,7 @@ internal class LinuxPackageProfileInstaller(
         val activateCommand = buildString {
             append("set -e\n")
             spec.setupScript?.let { script -> append(script).append('\n') }
-            if (profile == LinuxPackageProfiles.KIMI) append("kimi --version >/dev/null\nkimi web --help >/dev/null\n")
+            spec.verifyCommand?.let { verify -> append(verify).append('\n') }
             append("cat > /").append(profile.markerName).append(" <<'ETA_PROFILE_EOF'\n")
             append("profile=").append(profile.revision).append('\n')
             append("ETA_PROFILE_EOF\n")

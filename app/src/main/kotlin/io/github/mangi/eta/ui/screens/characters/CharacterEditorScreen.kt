@@ -2,7 +2,7 @@ package io.github.mangi.eta.ui.screens.characters
 
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
+import io.github.mangi.eta.ui.insets.imePaddingSafe
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
@@ -44,7 +44,7 @@ internal fun CharacterEditorScreen(
     MiuixScaffoldPage(
         title = if (id == null) "创建角色" else "编辑角色",
         onBack = onBack,
-        modifier = Modifier.imePadding(),
+        modifier = Modifier.imePaddingSafe(),
         actions = {
             IconButton(
                 onClick = { store.saveEditor(onSaved) },

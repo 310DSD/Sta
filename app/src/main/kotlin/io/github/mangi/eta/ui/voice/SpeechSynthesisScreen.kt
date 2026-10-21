@@ -1,7 +1,7 @@
 package io.github.mangi.eta.ui.voice
 
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.imePadding
+import io.github.mangi.eta.ui.insets.imePaddingSafe
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -36,7 +36,7 @@ internal fun SpeechSynthesisScreen(onBack: () -> Unit) {
     MiuixScaffoldPage(
         title = stringResource(R.string.speech_synthesis_title),
         onBack = onBack,
-        modifier = Modifier.imePadding(),
+        modifier = Modifier.imePaddingSafe(),
     ) {
         if (!store.loaded) {
             item(key = "loading") { SpeechLoadingState(store.message) }

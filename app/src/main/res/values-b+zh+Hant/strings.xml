@@ -44,7 +44,7 @@
   <string name="route_system_enhancements">系統增強</string>
   <string name="route_settings">設定</string>
   <string name="route_memory">記憶</string>
-  <string name="route_linux_environment">Linux 工具環境</string>
+  <string name="route_linux_environment">Linux 工具環境與擴充 Agent</string>
   <string name="route_terminal">終端機</string>
   <string name="terminal_input_hint">輸入指令</string>
   <string name="terminal_input_running_hint">向執行中的指令發送輸入</string>
@@ -296,7 +296,7 @@
   <string name="ui_endpoint_mode_3c8546">Endpoint 模式</string>
   <string name="ui_eta_system_assistant_003e9b">數位助理應用</string>
   <string name="ui_lsposed_service_is_not_connected_44734d">LSPosed 服務未連線</string>
-  <string name="ui_linux_tool_environment_314d22">Linux 工具環境</string>
+  <string name="ui_linux_tool_environment_314d22">Linux 工具環境與擴充 Agent</string>
   <string name="ui_the_entire_contents_of_memory_md_will_be_deleted_and_83a8ac">MEMORY.md 的全部內容將被刪除，記憶開關保持目前狀態。</string>
   <string name="ui_provider_does_not_exist_83cee6">Provider 不存在</string>
   <string name="ui_search_in_one_turn_179584">圈選搜尋</string>
@@ -1338,4 +1338,28 @@
   <string name="memory_discard">放棄</string>
   <string name="chat_character_input_hint">對%1$s說點什麼…</string>
   <string name="chat_character_typing">%1$s 正在回覆…</string>
+  <string name="extension_agent_checking">檢查中…</string>
+  <string name="extension_agent_install">安裝</string>
+  <string name="extension_agent_preparing">正在啟動…</string>
+  <string name="extension_agent_open">開啟 %1$s</string>
+  <string name="extension_agent_retry">重試</string>
+  <string name="extension_agent_stop">停止擴充 Agent</string>
+  <string name="extension_agent_set_default">設為預設</string>
+  <string name="extension_agent_launch_web">啟動 Web</string>
+  <string name="action_launch_agent_web">啟動 %1$s Web</string>
+  <string name="extension_agent_error_root">需要 Root 授權</string>
+  <string name="extension_agent_error_background">目前不允許背景啟動</string>
+  <string name="extension_agent_exited">擴充 Agent 程序已結束</string>
+  <string name="extension_agent_not_installed">請先安裝 Linux 環境與該擴充 Agent</string>
+  <string name="extension_agent_error_proot">PRoot 無法使用</string>
+  <string name="extension_agent_error_logs">無法讀取擴充 Agent 日誌</string>
+  <string name="extension_agent_error_url">未取得 Web UI 位址，請到背景任務查看日誌</string>
+  <string name="extension_agent_error_browser">沒有可用的瀏覽器</string>
+  <string name="extension_agent_error_start">擴充 Agent 啟動失敗</string>
+  <string name="linux_opencode_tools">OpenCode</string>
+  <string name="linux_opencode_tools_summary">透過 npm 安裝最新 OpenCode 2；需要先安裝 Node.js。Web UI：opencode web</string>
+  <string name="linux_opencode_tools_ready">OpenCode 已就緒，在終端執行 opencode 即可開始</string>
+  <string name="linux_zcode_tools">ZCode</string>
+  <string name="linux_zcode_tools_summary">透過 npm 安裝最新 ZCode CLI；需要 Node.js 22+。Web UI：zcode --web</string>
+  <string name="linux_zcode_tools_ready">ZCode 已就緒，在終端執行 zcode 即可開始</string>
 </resources>

@@ -51,6 +51,7 @@ internal object SettingsDataStore {
     private val OFFICIAL_MODEL_CATALOG_REVISION = intPreferencesKey("official_model_catalog_revision")
     private val MEMORY_ENABLED = booleanPreferencesKey("memory_enabled")
     private val LINUX_DISTRIBUTION = stringPreferencesKey("linux_distribution")
+    private val EXTENSION_AGENT = stringPreferencesKey("extension_agent")
     private val APPEARANCE_THEME_MODE = stringPreferencesKey("appearance_theme_mode")
     private val APPEARANCE_MONET_ENABLED = booleanPreferencesKey("appearance_monet_enabled")
     private val APPEARANCE_PALETTE_STYLE = stringPreferencesKey("appearance_palette_style")
@@ -152,6 +153,20 @@ internal object SettingsDataStore {
         return dataStore.data.catch { cause ->
             if (cause is IOException) emit(emptyPreferences()) else throw cause
         }.map { it[stringPreferencesKey("linux_backend.$distribution")] }
+    }
+
+    fun extensionAgentFlow(): Flow<String?> {
+        ensureInitialized()
+        return dataStore.data
+            .catch { cause ->
+                if (cause is IOException) emit(emptyPreferences()) else throw cause
+            }
+            .map { preferences -> preferences[EXTENSION_AGENT] }
+    }
+
+    suspend fun setExtensionAgent(id: String) {
+        ensureInitialized()
+        dataStore.edit { preferences -> preferences[EXTENSION_AGENT] = id }
     }
 
     suspend fun setLinuxBackend(distribution: String, backend: String?) {

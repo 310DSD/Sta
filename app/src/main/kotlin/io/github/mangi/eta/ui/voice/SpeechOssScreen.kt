@@ -1,6 +1,6 @@
 package io.github.mangi.eta.ui.voice
 
-import androidx.compose.foundation.layout.imePadding
+import io.github.mangi.eta.ui.insets.imePaddingSafe
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -25,7 +25,7 @@ internal fun SpeechOssScreen(onBack: () -> Unit) {
     MiuixScaffoldPage(
         title = stringResource(R.string.speech_oss_title),
         onBack = onBack,
-        modifier = Modifier.imePadding(),
+        modifier = Modifier.imePaddingSafe(),
     ) {
         if (!store.loaded) {
             item(key = "loading") { SpeechLoadingState(store.message) }
