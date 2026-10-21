@@ -137,3 +137,11 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
 - ZCode 仓库与 CLI 说明：<https://github.com/zai-org/ZCode>
 - ZCode 安装文档：<https://zcode.z.ai/en/docs/install>
 - DeepSeek Harness：<https://github.com/deepseek-ai/deepseek-harness>
+
+## 9. Android 本地网关与多 Agent
+
+- chroot payload 只使用 `unshare -m` 挂载命名空间，没有使用 `unshare -n`；PRoot 也复用 Android 的网络命名空间。因此扩展 Agent 默认可以访问 Android 的默认网关、局域网地址和模拟器宿主地址（例如 `10.0.2.2`），不需要额外网络转发。
+- 在 Agent 终端里可用 `ip route` 或 `cat /proc/net/route` 查看默认路由；如果目标服务有防火墙/绑定限制，需要先放开对应端口或监听地址。
+- Kimi Code 作为第三扩展 Agent 保留；Linux 工具环境页和顶栏都会显示它。
+- 多个扩展 Agent 可以同时运行；顶栏会为每个运行中的 Agent 分别显示停止项，Linux 环境页也有逐行停止按钮。
+- 内置 WebView 支持多标签页：`+` 可新建本机页面，点击标签切换，`×` 关闭；每个标签保留独立 WebView 状态。
