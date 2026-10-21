@@ -65,7 +65,7 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 
 - `LinuxPackageProfiles` 新增 `OPENCODE` 与 `DSH` 安装 profile（依赖 Node.js，
   npm 国内镜像优先、官方 registry 兜底），固定 OpenCode 2.1.2 / DSH 0.2.1-rc.2，
-  使用 `--include=optional` 保留 koffi/node-pty 的 ARM64 预编译依赖；删除 `KIMI` profile。
+  使用 `--include=optional` 保留 koffi/node-pty 的 ARM64 预编译依赖；Kimi Code profile 保留。
 - 安装、启动、状态、停止均显式传入当前 `LinuxExecutionBackend`，root/chroot 固定使用
   `filesDir/terminal/<dist>/rootfs`，不会因缓存后端误用 PRoot 目录。
 - 新增 `ExtensionAgent` 目录、`ExtensionAgentWebSession`、`ExtensionAgentLauncher`、
@@ -79,6 +79,9 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
   支持文件选择、返回栈和外部链接转系统浏览器；顶栏溢出菜单同时提供 OpenCode / DSH 两个入口。
 - 原生对话的用户消息也走 Markdown；新增常见 LaTeX 希腊字母、运算/集合/箭头符号归一化。
 - Kimi Code 原 profile、Linux 工具行、顶栏入口和停止入口一并恢复/保留。
+- DSH 移动端改为独立壳层：隐藏桌面 rail、固定顶栏 + 抽屉、聊天列占满视口、设置页全屏 + 横向分类 chip；旧版保守 CSS 会被启动脚本清理后重新追加。
+- 原生 Markdown 分式改为“分子 / 横向分数线 / 分母”的居中布局，分数线按最宽文本测量，并修正 frac、dfrac、big、lim 等命令的归一化。
+- OpenCode 上游 2.1.2 的“自定义提供商”表单固定报 `provider.custom.unavailable`；Eta 在 WebView `⋮` 菜单和首页溢出菜单提供配置入口，按官方 `providers` 格式写入 `opencode.json` 后 `opencode reload`。
 - 更新中英文 README 与三语字符串。
 
 ### 验证
@@ -118,6 +121,6 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 1. DeepSeek Harness 是开发者预览，ARM64 约 787 MB / 610 个包；升级可能破坏兼容，安装耗时长。
    已固定版本并启用 optional 预编译依赖；若镜像缺少 koffi/node-pty ARM64 预编译包，
    安装会尝试源码编译而失败。ZCode 若要启用 Web，必须自建并托管官方 CLI tarball。
-2. 扩展 Agent 的 Web UI 仍由系统浏览器打开，未做 Eta 内置 WebView 容器。
+2. 扩展 Agent 的 Web UI 已统一由 Eta 内置 `ExtensionAgentWebActivity` 承载（多标签、状态栏/IME inset、Enter→换行）；DSH 额外使用移动壳层，OpenCode 的自定义提供商通过本地配置写入兜底（上游 2.1.2 Web 表单固定报 `provider.custom.unavailable`）。
 3. Android 17 的 IME 修复依赖 `imeAnimationTarget`（Compose 实验 API），
    已在 1.12.0 上验证；升级 Compose 后应保留 `SafeImeInsetsTest` 作为看门测试。

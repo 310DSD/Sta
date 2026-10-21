@@ -11,7 +11,7 @@ class TexMathDelimitersTest {
     fun inlineParenthesesAreNormalizedForDisplay() {
         val paragraph = blocks("行内 \\(a_i + b_j = \\frac{1}{2}\\) 结束").single() as MarkdownParagraph
 
-        val formula = "a_i + b_j = (1)/(2)"
+        val formula = "aᵢ + bⱼ = (1)/(2)"
         assertTrue(paragraph.text.text.contains(formula))
         assertTrue(paragraph.text.spanStyles.any { range ->
             range.item.fontFamily == FontFamily.Monospace &&
@@ -25,7 +25,7 @@ class TexMathDelimitersTest {
 
         assertTrue(math.isMath)
         assertTrue(math.text.text.contains("∑ᵢ₌₁ⁿ"))
-        assertTrue(math.text.text.contains("a_i"))
+        assertTrue(math.text.text.contains("aᵢ"))
     }
 
     @Test

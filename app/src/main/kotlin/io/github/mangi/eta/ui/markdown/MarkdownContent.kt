@@ -170,6 +170,7 @@ private fun MarkdownText(
                 modifier = modifier.fillMaxWidth(),
                 horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Start,
                 verticalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+                itemVerticalAlignment = Alignment.CenterVertically,
             ) {
                 segments.forEach { segment ->
                     if (segment.numerator == null) {
@@ -264,18 +265,41 @@ private fun matchingParen(text: String, open: Int): Int? {
 
 @Composable
 private fun FractionText(numerator: String, denominator: String, style: TextStyle) {
-    Column(
-        modifier = Modifier.padding(horizontal = 2.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(text = numerator, style = style, maxLines = 1)
-        Box(
-            modifier = Modifier
-                .width(28.dp)
-                .height(1.dp)
-                .background(style.color),
-        )
-        Text(text = denominator, style = style, maxLines = 1)
+    val gap = 4.dp
+    val horizontalPadding = 2.dp
+    Layout(
+        content = {
+            Text(text = numerator, style = style, maxLines = 1)
+            Text(text = denominator, style = style, maxLines = 1)
+        },
+        modifier = Modifier
+            .drawBehind {
+                val stroke = 1.dp.toPx()
+                val inset = horizontalPadding.toPx()
+                val y = size.height / 2f
+                drawLine(
+                    color = style.color,
+                    start = Offset(inset, y),
+                    end = Offset(size.width - inset, y),
+                    strokeWidth = stroke,
+                    cap = StrokeCap.Round,
+                )
+            }
+            .padding(horizontal = horizontalPadding),
+    ) { measurables, constraints ->
+        val loose = constraints.copy(minWidth = 0, minHeight = 0)
+        val numeratorPlaceable = measurables[0].measure(loose)
+        val denominatorPlaceable = measurables[1].measure(loose)
+        val width = maxOf(numeratorPlaceable.width, denominatorPlaceable.width)
+        val gapPx = gap.roundToPx()
+        val height = numeratorPlaceable.height + gapPx + denominatorPlaceable.height
+        layout(width, height) {
+            numeratorPlaceable.place((width - numeratorPlaceable.width) / 2, 0)
+            denominatorPlaceable.place(
+                (width - denominatorPlaceable.width) / 2,
+                numeratorPlaceable.height + gapPx,
+            )
+        }
     }
 }
 

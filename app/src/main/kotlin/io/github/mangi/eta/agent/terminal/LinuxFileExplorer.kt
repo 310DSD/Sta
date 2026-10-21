@@ -1,6 +1,7 @@
 package io.github.mangi.eta.agent.terminal
 
 import java.io.File
+import java.util.Base64
 
 /**
  * 面向用户的 Linux rootfs 只读文件浏览后端。
@@ -37,6 +38,14 @@ internal object LinuxFileExplorer {
         data object NotFile : ReadResult
         data object Unreadable : ReadResult
         data object CommandFailed : ReadResult
+    }
+
+    sealed interface WriteResult {
+        data object Success : WriteResult
+        data object NotInstalled : WriteResult
+        data object NotFile : WriteResult
+        data object Unreadable : WriteResult
+        data object CommandFailed : WriteResult
     }
 
     /**
@@ -131,6 +140,50 @@ internal object LinuxFileExplorer {
         // 含 NUL 字节按二进制处理，不把乱码塞进查看器。
         if (payload.contains(0.toByte())) return ReadResult.Binary
         return ReadResult.Text(content = payload.decodeToString(), truncated = truncated)
+    }
+
+    /**
+     * 原子写入 guest 文件；内容经 stdin/base64 传输，避免配置里的引号、换行和 `$`
+     * 被 shell 二次解释。目录不存在时按需创建。
+     */
+    fun writeText(
+        supervisor: ShellProcessSupervisor,
+        rootfsDir: File,
+        linuxPath: String,
+        content: String,
+    ): WriteResult {
+        if (!LinuxEnvironmentPaths.rootfsReady(rootfsDir.absolutePath)) return WriteResult.NotInstalled
+        val hostPath = resolveHostPath(rootfsDir, linuxPath) ?: return WriteResult.NotFile
+        val rootless = LinuxEnvironmentPaths.backendOf(rootfsDir.absolutePath) == LinuxExecutionBackend.PROOT
+        val quoted = shellQuote(
+            if (rootless) "/" + File(rootfsDir.path).toPath().relativize(File(hostPath).toPath()).toString() else hostPath,
+        )
+        val script = """
+            eta_target=$quoted
+            if [ -d "${'$'}eta_target" ]; then exit 43; fi
+            eta_dir=${'$'}(dirname "${'$'}eta_target") || exit 42
+            mkdir -p "${'$'}eta_dir" || exit 42
+            eta_tmp="${'$'}eta_target.eta-tmp.${'$'}${'$'}"
+            base64 -d > "${'$'}eta_tmp" || exit 42
+            mv "${'$'}eta_tmp" "${'$'}eta_target" || exit 42
+            exit 0
+        """.trimIndent()
+        val payload = Base64.getEncoder().encodeToString(content.toByteArray(Charsets.UTF_8)).toByteArray()
+        val result = runOneShotShell(
+            processSupervisor = supervisor,
+            identity = if (rootless) "user" else "root",
+            command = script,
+            timeoutSeconds = 15,
+            stdin = payload,
+            environment = if (rootless) TerminalEnvironment.ALPINE else TerminalEnvironment.ANDROID,
+            linuxRootfsPath = rootfsDir.absolutePath,
+        )
+        return when (result.exitCode) {
+            0 -> WriteResult.Success
+            42 -> WriteResult.Unreadable
+            43 -> WriteResult.NotFile
+            else -> WriteResult.CommandFailed
+        }
     }
 
     /**

@@ -7,6 +7,7 @@ import android.net.Uri
 import android.os.Build
 import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Box
@@ -78,6 +79,7 @@ import io.github.mangi.eta.ui.screens.memory.AgentMemoryScreen
 import io.github.mangi.eta.ui.screens.permissions.PermissionHealthScreen
 import io.github.mangi.eta.ui.screens.skills.AgentSkillsScreen
 import io.github.mangi.eta.ui.screens.terminal.LinuxEnvironmentScreen
+import io.github.mangi.eta.ui.web.OpenCodeProviderDialog
 import io.github.mangi.eta.ui.screens.terminal.LinuxFilesScreen
 import io.github.mangi.eta.ui.screens.terminal.SharedFoldersScreen
 import io.github.mangi.eta.ui.screens.terminal.TerminalEntryScreen
@@ -296,6 +298,11 @@ fun AgentAppRoot(
                             ).show()
                         }
                     }
+                }
+            },
+            onConfigureOpenCodeProvider = {
+                (context as? ComponentActivity)?.let { activity ->
+                    OpenCodeProviderDialog.show(activity) {}
                 }
             },
             extensionAgentLabel = appViewModel.extensionAgentState.actionLabel(context),

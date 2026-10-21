@@ -62,11 +62,17 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
 - DSH 的 `koffi` / `node-pty` 会使用 `@koromix/koffi-linux-arm64`、`node-pty/prebuilds/linux-arm64`
   预编译文件；若镜像缺少 optional dependency，npm 会尝试源码编译，而基础 rootfs 没有
   build-essential/cmake，安装会失败。选型验证使用了完整 ARM64 optional 依赖。
-- DSH Web 前端是桌面优先；安装 profile 会在
-  `@deepseek-ai/dsh-web-frontend` 的 CSS 末尾追加一段保守的 `max-width:720px` 覆盖
-  （收窄 sidebar、让聊天区宽度 100%、设置弹窗改为纵向导航），不修改 JS。升级 DSH 版本后
-  需重新检查 `VOzbGW_*` 等选择器；设置弹窗的样式由插件运行时注入，覆盖规则带
-  `!important`。
+- DSH Web 前端是桌面优先，且原设置弹窗在手机上会把内容压成一列汉字。Eta 不再做
+  “缩小 sidebar”的保守补丁，而是提供一层完整的移动壳：
+  - 隐藏 56px 桌面 rail，改为固定顶栏 + 左侧抽屉；抽屉通过 DSH 自己的 sidebar 状态控制，
+    聊天区获得完整视口宽度；
+  - 会话列覆盖 DSH 桌面端 `clamp(680px, ...)` 的最小宽度，消息与输入框不再横向裁切；
+  - 设置弹窗改为全屏 panel：导航变成可换行的横向 chip，内容区 100% 宽度，关闭按钮固定
+    在标题行右侧；
+  - 深浅色都只引用 DSH 自己的 `--dsw-*` 变量，不写死颜色。
+  CSS 同时追加到 `dsh-web-frontend` 资源，并在 WebView 每次页面加载后再注入一次，避免
+  旧安装残留的旧版补丁生效。升级 DSH 版本后需重新检查 `pI_x6G_*`、`wSkVaW_*`、
+  `VOzbGW_*` 等 hash 选择器。
 
 ### 4.2 Agent 目录与启动
 
@@ -92,6 +98,12 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
 - 扩展 Agent URL 由 `ExtensionAgentWebActivity` 内置 WebView 承载；移动宽度下注入
   Enter→换行脚本（Shift/Ctrl/Cmd/Alt 语义保留），textarea 与 Lexical contenteditable
   都覆盖，解决手机键盘没有 Shift 时误发送。
+- OpenCode 2.1.2 的 Settings → Providers → “自定义 OpenAI 兼容提供商”保存逻辑是上游
+  未实现的占位代码，固定抛出 `provider.custom.unavailable`（“此服务器上无法使用自定义
+  提供商”），服务端也没有配置写入 API。Eta 在内置 WebView 的 `⋮` 菜单和首页顶栏溢出菜单
+  提供“OpenCode 自定义提供商”：按官方 `providers` 格式合并写入
+  `/root/.config/opencode/opencode.json`，再执行 `opencode reload`。字段包括 provider ID、
+  显示名、base URL、API key 和模型 ID；写入前校验 ID/URL，写入失败会保留原配置不动。
 
 ## 5. 验证
 

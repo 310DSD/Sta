@@ -1440,6 +1440,7 @@
   <string name="extension_agent_set_default">Default</string>
   <string name="extension_agent_launch_web">Launch Web</string>
   <string name="action_launch_agent_web">Launch %1$s Web</string>
+  <string name="opencode_provider_config">OpenCode custom provider</string>
   <string name="extension_agent_error_root">Root access is required</string>
   <string name="extension_agent_error_background">Background start is not allowed</string>
   <string name="extension_agent_exited">The agent process exited</string>

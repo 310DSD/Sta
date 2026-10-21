@@ -20,6 +20,7 @@ import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
+import android.widget.PopupMenu
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.ComponentActivity
@@ -35,7 +36,7 @@ import org.json.JSONObject
  *
  * 支持多个独立 WebView 页面（顶部 tab 栏），并注入：
  * - 手机宽度下 Enter 插入换行（Shift/Ctrl/Cmd/Alt 语义保留）；
- * - DSH 的移动布局 CSS（主界面 + 设置弹窗）；
+ * - DSH 的移动布局 CSS 与顶栏/抽屉脚本（主界面 + 设置弹窗）；
  * - 文件选择、返回栈和外部链接转系统浏览器。
  *
  * 只接受 loopback URL；外部链接交给系统浏览器，避免把 WebView 变成任意网页容器。
@@ -72,9 +73,23 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
             isHorizontalScrollBarEnabled = false
             addView(tabStrip, ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(44)))
         }
+        val menuButton = TextView(this).apply {
+            text = "⋮"
+            textSize = 22f
+            gravity = Gravity.CENTER
+            setTextColor(Color.DKGRAY)
+            contentDescription = "页面菜单"
+            setOnClickListener { showTabMenu(it) }
+        }
+        val topBar = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            addView(tabScroll, LinearLayout.LayoutParams(0, dp(44), 1f))
+            addView(menuButton, LinearLayout.LayoutParams(dp(44), dp(44)))
+        }
         contentHost = FrameLayout(this)
         root.addView(
-            tabScroll,
+            topBar,
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(44)),
         )
         root.addView(contentHost, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
@@ -172,6 +187,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                 if (url != null && isLoopbackHttpUrl(url)) {
                     view.evaluateJavascript(MOBILE_INPUT_BRIDGE, null)
                     view.evaluateJavascript(MOBILE_LAYOUT_BRIDGE, null)
+                    view.evaluateJavascript(DSH_MOBILE_SHELL_JS, null)
                     updateTitle(view, url)
                 }
             }
@@ -251,6 +267,27 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         }
     }
 
+    private fun showTabMenu(anchor: View) {
+        PopupMenu(this, anchor).apply {
+            if (current?.webView?.title?.contains("OpenCode", ignoreCase = true) == true) {
+                menu.add(0, MENU_OPENCODE_PROVIDER, 0, "OpenCode 自定义提供商")
+            }
+            menu.add(0, MENU_RELOAD, 1, "刷新当前页")
+            menu.add(0, MENU_CLOSE_TAB, 2, "关闭当前标签")
+            setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    MENU_OPENCODE_PROVIDER -> OpenCodeProviderDialog.show(this@ExtensionAgentWebActivity) {
+                        current?.webView?.reload()
+                    }
+                    MENU_RELOAD -> current?.webView?.reload()
+                    MENU_CLOSE_TAB -> current?.let(::closeTab)
+                }
+                true
+            }
+            show()
+        }
+    }
+
     private fun promptForUrl() {
         val input = EditText(this).apply {
             hint = "http://127.0.0.1:端口/"
@@ -304,12 +341,96 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         const val EXTRA_URL = "io.github.mangi.eta.extra.EXTENSION_AGENT_URL"
         private const val REQUEST_FILE_CHOOSER = 7401
         private const val ADD_TAG = "eta-webbrowser-add"
+        private const val MENU_OPENCODE_PROVIDER = 1
+        private const val MENU_RELOAD = 2
+        private const val MENU_CLOSE_TAB = 3
 
         private fun isLoopbackHttpUrl(value: String): Boolean {
             val uri = runCatching { Uri.parse(value) }.getOrNull() ?: return false
             return uri.scheme == "http" &&
                 (uri.host == "127.0.0.1" || uri.host == "localhost" || uri.host == "::1")
         }
+
+        private val DSH_MOBILE_SHELL_JS = """
+(function () {
+  function install() {
+  if (document.getElementById('eta-mobile-bar')) return true;
+  var frame = document.querySelector('.pI_x6G_frame');
+  if (!frame) return false;
+
+  var bar = document.createElement('header');
+  bar.id = 'eta-mobile-bar';
+  bar.innerHTML =
+    '<button type="button" class="eta-icon" id="eta-menu" aria-label="打开菜单">' +
+      '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' +
+    '</button>' +
+    '<div class="eta-heading"><span class="eta-title">DeepSeek Harness</span></div>' +
+    '<button type="button" class="eta-icon" id="eta-new" aria-label="新建会话">' +
+      '<svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' +
+    '</button>' +
+    '<button type="button" class="eta-icon" id="eta-panel" aria-label="打开右侧边栏">' +
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M15.5 4.5v15" stroke="currentColor" stroke-width="1.4"/></svg>' +
+    '</button>';
+  document.body.appendChild(bar);
+
+  var scrim = document.createElement('div');
+  scrim.id = 'eta-scrim';
+  document.body.appendChild(scrim);
+
+  function isDrawerOpen() {
+    var f = document.querySelector('.pI_x6G_frame');
+    return !!f && !f.hasAttribute('data-sidebar-collapsed');
+  }
+  function toggleDrawer(open) {
+    var f = document.querySelector('.pI_x6G_frame');
+    if (!f) return;
+    var currentlyOpen = !f.hasAttribute('data-sidebar-collapsed');
+    if (open === true && currentlyOpen) return;
+    if (open === false && !currentlyOpen) return;
+    var toggle = document.querySelector('.hHd-Xa_toggle');
+    if (toggle) toggle.click();
+  }
+  document.getElementById('eta-menu').addEventListener('click', function () { toggleDrawer(); });
+  scrim.addEventListener('click', function () { toggleDrawer(false); });
+  document.getElementById('eta-new').addEventListener('click', function () {
+    var b = document.querySelector('.hHd-Xa_newSession');
+    if (b) b.click();
+  });
+  document.getElementById('eta-panel').addEventListener('click', function () {
+    var b = document.querySelector('.wSkVaW_headerCorner button') ||
+            document.querySelector('[aria-label="打开右侧边栏"]');
+    if (b) b.click();
+  });
+
+  function syncDrawer() {
+    document.body.classList.toggle('eta-drawer-open', isDrawerOpen());
+  }
+  new MutationObserver(syncDrawer).observe(frame, {
+    attributes: true,
+    attributeFilter: ['data-sidebar-collapsed']
+  });
+  syncDrawer();
+
+  var titleEl = bar.querySelector('.eta-title');
+  function syncTitle() {
+    var value = document.title || 'DeepSeek Harness';
+    var dash = value.indexOf(' — ');
+    titleEl.textContent = dash > 0 ? value.slice(0, dash) : 'DeepSeek Harness';
+  }
+  var titleNode = document.querySelector('title');
+  if (titleNode) new MutationObserver(syncTitle).observe(titleNode, { childList: true });
+  syncTitle();
+  return true;
+  }
+
+  if (install()) return;
+  var attempts = 0;
+  var timer = setInterval(function () {
+    attempts += 1;
+    if (install() || attempts > 120) clearInterval(timer);
+  }, 250);
+})();
+        """.trimIndent()
 
         private val MOBILE_INPUT_BRIDGE = """
             (function() {

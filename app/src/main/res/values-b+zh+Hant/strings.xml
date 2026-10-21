@@ -1348,6 +1348,7 @@
   <string name="extension_agent_set_default">設為預設</string>
   <string name="extension_agent_launch_web">啟動 Web</string>
   <string name="action_launch_agent_web">啟動 %1$s Web</string>
+  <string name="opencode_provider_config">OpenCode 自訂提供商</string>
   <string name="extension_agent_error_root">需要 Root 授權</string>
   <string name="extension_agent_error_background">目前不允許背景啟動</string>
   <string name="extension_agent_exited">擴充 Agent 程序已結束</string>
