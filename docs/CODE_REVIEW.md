@@ -17,8 +17,8 @@
 | --- | --- | --- |
 | High | 安装/启动/状态查询使用 `LinuxEnvironmentPaths.rootfsDir(context, distribution)` 的默认后端，而该值来自可变的 `LinuxEnvironmentSettingsRepository` 缓存；同时存在 PRoot 与 chroot 环境时，UI 选择的 chroot 可能被错误解析到 PRoot rootfs。 | 已修复：`LinuxPackageProfileInstaller`、`ExtensionAgentLauncher.launch/status/stop`、`AgentAppViewModel` 全部显式传递 `LinuxExecutionBackend`，rootfs 使用 `rootfsDir(context, distribution, backend)`。 |
 | High | `AgentAppViewModel.refreshExtensionAgent()` 每次启动独立协程，且用 `extensionAgentJob` 判断状态；启动/停止期间后台刷新可能用旧的 `READY` 覆盖 `STARTING/RUNNING`，切换 Agent 时旧刷新也可能覆盖新 Agent。 | 已修复：增加单独的 `extensionAgentRefreshJob`，刷新前取消旧任务；启动/停止前取消刷新；写入状态前校验 `extensionAgent == agent`。 |
-| Medium | chroot 下 Node 启动 OpenCode/ZCode 的冷启动可能超过 20 秒（原 `waitAttempts=40 × 500ms`），在手机上会误报 `URL_TIMEOUT`。 | 已修复：等待提升到 90 次（45 秒）。 |
-| Medium | 安装校验使用 `opencode web --help` / `zcode --help`，CLI 的 help 退出码或分页行为可能导致“安装成功但校验失败”。 | 已修复：改为 `command -v <cmd>` + `--version`（ZCode 保留 `--help` 作为可用性探测）。 |
+| Medium | chroot 下 Node 启动 OpenCode/DeepSeek Harness 的冷启动可能超过 20 秒（原 `waitAttempts=40 × 500ms`），在手机上会误报 `URL_TIMEOUT`。 | 已修复：等待提升到 90 次（45 秒）。 |
+| Medium | 安装校验使用 `opencode web --help` / `zcode --help`（旧方案），CLI 的 help 退出码或分页行为可能导致“安装成功但校验失败”。 | 已修复：改为 `command -v <cmd>` + `--version`（新方案统一为 `command -v` + `--version`）。 |
 | Medium | `EtaVoicePanel` 仍直接使用 `WindowInsets.ime`，语音面板的输入区同样可能被 Compose insets 冻结影响。 | 已修复：改用 `rememberSafeImeInsets()`，padding 使用 safe insets。 |
 | Medium | 项目内仍有 `Modifier.imePadding()` 调用点，未覆盖全部输入场景。 | 已修复：全部替换为 `imePaddingSafe()`；`grep` 确认只剩文档与 `SafeImeInsets` 内部实现引用。 |
 | Medium | `ExtensionAgentWebSession` 的 URL 正则过宽，遇到日志中的 `]` 或 `#token=` 时可能截断或带上无关字符，导致浏览器打开错误地址。 | 已修复：收紧到 URL 安全字符集，并覆盖 `?token=` / `#token=`；新增回归断言。 |
@@ -31,7 +31,7 @@
 | Medium | `DetachedTaskSupervisor` 的 `linuxRootfsPathProvider` 仍通过仓库缓存解析 rootfs，与 launcher 的显式 backend 存在两套解析来源；缓存冷/切换瞬间可能不一致。 | 已记录：`EtaApp` 启动时初始化缓存且 launcher 显式路径已覆盖主路径；后续可把 backend 直接传入 supervisor。 |
 | Low | PRoot/user 身份在 launch 返回后释放前台租约，守护任务要到下一次 `list()` 才被重新认领，立刻切后台可能被系统杀掉。 | 已记录；chroot/root 主路径不受影响。 |
 | Low | Root 被撤销后，`ExtensionAgentLauncher.status()` 在列出任务前直接返回 `ROOT_REQUIRED`，UI 无法在无 Root 状态下停止已运行的 root 守护任务。 | 已记录为限制：恢复 Root 后可停止；root 守护任务本身不随 App 进程退出。 |
-| Low | ZCode 使用 npm 社区包 `zcode-app-cli`，并非 Z.ai 官方 CLI 分发；存在供应链与版本漂移风险。 | 已在选型文档标注；`ZCODE_INSTALL_SCRIPT` 可替换为官方 `install.sh` 或固定版本 tarball。 |
+| Medium | ZCode 的官方 Web CLI 只在源码构建/自托管分发中提供；npm 社区包 `zcode-app-cli` 实际不支持 `--web`，原方案启动即退出。 | 已在实现阶段淘汰 ZCode，改用官方 npm `@deepseek-ai/dsh` + `dsh web`；选型文档记录原因。 |
 | Low | chroot/root 真机未覆盖：模拟器 `su` 只接受 uid/gid，无法执行 `su -c`。 | 已记录残余风险；建议在 Root 设备（Magisk/KernelSU）上按 `docs/EXTENSION_AGENTS.md` 的步骤回归。 |
 
 ## chroot/root 调用链核对

@@ -6,6 +6,7 @@ import androidx.core.net.toUri
 import io.github.mangi.eta.agent.extension.ExtensionAgent
 import io.github.mangi.eta.agent.runtime.AgentExecutionService
 import io.github.mangi.eta.agent.terminal.DetachedTaskSupervisor
+import io.github.mangi.eta.agent.terminal.InstallerShellRunner
 import io.github.mangi.eta.agent.terminal.LinuxEnvironmentPaths
 import io.github.mangi.eta.agent.terminal.LinuxExecutionBackend
 import io.github.mangi.eta.agent.terminal.LinuxPackageProfiles
@@ -85,7 +86,25 @@ internal class ExtensionAgentLauncher(
             }
             try {
                 currentCoroutineContext().ensureActive()
-                session.launch(agent, environment, identity, backend)
+                session.launch(agent, environment, identity, backend) { serverUrl ->
+                    val pairCommand = agent.pairCommand?.invoke(serverUrl)
+                    if (pairCommand == null) {
+                        null
+                    } else {
+                        val pairResult = InstallerShellRunner.run(
+                            command = pairCommand,
+                            timeoutSeconds = 20,
+                            environment = environment,
+                            linuxRootfsPath = rootfs.absolutePath,
+                            identity = identity,
+                        )
+                        if (pairResult.exitCode == 0) {
+                            PAIRING_URL_REGEX.find(pairResult.output)?.value
+                        } else {
+                            null
+                        }
+                    }
+                }
             } finally {
                 if (identity == "user") AgentExecutionService.release(launchId)
             }
@@ -141,6 +160,7 @@ internal class ExtensionAgentLauncher(
 
     private companion object {
         val launchMutexes = ConcurrentHashMap<ExtensionAgent, Mutex>()
+        val PAIRING_URL_REGEX = Regex("""http://(?:127\.0\.0\.1|localhost):\d+/auth/connect/[A-Za-z0-9_-]+""")
 
         fun mutexFor(agent: ExtensionAgent): Mutex = launchMutexes.getOrPut(agent) { Mutex() }
     }

@@ -6,7 +6,8 @@ package io.github.mangi.eta.agent.extension
  *
  * The catalogue is deliberately small: each entry must have an installable Linux ARM64 build, a
  * headless web mode that prints a loopback URL, and a TUI fallback for the terminal. Kimi Code was
- * the previous single choice; OpenCode and ZCode replace it as the two supported extension agents.
+ * the previous single choice; OpenCode and DeepSeek Harness replace it as the two supported
+ * extension agents. ZCode's official Web CLI is source-build/self-host only, so it is not shipped.
  */
 internal enum class ExtensionAgent(
     val id: String,
@@ -20,30 +21,40 @@ internal enum class ExtensionAgent(
     val webUrlPattern: Regex,
     /** Command users can type in Eta's terminal for the TUI. */
     val terminalCommand: String,
+    /**
+     * Optional command that turns the running server URL into a one-time browser login URL.
+     * OpenCode 2.x protects `serve` with an auto-generated password and exposes `pair` for this.
+     */
+    val pairCommand: ((String) -> String)? = null,
 ) {
     OPENCODE(
         id = "opencode",
         displayName = "OpenCode",
         packageProfileId = "opencode",
-        webCommand = "opencode web --hostname 127.0.0.1 --port 4096",
+        // OpenCode 2.x has no `web` subcommand; `serve` is the foreground server that also
+        // serves the web UI. `opencode pair` then produces the browser login link.
+        webCommand = "opencode serve --hostname 127.0.0.1 --port 4096",
         acceptedCommands = setOf(
-            "opencode web --hostname 127.0.0.1 --port 4096",
+            "opencode serve --hostname 127.0.0.1 --port 4096",
+            "opencode serve",
             "opencode web",
         ),
         webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):\d+(?:/[A-Za-z0-9/?:=&._~%+#-]*)?"""),
         terminalCommand = "opencode",
+        pairCommand = { serverUrl -> "opencode pair --url $serverUrl" },
     ),
-    ZCODE(
-        id = "zcode",
-        displayName = "ZCode",
-        packageProfileId = "zcode",
-        webCommand = "zcode --web --workspace /workspace --port 3030 --host 127.0.0.1 --no-open",
+    DSH(
+        id = "dsh",
+        displayName = "DeepSeek Harness",
+        packageProfileId = "dsh",
+        // `dsh web` prints a tokenized loopback URL directly and stays in the foreground.
+        webCommand = "dsh web --host 127.0.0.1 --port 3080 --no-open",
         acceptedCommands = setOf(
-            "zcode --web --workspace /workspace --port 3030 --host 127.0.0.1 --no-open",
-            "zcode --web",
+            "dsh web --host 127.0.0.1 --port 3080 --no-open",
+            "dsh web",
         ),
         webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):\d+(?:/[A-Za-z0-9/?:=&._~%+#-]*)?"""),
-        terminalCommand = "zcode",
+        terminalCommand = "dsh",
     ),
     ;
 

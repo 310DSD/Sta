@@ -120,9 +120,9 @@ class AlpineEnvironmentInstallerTest {
         )
         // 扩展 Agent 都是 npm 包，跑在 Node profile 之上；始终装最新正式版。
         val opencode = LinuxPackageProfiles.OPENCODE
-        val zcode = LinuxPackageProfiles.ZCODE
+        val dsh = LinuxPackageProfiles.DSH
         assertEquals(LinuxPackageProfiles.NODE, opencode.dependsOn)
-        assertEquals(LinuxPackageProfiles.NODE, zcode.dependsOn)
+        assertEquals(LinuxPackageProfiles.NODE, dsh.dependsOn)
         LinuxDistribution.entries.forEach { distribution ->
             val opencodeScript = opencode.spec(distribution).setupScript.orEmpty()
             assertTrue(opencodeScript.contains("npm install -g"))
@@ -130,11 +130,11 @@ class AlpineEnvironmentInstallerTest {
             assertTrue(opencodeScript.contains("--prefix /usr/local"))
             assertTrue(opencodeScript.contains("registry.npmmirror.com"))
 
-            val zcodeScript = zcode.spec(distribution).setupScript.orEmpty()
-            assertTrue(zcodeScript.contains("npm install -g"))
-            assertTrue(zcodeScript.contains("zcode-app-cli@latest"))
-            assertTrue(zcodeScript.contains("--prefix /usr/local"))
-            assertTrue(zcodeScript.contains("registry.npmmirror.com"))
+            val dshScript = dsh.spec(distribution).setupScript.orEmpty()
+            assertTrue(dshScript.contains("npm install -g"))
+            assertTrue(dshScript.contains("@deepseek-ai/dsh@latest"))
+            assertTrue(dshScript.contains("--prefix /usr/local"))
+            assertTrue(dshScript.contains("registry.npmmirror.com"))
         }
         LinuxDistribution.entries.forEach { distribution ->
             assertTrue(LinuxPackageProfiles.SSH.spec(distribution).packages.isNotEmpty())

@@ -1451,7 +1451,7 @@
   <string name="linux_opencode_tools">OpenCode</string>
   <string name="linux_opencode_tools_summary">Install the latest OpenCode 2 via npm; requires Node.js. Web UI: opencode web</string>
   <string name="linux_opencode_tools_ready">OpenCode is ready; run opencode in the terminal</string>
-  <string name="linux_zcode_tools">ZCode</string>
-  <string name="linux_zcode_tools_summary">Install the latest ZCode CLI via npm; requires Node.js 22+. Web UI: zcode --web</string>
-  <string name="linux_zcode_tools_ready">ZCode is ready; run zcode in the terminal</string>
+  <string name="linux_dsh_tools">DeepSeek Harness</string>
+  <string name="linux_dsh_tools_summary">Install the latest DeepSeek Harness via npm; requires Node.js. Web UI: dsh web</string>
+  <string name="linux_dsh_tools_ready">DeepSeek Harness is ready; run dsh in the terminal</string>
 </resources>

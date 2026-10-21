@@ -1429,7 +1429,7 @@
   <string name="linux_opencode_tools">OpenCode</string>
   <string name="linux_opencode_tools_summary">通过 npm 安装最新 OpenCode 2；需要先安装 Node.js。Web UI：opencode web</string>
   <string name="linux_opencode_tools_ready">OpenCode 已就绪，在终端运行 opencode 即可开始</string>
-  <string name="linux_zcode_tools">ZCode</string>
-  <string name="linux_zcode_tools_summary">通过 npm 安装最新 ZCode CLI；需要 Node.js 22+。Web UI：zcode --web</string>
-  <string name="linux_zcode_tools_ready">ZCode 已就绪，在终端运行 zcode 即可开始</string>
+  <string name="linux_dsh_tools">DeepSeek Harness</string>
+  <string name="linux_dsh_tools_summary">通过 npm 安装最新 DeepSeek Harness；需要 Node.js。Web UI：dsh web</string>
+  <string name="linux_dsh_tools_ready">DeepSeek Harness 已就绪，在终端运行 dsh 即可开始</string>
 </resources>

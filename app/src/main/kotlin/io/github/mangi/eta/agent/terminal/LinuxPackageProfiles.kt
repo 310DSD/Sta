@@ -109,10 +109,10 @@ internal object LinuxPackageProfiles {
             "@opencode/cli@latest || " +
             "npm install -g --prefix /usr/local @opencode/cli@latest"
 
-    private const val ZCODE_INSTALL_SCRIPT =
+    private const val DSH_INSTALL_SCRIPT =
         "npm install -g --prefix /usr/local --registry=https://registry.npmmirror.com " +
-            "zcode-app-cli@latest || " +
-            "npm install -g --prefix /usr/local zcode-app-cli@latest"
+            "@deepseek-ai/dsh@latest || " +
+            "npm install -g --prefix /usr/local @deepseek-ai/dsh@latest"
 
     val OPENCODE = LinuxPackageProfile(
         id = "opencode",
@@ -131,23 +131,23 @@ internal object LinuxPackageProfiles {
         ),
     )
 
-    val ZCODE = LinuxPackageProfile(
-        id = "zcode",
-        markerName = AlpineEnvironmentPaths.ZCODE_TOOLS_MARKER,
-        revision = AlpineEnvironmentPaths.ZCODE_TOOLS_REVISION,
+    val DSH = LinuxPackageProfile(
+        id = "dsh",
+        markerName = AlpineEnvironmentPaths.DSH_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.DSH_TOOLS_REVISION,
         dependsOn = NODE,
         specs = mapOf(
             LinuxDistribution.ALPINE to LinuxPackageSpec(
-                setupScript = ZCODE_INSTALL_SCRIPT,
-                verifyCommand = "command -v zcode >/dev/null && zcode --help >/dev/null",
+                setupScript = DSH_INSTALL_SCRIPT,
+                verifyCommand = "command -v dsh >/dev/null && dsh --version >/dev/null",
             ),
             LinuxDistribution.DEBIAN to LinuxPackageSpec(
-                setupScript = ZCODE_INSTALL_SCRIPT,
-                verifyCommand = "command -v zcode >/dev/null && zcode --help >/dev/null",
+                setupScript = DSH_INSTALL_SCRIPT,
+                verifyCommand = "command -v dsh >/dev/null && dsh --version >/dev/null",
             ),
         ),
     )
-    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, ZCODE)
+    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, DSH)
 }
 
 internal fun linuxPackageProfileReady(rootfs: File, profile: LinuxPackageProfile): Boolean {

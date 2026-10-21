@@ -12,7 +12,7 @@ internal object AlpineEnvironmentPaths {
     const val NODE_TOOLS_MARKER = ".eta-node-tools-ready"
     const val SSH_TOOLS_MARKER = ".eta-ssh-tools-ready"
     const val OPENCODE_TOOLS_MARKER = ".eta-opencode-tools-ready"
-    const val ZCODE_TOOLS_MARKER = ".eta-zcode-tools-ready"
+    const val DSH_TOOLS_MARKER = ".eta-dsh-tools-ready"
     const val TOOLSET_REVISION = 1
     const val APK_ANALYSIS_REVISION = 1
     const val PYTHON_TOOLS_REVISION = 1
@@ -20,7 +20,7 @@ internal object AlpineEnvironmentPaths {
     const val NODE_TOOLS_REVISION = 2
     const val SSH_TOOLS_REVISION = 1
     const val OPENCODE_TOOLS_REVISION = 1
-    const val ZCODE_TOOLS_REVISION = 1
+    const val DSH_TOOLS_REVISION = 1
 
     fun environmentDir(context: Context): File =
         LinuxEnvironmentPaths.environmentDir(context, LinuxDistribution.ALPINE)

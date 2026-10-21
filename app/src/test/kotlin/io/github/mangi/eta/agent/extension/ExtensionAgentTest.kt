@@ -10,7 +10,7 @@ import org.junit.Test
 class ExtensionAgentTest {
     @Test
     fun catalogueHasTheTwoSelectedAgents() {
-        assertEquals(listOf("opencode", "zcode"), ExtensionAgent.entries.map { it.id })
+        assertEquals(listOf("opencode", "dsh"), ExtensionAgent.entries.map { it.id })
     }
 
     @Test

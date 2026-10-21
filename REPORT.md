@@ -7,7 +7,7 @@
 | `dist/Eta-v3.3.1-sta-release.apk` | 已签名的 release APK（targetSdk 37，11 MB） |
 | `dist/Eta-v3.3.1-sta-debug.apk` | 可调试的 debug APK（86 MB） |
 | `docs/ANDROID_17_IME_FIX.md` | Android 17 输入法动画问题根因与修复说明 |
-| `docs/EXTENSION_AGENTS.md` | OpenCode 2 / ZCode / DeepSeek Harness 选型报告 |
+| `docs/EXTENSION_AGENTS.md` | OpenCode 2 / ZCode / DeepSeek Harness 评估（ZCode 实现阶段落选） |
 | `docs/CODE_REVIEW.md` | 严格代码审查记录（含 chroot/root 调用链） |
 | 分支 `sta/android17-extension-agents` | 基于 `Mangi-11/Eta` main（c8e05d6）的 fork 提交 |
 
@@ -47,21 +47,23 @@ Android 17 的预测性返回手势与键盘收起动画竞争时容易触发。
 
 ### 选型
 
-选择 **OpenCode 2.1.2** 与 **ZCode 3.16.2**，DeepSeek Harness 落选。关键数据：
+选择 **OpenCode 2.1.2** 与 **DeepSeek Harness 0.2.1-rc.2**，ZCode 在实现阶段落选。
+关键数据：
 
 | 指标 | OpenCode | ZCode | DeepSeek Harness |
 | --- | --- | --- | --- |
-| 官方 ARM64 分发 | ✅ npm 单二进制（含 musl） | ⚠️ CLI 需自建/自托管，采用社区 npm 包 | ✅ npm |
+| 官方 ARM64 分发 | ✅ npm 单二进制（含 musl） | ❌ 官方 CLI Web 需源码自建/自托管；npm 社区包仅 TUI | ✅ npm |
 | 实测安装体积（x64） | 418 MB | 135 MB | **827 MB / 611 个包** |
-| 移动端 Web UI | 官方 Web UI | 官方 Web UI + 手机远程控制 | 以桌面为主 |
+| Web 入口 | `opencode serve` + `opencode pair` | 社区包不支持 `--web` | `dsh web`，直接打印带 token URL |
 | 成熟度 | 2.x 稳定线 | 3.16.x 稳定产品 | 开发者预览，明确破坏兼容 |
 
-DeepSeek Harness 的依赖体量（611 个包）与桌面优先的 Web UI 不适合 PRoot 手机环境，
-因此排除；这与 Eta 作者 3.0.0 发布说明中的判断一致。
+ZCode 的社区 npm 包实际执行 `zcode --web` 会报 `Unknown option '--web'`，无法作为 Web 扩展
+Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者预览，但其官方 npm 包和
+`dsh web` 是当前三个候选中唯一可直接安装并提供 Web UI 的第二个选择，因此改选 DSH。
 
 ### 实现
 
-- `LinuxPackageProfiles` 新增 `OPENCODE` 与 `ZCODE` 安装 profile（依赖 Node.js，
+- `LinuxPackageProfiles` 新增 `OPENCODE` 与 `DSH` 安装 profile（依赖 Node.js，
   npm 国内镜像优先、官方 registry 兜底），删除 `KIMI` profile。
 - 安装、启动、状态、停止均显式传入当前 `LinuxExecutionBackend`，root/chroot 固定使用
   `filesDir/terminal/<dist>/rootfs`，不会因缓存后端误用 PRoot 目录。
@@ -69,15 +71,15 @@ DeepSeek Harness 的依赖体量（611 个包）与桌面优先的 Web UI 不适
   `ExtensionAgentUiState`，统一安装、启动、复用、停止与 URL 解析；chroot/root 下
   由 `su -c` + `unshare -m` + `chroot` 启动，`/workspace` 为可写 bind mount。
 - 首页顶栏溢出菜单的 Kimi Web 改为当前默认扩展 Agent 的启动/打开/停止入口。
-- Linux 工具环境页用 OpenCode、ZCode 两行替换 Kimi Code 行，支持安装、启动 Web、
-  停止与设为默认。
+- Linux 工具环境页用 OpenCode、DeepSeek Harness 两行替换 Kimi Code 行，支持安装、启动 Web、
+  停止；最近一次成功启动的 Agent 自动成为顶栏默认入口。
 - 默认 Agent 持久化在 `SettingsDataStore` 的 `extension_agent` 键。
 - 更新中英文 README 与三语字符串。
 
 ### 验证
 
 - `ExtensionAgentWebSessionTest`：URL 提取、复用已有任务、超时回收、浏览器不可用。
-- `ExtensionAgentTest`：目录只包含 OpenCode/ZCode、未知 id 回退、固定 loopback 端口，
+- `ExtensionAgentTest`：目录只包含 OpenCode/DeepSeek Harness、未知 id 回退、固定 loopback 端口，
   并验证 chroot rootfs 使用 `root` 身份、PRoot rootfs 使用 `user` 身份。
 - `AlpineEnvironmentInstallerTest`：两个 profile 的 npm 安装脚本、依赖与镜像参数。
 - `ShellProcessSupervisorTest.linuxPayload...`：chroot payload 包含 `unshare + chroot`、
@@ -108,8 +110,8 @@ DeepSeek Harness 的依赖体量（611 个包）与桌面优先的 Web UI 不适
 
 ## 已知风险与后续
 
-1. ZCode 目前通过 npm 社区包 `zcode-app-cli` 安装；官方 CLI 需要自建/自托管分发。
-   后续可将 `ZCODE_INSTALL_SCRIPT` 指向官方 `install.sh` 或固定版本的 tarball。
+1. DeepSeek Harness 是开发者预览，611 个包、约 827 MB；升级可能破坏兼容，安装耗时长。
+   后续应固定版本并清理 npm/pnpm 缓存；ZCode 若要启用 Web，必须自建并托管官方 CLI tarball。
 2. 扩展 Agent 的 Web UI 仍由系统浏览器打开，未做 Eta 内置 WebView 容器。
 3. Android 17 的 IME 修复依赖 `imeAnimationTarget`（Compose 实验 API），
    已在 1.12.0 上验证；升级 Compose 后应保留 `SafeImeInsetsTest` 作为看门测试。

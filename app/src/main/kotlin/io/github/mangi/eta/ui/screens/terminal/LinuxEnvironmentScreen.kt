@@ -80,12 +80,12 @@ private enum class InstallTarget {
     NODE,
     SSH,
     OPENCODE,
-    ZCODE,
+    DSH,
 }
 
 private fun InstallTarget.extensionAgent(): ExtensionAgent? = when (this) {
     InstallTarget.OPENCODE -> ExtensionAgent.OPENCODE
-    InstallTarget.ZCODE -> ExtensionAgent.ZCODE
+    InstallTarget.DSH -> ExtensionAgent.DSH
     else -> null
 }
 
@@ -131,11 +131,11 @@ private val packageProfileUis = listOf(
         readyRes = R.string.linux_opencode_tools_ready,
     ),
     PackageProfileUi(
-        target = InstallTarget.ZCODE,
-        profile = LinuxPackageProfiles.ZCODE,
-        titleRes = R.string.linux_zcode_tools,
-        summaryRes = R.string.linux_zcode_tools_summary,
-        readyRes = R.string.linux_zcode_tools_ready,
+        target = InstallTarget.DSH,
+        profile = LinuxPackageProfiles.DSH,
+        titleRes = R.string.linux_dsh_tools,
+        summaryRes = R.string.linux_dsh_tools_summary,
+        readyRes = R.string.linux_dsh_tools_ready,
     ),
 )
 
@@ -195,12 +195,6 @@ internal fun LinuxEnvironmentScreen(
     var runningAgents by remember(selectedDistribution, backend) {
         mutableStateOf<Set<ExtensionAgent>>(emptySet())
     }
-    val extensionAgentFlow = remember(appContext) {
-        ExtensionAgentSettingsRepository.flow(appContext)
-    }
-    val defaultAgent by extensionAgentFlow.collectAsState(
-        initial = ExtensionAgentSettingsRepository.current(appContext),
-    )
     val extensionAgentLauncher = remember(appContext) {
         ExtensionAgentLauncher(
             context = appContext,
@@ -318,6 +312,8 @@ internal fun LinuxEnvironmentScreen(
                 resultMessage = result.message(context)
             } else {
                 runningAgents = runningAgents + agent
+                // 最近一次成功启动的 Agent 作为首页顶栏默认入口。
+                ExtensionAgentSettingsRepository.select(agent)
             }
         }
     }
@@ -473,18 +469,6 @@ internal fun LinuxEnvironmentScreen(
                             },
                             endActions = {
                                 if (agent != null && ready) {
-                                    if (defaultAgent != agent) {
-                                        EtaTextButton(
-                                            text = stringResource(R.string.extension_agent_set_default),
-                                            enabled = launchingAgent == null && busyTarget == null,
-                                            onClick = {
-                                                coroutineScope.launch {
-                                                    ExtensionAgentSettingsRepository
-                                                        .select(agent)
-                                                }
-                                            },
-                                        )
-                                    }
                                     if (agentRunning) {
                                         EtaTextButton(
                                             text = stringResource(R.string.action_stop),

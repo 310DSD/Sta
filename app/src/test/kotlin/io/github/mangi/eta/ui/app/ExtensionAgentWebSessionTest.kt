@@ -77,7 +77,7 @@ class ExtensionAgentWebSessionTest {
     }
 
     @Test
-    fun parsesOpenCodeAndZCodeLoopbackUrls() {
+    fun parsesOpenCodeAndDshLoopbackUrls() {
         assertEquals(
             "http://127.0.0.1:4096",
             ExtensionAgentWebSession.addressFromLogs(
@@ -86,10 +86,10 @@ class ExtensionAgentWebSessionTest {
             ),
         )
         assertEquals(
-            "http://127.0.0.1:3030/?token=abc",
+            "http://127.0.0.1:3080/?token=abc",
             ExtensionAgentWebSession.addressFromLogs(
-                ExtensionAgent.ZCODE,
-                "\u001B[32mhttp://127.0.0.1:3030/?token=abc\u001B[0m",
+                ExtensionAgent.DSH,
+                "\u001B[32mhttp://127.0.0.1:3080/?token=abc\u001B[0m",
             ),
         )
         assertEquals(
@@ -124,21 +124,21 @@ class ExtensionAgentWebSessionTest {
         )
 
         val result = ExtensionAgentWebSession(tasks, openUrl = { true }, waitAttempts = 1, waitIntervalMs = 0)
-            .launch(ExtensionAgent.ZCODE, environment, "user", LinuxExecutionBackend.PROOT)
+            .launch(ExtensionAgent.DSH, environment, "user", LinuxExecutionBackend.PROOT)
 
         assertEquals(ExtensionAgentLaunchResult.Failed("URL_TIMEOUT"), result)
-        assertEquals(listOf("zcode"), tasks.started)
-        assertEquals(listOf("started-zcode"), tasks.stopped)
+        assertEquals(listOf("dsh"), tasks.started)
+        assertEquals(listOf("started-dsh"), tasks.stopped)
     }
 
     @Test
     fun stopsTheCreatedTaskWhenTheBrowserCannotOpen() = runBlocking {
-        val tasks = FakeTasks(logs = DaemonLogsResult(ok = true, text = "http://127.0.0.1:3030/"))
+        val tasks = FakeTasks(logs = DaemonLogsResult(ok = true, text = "http://127.0.0.1:3080/"))
 
         val result = ExtensionAgentWebSession(tasks, openUrl = { false }, waitAttempts = 1)
-            .launch(ExtensionAgent.ZCODE, environment, "user", LinuxExecutionBackend.PROOT)
+            .launch(ExtensionAgent.DSH, environment, "user", LinuxExecutionBackend.PROOT)
 
         assertEquals(ExtensionAgentLaunchResult.Failed("BROWSER_UNAVAILABLE"), result)
-        assertTrue(tasks.stopped.contains("started-zcode"))
+        assertTrue(tasks.stopped.contains("started-dsh"))
     }
 }

@@ -35,6 +35,7 @@ internal class ExtensionAgentWebSession(
         environment: TerminalEnvironment,
         identity: String,
         backend: LinuxExecutionBackend,
+        resolveUrl: suspend (String) -> String? = { null },
     ): ExtensionAgentLaunchResult {
         var createdTaskId: String? = null
         var opened = false
@@ -60,9 +61,10 @@ internal class ExtensionAgentWebSession(
                 }
                 val url = addressFromLogs(agent, logs.text)
                 if (url != null) {
-                    opened = openUrl(url)
+                    val targetUrl = resolveUrl(url) ?: url
+                    opened = openUrl(targetUrl)
                     return if (opened) {
-                        ExtensionAgentLaunchResult.Opened(url)
+                        ExtensionAgentLaunchResult.Opened(targetUrl)
                     } else {
                         ExtensionAgentLaunchResult.Failed("BROWSER_UNAVAILABLE")
                     }
