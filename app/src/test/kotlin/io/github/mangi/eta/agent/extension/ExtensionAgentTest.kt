@@ -30,6 +30,16 @@ class ExtensionAgentTest {
     }
 
     @Test
+    fun openCodeUsesServeAndPairInsteadOfTheRemovedWebSubcommand() {
+        val agent = ExtensionAgent.OPENCODE
+        assertTrue(agent.webCommand.startsWith("opencode serve"))
+        assertEquals(
+            "opencode pair --url http://127.0.0.1:4096",
+            agent.pairCommand?.invoke("http://127.0.0.1:4096"),
+        )
+    }
+
+    @Test
     fun chrootUsesRootIdentityWhileProotUsesUserIdentity() {
         assertEquals(
             "root",
