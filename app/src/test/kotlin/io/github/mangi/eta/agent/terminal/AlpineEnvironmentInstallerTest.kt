@@ -126,14 +126,16 @@ class AlpineEnvironmentInstallerTest {
         LinuxDistribution.entries.forEach { distribution ->
             val opencodeScript = opencode.spec(distribution).setupScript.orEmpty()
             assertTrue(opencodeScript.contains("npm install -g"))
-            assertTrue(opencodeScript.contains("@opencode/cli@latest"))
+            assertTrue(opencodeScript.contains("@opencode/cli@2.1.2"))
             assertTrue(opencodeScript.contains("--prefix /usr/local"))
+            assertTrue(opencodeScript.contains("--include=optional"))
             assertTrue(opencodeScript.contains("registry.npmmirror.com"))
 
             val dshScript = dsh.spec(distribution).setupScript.orEmpty()
             assertTrue(dshScript.contains("npm install -g"))
-            assertTrue(dshScript.contains("@deepseek-ai/dsh@latest"))
+            assertTrue(dshScript.contains("@deepseek-ai/dsh@0.2.1-rc.2"))
             assertTrue(dshScript.contains("--prefix /usr/local"))
+            assertTrue(dshScript.contains("--include=optional"))
             assertTrue(dshScript.contains("registry.npmmirror.com"))
         }
         LinuxDistribution.entries.forEach { distribution ->

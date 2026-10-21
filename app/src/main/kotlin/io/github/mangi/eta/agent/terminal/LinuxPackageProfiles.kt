@@ -101,18 +101,19 @@ internal object LinuxPackageProfiles {
     )
 
     /**
-     * 扩展 Agent 使用 npm 分发，运行在 Node profile 之上。始终安装最新正式版；
-     * `--prefix /usr/local` 让命令进入 PATH 首位。国内镜像优先，官方 registry 兜底。
+     * 扩展 Agent 使用 npm 分发，运行在 Node profile 之上。固定已验证的版本，避免
+     * 开发者预览/CLI 参数变化导致启动命令失效；`--prefix /usr/local` 让命令进入 PATH 首位。
+     * 国内镜像优先，官方 registry 兜底。
      */
     private const val OPENCODE_INSTALL_SCRIPT =
-        "npm install -g --prefix /usr/local --registry=https://registry.npmmirror.com " +
-            "@opencode/cli@latest || " +
-            "npm install -g --prefix /usr/local @opencode/cli@latest"
+        "npm install -g --prefix /usr/local --include=optional --registry=https://registry.npmmirror.com " +
+            "@opencode/cli@2.1.2 || " +
+            "npm install -g --prefix /usr/local --include=optional @opencode/cli@2.1.2"
 
     private const val DSH_INSTALL_SCRIPT =
-        "npm install -g --prefix /usr/local --registry=https://registry.npmmirror.com " +
-            "@deepseek-ai/dsh@latest || " +
-            "npm install -g --prefix /usr/local @deepseek-ai/dsh@latest"
+        "npm install -g --prefix /usr/local --include=optional --registry=https://registry.npmmirror.com " +
+            "@deepseek-ai/dsh@0.2.1-rc.2 || " +
+            "npm install -g --prefix /usr/local --include=optional @deepseek-ai/dsh@0.2.1-rc.2"
 
     val OPENCODE = LinuxPackageProfile(
         id = "opencode",

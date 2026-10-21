@@ -134,6 +134,23 @@ class ExtensionAgentWebSessionTest {
     }
 
     @Test
+    fun stopsTheCreatedOpenCodeTaskWhenPairingLinkCannotBeObtained() = runBlocking {
+        val tasks = FakeTasks(logs = DaemonLogsResult(ok = true, text = "server listening on http://127.0.0.1:4096"))
+
+        val result = ExtensionAgentWebSession(tasks, openUrl = { true }, waitAttempts = 1)
+            .launch(
+                agent = ExtensionAgent.OPENCODE,
+                environment = environment,
+                identity = "user",
+                backend = LinuxExecutionBackend.PROOT,
+                pairRequired = true,
+            )
+
+        assertEquals(ExtensionAgentLaunchResult.Failed("PAIRING_FAILED"), result)
+        assertEquals(listOf("started-opencode"), tasks.stopped)
+    }
+
+    @Test
     fun stopsTheCreatedTaskWhenTheBrowserCannotOpen() = runBlocking {
         val tasks = FakeTasks(logs = DaemonLogsResult(ok = true, text = "http://127.0.0.1:3080/"))
 

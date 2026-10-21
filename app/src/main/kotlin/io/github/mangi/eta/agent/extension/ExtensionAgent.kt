@@ -37,7 +37,6 @@ internal enum class ExtensionAgent(
         acceptedCommands = setOf(
             "opencode serve --hostname 127.0.0.1 --port 4096",
             "opencode serve",
-            "opencode web",
         ),
         webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):\d+(?:/[A-Za-z0-9/?:=&._~%+#-]*)?"""),
         terminalCommand = "opencode",

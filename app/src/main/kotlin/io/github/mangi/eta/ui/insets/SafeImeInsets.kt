@@ -50,7 +50,7 @@ internal const val IME_FALLBACK_DURATION_MS = 240
  * flag in `onPrepare` and clears it only in `onEnd`; while the flag is set, `onApplyWindowInsets`
  * deliberately skips updating the animated inset. A cancelled IME animation (for example when a
  * predictive-back gesture races the IME close animation on Android 17) never delivers `onEnd`,
- * so `WindowInsets.ime` can freeze for the lifetime of the activity. `imePadding()` then keeps
+ * so `WindowInsets.ime` can stay frozen until a later successful animation or a holder reset. `imePadding()` then keeps
  * applying the last keyboard height and the input bar no longer follows the keyboard.
  *
  * `WindowInsets.imeAnimationTarget` is updated before that flag is consulted, so it keeps
@@ -195,6 +195,11 @@ fun rememberSafeImeInsets(): WindowInsets {
                     insets.setFallbackBottom(sample.animated)
                     fallback.snapTo(sample.animated.toFloat())
                     insets.isStranded = true
+                } else if (fallback.value.roundToInt() != insets.fallbackBottom) {
+                    // More than one composable can observe the same per-View state. Only the
+                    // first watcher starts the fallback; late watchers must join the shared
+                    // value instead of animating from their own stale initial value.
+                    fallback.snapTo(insets.fallbackBottom.toFloat())
                 }
                 if (fallback.value.roundToInt() != sample.target) {
                     fallback.animateTo(

@@ -280,6 +280,7 @@ internal fun EtaVoicePanel(
                 ),
                 maxContentHeightPx = maxContentHeightPx,
                 imeOverlapPx = imeOverlap,
+                safeImeInsets = safeImeInsets,
                 onInputChange = onInputChange,
                 onSuggestionClick = { suggestion ->
                     keyboard?.hide()
@@ -318,6 +319,7 @@ private fun BoxScope.AssistantPanel(
     baseContentHeightPx: Float,
     maxContentHeightPx: Float,
     imeOverlapPx: Int,
+    safeImeInsets: WindowInsets,
     onInputChange: (String) -> Unit,
     onSuggestionClick: (String) -> Unit,
     keyboardVisible: Boolean,
@@ -328,7 +330,6 @@ private fun BoxScope.AssistantPanel(
 ) {
     val density = LocalDensity.current
     val haptic = LocalHapticFeedback.current
-    val safeImeInsets = rememberSafeImeInsets()
     val listState = rememberLazyListState()
     var settledHeightPx by remember { mutableFloatStateOf(baseContentHeightPx) }
     var draggedHeightPx by remember { mutableStateOf<Float?>(null) }
