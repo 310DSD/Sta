@@ -1,7 +1,9 @@
 package io.github.mangi.eta.ui.web
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -11,10 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Folder
-import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -24,7 +23,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -61,25 +61,32 @@ internal fun NewPageDialog(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             QuickEntry(
-                icon = Icons.Rounded.Terminal,
+                icon = { BrandIcon(R.drawable.ic_opencode) },
                 title = ExtensionAgent.OPENCODE.displayName,
                 summary = stringResource(R.string.webview_agent_summary),
                 onClick = { onOpenAgent(ExtensionAgent.OPENCODE) },
             )
             QuickEntry(
-                icon = Icons.Rounded.AutoAwesome,
+                icon = { BrandIcon(R.drawable.provider_logo_deepseek) },
                 title = ExtensionAgent.DSH.displayName,
                 summary = stringResource(R.string.webview_agent_summary),
                 onClick = { onOpenAgent(ExtensionAgent.DSH) },
             )
             QuickEntry(
-                icon = Icons.Rounded.Code,
+                icon = { BrandIcon(R.drawable.provider_logo_kimi) },
                 title = ExtensionAgent.KIMI.displayName,
                 summary = stringResource(R.string.webview_agent_summary),
                 onClick = { onOpenAgent(ExtensionAgent.KIMI) },
             )
             QuickEntry(
-                icon = Icons.Rounded.Folder,
+                icon = {
+                    Icon(
+                        imageVector = Icons.Rounded.Folder,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                        tint = MiuixTheme.colorScheme.primary,
+                    )
+                },
                 title = stringResource(R.string.webview_file_manager),
                 summary = stringResource(R.string.webview_file_manager_summary),
                 onClick = onOpenFileManager,
@@ -110,8 +117,20 @@ internal fun NewPageDialog(
 }
 
 @Composable
+private fun BrandIcon(resId: Int) {
+    Image(
+        painter = painterResource(resId),
+        contentDescription = null,
+        contentScale = ContentScale.Fit,
+        modifier = Modifier
+            .size(22.dp)
+            .clip(RoundedCornerShape(5.dp)),
+    )
+}
+
+@Composable
 private fun QuickEntry(
-    icon: ImageVector,
+    icon: @Composable () -> Unit,
     title: String,
     summary: String,
     onClick: () -> Unit,
@@ -125,12 +144,12 @@ private fun QuickEntry(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = null,
-            modifier = Modifier.size(22.dp),
-            tint = MiuixTheme.colorScheme.primary,
-        )
+        Box(
+            modifier = Modifier.size(24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            icon()
+        }
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,

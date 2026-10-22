@@ -123,8 +123,9 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
   提供商”），服务端也没有配置写入 API。Eta 不再维护第二套手工表单，而是在内置 WebView
   的 `⋮` 菜单和首页顶栏溢出菜单提供“同步 Eta 提供商到 OpenCode”：直接读取 Eta 的
   provider/model 数据，合并写入 `/root/.config/opencode/opencode.json`，再执行
-  `opencode reload` 刷新配置；首次启动 OpenCode 前也会自动同步
-  一次。同步会先从 provider 的 `/models` 补全后端声明的工具、视觉、上下文和输出上限，
+  `opencode reload` 刷新配置；每次打开 OpenCode 前都会自动同步，已在运行时则后台刷新，
+  不阻塞 WebView 打开；手动入口只保留在 WebView 页面菜单中。
+  同步会先从 provider 的 `/models` 补全后端声明的工具、视觉、上下文和输出上限，
   再映射 `limit.context` / `limit.output`、`capabilities.tools`、`capabilities.input`、
   `capabilities.reasoning`、`variants` 及自定义请求头和请求体；原有 OpenCode MCP/插件/
   其他 provider 配置保留。
@@ -135,18 +136,18 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
 ### 4.4 新建页面弹窗与 Linux 文件管理器
 
 - `NewPageDialog`：内置 WebView 右上角 `+` 不再直接弹系统 AlertDialog，而是 Miuix 弹窗；
-  首屏提供 OpenCode / DeepSeek Harness / Kimi Code / 文件管理器四个快速入口，下方保留
-  自定义 loopback URL 输入。快捷入口复用 `ExtensionAgentLauncher`，并通过 `openUrl`
-  回调在当前 WebView 内新开标签，不再叠一层 Activity。
+  首屏提供 OpenCode / DeepSeek Harness / Kimi Code / 文件管理器四个快速入口，三个 Agent
+  使用各自品牌图标（OpenCode 方框、DeepSeek 鲸鱼、Kimi K），下方保留自定义 loopback URL 输入。
+  快捷入口复用 `ExtensionAgentLauncher`，并通过 `openUrl` 回调在当前 WebView 内新开标签。
 - `LinuxFileManagerActivity` + `LinuxFilesScreen`：MT 管理器风格的双窗口 Linux rootfs 文件管理器。
-  - 左右窗口分别维护路径/历史/选择，当前窗口浮起；顶部单条路径栏显示当前窗口路径与文件夹/文件统计；
-  - 复制/移动直接从当前窗口到另一窗口，没有粘贴步骤；底部为后退/前进/新建/同步/上级五个图标动作；
-  - 根目录/工作区/主目录/临时/共享快捷入口，支持路径输入、搜索当前目录、排序和隐藏文件；
-  - 长按文件/文件夹在屏幕中央打开操作菜单（打开/多选/复制/移动/删除/重命名/属性）；
-    选中后底部切换为复制/移动/重命名/属性/删除；
+  - 左右窗口分别维护路径/历史/选择；点击或滚动任意一列立即激活该列，活跃列通过中缝阴影浮起；
+  - 顶部单条路径栏显示活跃列路径与文件夹/文件统计；底部为后退/前进/新建/同步/上级五个图标动作；
+  - 复制/移动直接从当前窗口到另一窗口，没有粘贴步骤；长按居中菜单里的箭头指向目标列；
+  - 长按菜单包含复制/移动/删除/重命名/压缩/属性/添加书签/多选，压缩生成 tar.gz，书签持久化；
+  - 目录列举优先直接读取 App 可访问的宿主路径（`/workspace` 映射到宿主工作区），
+    不可读时才回退 root shell / PRoot；切换目录保留旧列表，避免每次转圈；
   - 文本文件可查看和编辑（`writeText` 原子写入），二进制文件提示不可预览；
-  - 变更操作优先走 root shell / PRoot，保留 Linux 属主、权限、符号链接语义；
-    shell 不可用时，列表/读取/属性/写入会回退到 App 进程直接访问 rootfs。
+  - 变更操作优先走 root shell / PRoot，保留 Linux 属主、权限、符号链接语义。
 - DSH 顶栏不再叠加 `env(safe-area-inset-top)`：`ExtensionAgentWebActivity` 已经为状态栏
   预留 inset，CSS 再加一次会在 DSH 顶部出现一条空白。同时 `#root` 只在检测到
   `#eta-mobile-bar` 真正插入后才让出 56px，避免脚本注入失败时留下空白。

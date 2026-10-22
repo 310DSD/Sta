@@ -25,7 +25,7 @@
 - 扩展 Agent 输入框的 Enter 只换行、不发送：OpenCode 用 `insertLineBreak`，DSH Lexical 用
   `beforeinput(insertLineBreak)`，textarea 用 `setRangeText`。
 - WebView 右上角 `+` 改为 Miuix 新建页面弹窗，提供 OpenCode / DeepSeek Harness / Kimi Code /
-  文件管理器快速入口，并保留自定义 loopback 地址输入。
+  文件管理器快速入口，三个 Agent 使用各自品牌图标，并保留自定义 loopback 地址输入。
 
 ### DSH 移动壳
 
@@ -53,14 +53,12 @@ DSH Web 前端是桌面优先布局。Sta 在**不修改 DSH 逻辑和 DOM 锚�
 
 内置 MT 管理器风格的双窗口 rootfs 文件管理器，可从 WebView 新建页面弹窗或 Linux 工具页进入：
 
-- 左右两个文件窗口同时显示，各自维护路径、历史、选择与滚动位置；当前窗口浮起，顶部只显示当前窗口路径与文件夹/文件数量；
-- 复制 / 移动直接从当前窗口到另一窗口，没有单独的粘贴步骤；底部提供后退、前进、新建、同步、上级五个动作；
-- 根目录 / 工作区 / 主目录 / 临时 / 共享快捷入口，路径输入、当前目录搜索、排序、隐藏文件；
-- 长按文件/文件夹在屏幕中央打开操作菜单（打开 / 多选 / 复制 / 移动 / 删除 / 重命名 / 属性）；
-  选中后底部切换为复制 / 移动 / 重命名 / 属性 / 删除；
-- 文本文件查看与编辑，二进制文件提示不可预览；
-- 操作优先走 root shell / PRoot，保留 Linux 权限与符号链接语义；shell 不可用时，
-  列表、读取、属性和写入回退到 App 进程直接访问 rootfs。
+- 左右两个文件窗口同时显示，各自维护路径、历史、选择与滚动位置；点击或滚动任意一列立即激活，当前窗口通过中缝阴影浮起；
+- 复制 / 移动直接从当前窗口到另一窗口，没有单独的粘贴步骤；长按菜单里的箭头指向目标列；
+- 长按文件/文件夹在屏幕中央打开双列菜单：复制 / 移动 / 删除 / 重命名 / 压缩 / 属性 / 添加书签 / 多选；
+- 压缩生成 `tar.gz`，书签持久化；底部提供后退、前进、新建、同步、上级五个动作；
+- 目录列举优先直接读取宿主可访问路径（`/workspace` 映射到宿主工作区），不可读时才回退 root shell / PRoot，切换目录不再每次转圈；
+- 文本文件查看与编辑，二进制文件提示不可预览。
 
 ### OpenCode 提供商同步
 
@@ -75,6 +73,7 @@ Eta 的 provider/model 数据生成 `~/.config/opencode/opencode.json`：
   Eta 已保存的元数据。
 - 合并时保留已存在 provider 的手工 `baseURL`、API key、headers/body 与模型自定义字段。
 - 只调用 `opencode reload`，不重启 service（重启会导致 WebView `failed to fetch`）。
+- 每次打开 OpenCode 前自动同步；已在运行时后台刷新，不阻塞打开；手动按钮只保留在 WebView 页面菜单。
 
 ### 其他上游修复
 

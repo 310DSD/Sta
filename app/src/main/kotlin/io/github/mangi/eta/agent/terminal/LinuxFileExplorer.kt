@@ -102,14 +102,32 @@ internal object LinuxFileExplorer {
         return File(rootfsDir, normalized).path
     }
 
+    /** 把 `/workspace` 映射到宿主工作区，其余路径仍落在 rootfs 内。 */
+    private fun resolveHostPathFor(rootfsDir: File, linuxPath: String, hostWorkspace: File?): String? {
+        if (hostWorkspace != null) {
+            val normalized = normalizeGuestPath(linuxPath)
+            if (normalized == "/workspace") return hostWorkspace.path
+            if (normalized != null && normalized.startsWith("/workspace/") &&
+                !normalized.startsWith("/workspace/mounts")
+            ) {
+                return File(hostWorkspace, normalized.removePrefix("/workspace/")).path
+            }
+        }
+        return resolveHostPath(rootfsDir, linuxPath)
+    }
+
     /** 同步阻塞；协程切换由调用侧负责。rootfs 未就绪时不执行任何 Shell。 */
     fun list(
         supervisor: ShellProcessSupervisor,
         rootfsDir: File,
         linuxPath: String,
+        hostWorkspace: File? = null,
     ): ListResult {
         if (!LinuxEnvironmentPaths.rootfsReady(rootfsDir.absolutePath)) return ListResult.NotInstalled
-        val hostPath = resolveHostPath(rootfsDir, linuxPath) ?: return ListResult.NotDirectory
+        val hostPath = resolveHostPathFor(rootfsDir, linuxPath, hostWorkspace) ?: return ListResult.NotDirectory
+        if (!linuxPath.startsWith("/workspace/mounts")) {
+            directList(hostPath)?.let { return it }
+        }
         val rootless = LinuxEnvironmentPaths.backendOf(rootfsDir.absolutePath) == LinuxExecutionBackend.PROOT
         val quoted = shellQuote(if (rootless) "/" + File(rootfsDir.path).toPath().relativize(File(hostPath).toPath()).toString() else hostPath)
         // 空目录时通配符原样传给 stat，报错进 stderr 被吞掉，stdout 为空即空列表。
@@ -144,7 +162,8 @@ internal object LinuxFileExplorer {
         val dir = File(hostPath)
         if (!dir.exists()) return null
         if (!dir.isDirectory) return ListResult.NotDirectory
-        val children = dir.listFiles() ?: return ListResult.Unreadable
+        if (!dir.canRead()) return null
+        val children = dir.listFiles() ?: return null
         return ListResult.Success(
             sortEntries(
                 children.map { child ->
@@ -165,9 +184,13 @@ internal object LinuxFileExplorer {
         rootfsDir: File,
         linuxPath: String,
         maxBytes: Long = DEFAULT_MAX_READ_BYTES,
+        hostWorkspace: File? = null,
     ): ReadResult {
         if (!LinuxEnvironmentPaths.rootfsReady(rootfsDir.absolutePath)) return ReadResult.NotInstalled
-        val hostPath = resolveHostPath(rootfsDir, linuxPath) ?: return ReadResult.NotFile
+        val hostPath = resolveHostPathFor(rootfsDir, linuxPath, hostWorkspace) ?: return ReadResult.NotFile
+        directReadText(hostPath, maxBytes)?.let { result ->
+            if (result is ReadResult.Text || result is ReadResult.Binary) return result
+        }
         val rootless = LinuxEnvironmentPaths.backendOf(rootfsDir.absolutePath) == LinuxExecutionBackend.PROOT
         val quoted = shellQuote(if (rootless) "/" + File(rootfsDir.path).toPath().relativize(File(hostPath).toPath()).toString() else hostPath)
         val script = """
@@ -232,9 +255,10 @@ internal object LinuxFileExplorer {
         rootfsDir: File,
         linuxPath: String,
         content: String,
+        hostWorkspace: File? = null,
     ): WriteResult {
         if (!LinuxEnvironmentPaths.rootfsReady(rootfsDir.absolutePath)) return WriteResult.NotInstalled
-        val hostPath = resolveHostPath(rootfsDir, linuxPath) ?: return WriteResult.NotFile
+        val hostPath = resolveHostPathFor(rootfsDir, linuxPath, hostWorkspace) ?: return WriteResult.NotFile
         val rootless = LinuxEnvironmentPaths.backendOf(rootfsDir.absolutePath) == LinuxExecutionBackend.PROOT
         val quoted = shellQuote(
             if (rootless) "/" + File(rootfsDir.path).toPath().relativize(File(hostPath).toPath()).toString() else hostPath,
@@ -249,6 +273,12 @@ internal object LinuxFileExplorer {
             mv "${'$'}eta_tmp" "${'$'}eta_target" || exit 42
             exit 0
         """.trimIndent()
+        val directWrite = runCatching {
+            val file = File(hostPath)
+            file.parentFile?.mkdirs()
+            file.writeText(content, Charsets.UTF_8)
+        }
+        if (directWrite.isSuccess) return WriteResult.Success
         val payload = Base64.getEncoder().encodeToString(content.toByteArray(Charsets.UTF_8)).toByteArray()
         val result = runOneShotShell(
             processSupervisor = supervisor,
@@ -280,9 +310,12 @@ internal object LinuxFileExplorer {
         supervisor: ShellProcessSupervisor,
         rootfsDir: File,
         linuxPath: String,
+        hostWorkspace: File? = null,
     ): StatResult {
         if (!LinuxEnvironmentPaths.rootfsReady(rootfsDir.absolutePath)) return StatResult.NotInstalled
+        val hostPath = resolveHostPathFor(rootfsDir, linuxPath, hostWorkspace) ?: return StatResult.NotFound
         val target = shellPath(rootfsDir, linuxPath) ?: return StatResult.NotFound
+        directStat(hostPath)?.let { return StatResult.Success(it) }
         val quoted = shellQuote(target)
         val script = """
             if [ ! -e $quoted ] && [ ! -L $quoted ]; then exit $EXIT_NOT_FOUND; fi
@@ -335,6 +368,37 @@ internal object LinuxFileExplorer {
             }
             appendLine("exit 0")
         }
+        return runShell(supervisor, rootfsDir, script).toMutateResult()
+    }
+
+    /** 将同一目录中的条目压缩为 tar.gz；归档写入当前目录。 */
+    fun compress(
+        supervisor: ShellProcessSupervisor,
+        rootfsDir: File,
+        linuxPaths: List<String>,
+        targetDir: String,
+        archiveName: String,
+    ): MutateResult {
+        if (!LinuxEnvironmentPaths.rootfsReady(rootfsDir.absolutePath)) return MutateResult.NotInstalled
+        if (linuxPaths.isEmpty() || !isValidName(archiveName)) return MutateResult.InvalidPath
+        val target = normalizeGuestPath(targetDir) ?: return MutateResult.InvalidPath
+        val targetShell = shellPath(rootfsDir, target) ?: return MutateResult.InvalidPath
+        val archivePath = joinGuestPath(target, archiveName)
+        val archiveShell = shellPath(rootfsDir, archivePath) ?: return MutateResult.InvalidPath
+        val names = mutableListOf<String>()
+        for (path in linuxPaths) {
+            val normalized = normalizeGuestPath(path) ?: return MutateResult.InvalidPath
+            if (normalized == "/") return MutateResult.InvalidPath
+            names += normalized.substringAfterLast('/')
+        }
+        val archiveQuoted = shellQuote(archiveShell)
+        val script = """
+            if [ ! -d ${shellQuote(targetShell)} ]; then exit $EXIT_NOT_FOUND; fi
+            if [ -e $archiveQuoted ] || [ -L $archiveQuoted ]; then exit $EXIT_EXISTS; fi
+            cd ${shellQuote(targetShell)} || exit $EXIT_UNREADABLE
+            tar -czf $archiveQuoted ${names.joinToString(" ") { shellQuote(it) }} || exit $EXIT_UNREADABLE
+            exit 0
+        """.trimIndent()
         return runShell(supervisor, rootfsDir, script).toMutateResult()
     }
 

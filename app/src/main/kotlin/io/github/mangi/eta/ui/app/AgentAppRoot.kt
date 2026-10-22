@@ -79,7 +79,6 @@ import io.github.mangi.eta.ui.screens.memory.AgentMemoryScreen
 import io.github.mangi.eta.ui.screens.permissions.PermissionHealthScreen
 import io.github.mangi.eta.ui.screens.skills.AgentSkillsScreen
 import io.github.mangi.eta.ui.screens.terminal.LinuxEnvironmentScreen
-import io.github.mangi.eta.ui.web.OpenCodeProviderDialog
 import io.github.mangi.eta.ui.screens.terminal.LinuxFilesScreen
 import io.github.mangi.eta.ui.screens.terminal.SharedFoldersScreen
 import io.github.mangi.eta.ui.screens.terminal.TerminalEntryScreen
@@ -298,11 +297,6 @@ fun AgentAppRoot(
                             ).show()
                         }
                     }
-                }
-            },
-            onConfigureOpenCodeProvider = {
-                (context as? ComponentActivity)?.let { activity ->
-                    OpenCodeProviderDialog.show(activity) {}
                 }
             },
             extensionAgentLabel = appViewModel.extensionAgentState.actionLabel(context),

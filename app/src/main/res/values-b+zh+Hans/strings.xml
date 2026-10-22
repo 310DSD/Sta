@@ -1510,4 +1510,10 @@
   <string name="file_manager_context_hint">选择操作</string>
   <string name="file_manager_open">打开</string>
   <string name="file_manager_select">多选</string>
+  <string name="file_manager_compress">压缩</string>
+  <string name="file_manager_add_bookmark">添加书签</string>
+  <string name="file_manager_remove_bookmark">移除书签</string>
+  <string name="file_manager_bookmarks">书签</string>
+  <string name="file_manager_bookmark_added">已添加书签</string>
+  <string name="file_manager_bookmark_exists">该书签已存在</string>
 </resources>

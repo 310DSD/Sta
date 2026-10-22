@@ -1440,4 +1440,10 @@
   <string name="file_manager_context_hint">選擇操作</string>
   <string name="file_manager_open">開啟</string>
   <string name="file_manager_select">多選</string>
+  <string name="file_manager_compress">壓縮</string>
+  <string name="file_manager_add_bookmark">新增書籤</string>
+  <string name="file_manager_remove_bookmark">移除書籤</string>
+  <string name="file_manager_bookmarks">書籤</string>
+  <string name="file_manager_bookmark_added">已新增書籤</string>
+  <string name="file_manager_bookmark_exists">此書籤已存在</string>
 </resources>

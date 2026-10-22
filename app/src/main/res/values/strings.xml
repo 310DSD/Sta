@@ -1532,4 +1532,10 @@
   <string name="file_manager_context_hint">Choose an action</string>
   <string name="file_manager_open">Open</string>
   <string name="file_manager_select">Select</string>
+  <string name="file_manager_compress">Compress</string>
+  <string name="file_manager_add_bookmark">Add bookmark</string>
+  <string name="file_manager_remove_bookmark">Remove bookmark</string>
+  <string name="file_manager_bookmarks">Bookmarks</string>
+  <string name="file_manager_bookmark_added">Bookmark added</string>
+  <string name="file_manager_bookmark_exists">Already bookmarked</string>
 </resources>

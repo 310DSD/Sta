@@ -81,13 +81,13 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 - Kimi Code 原 profile、Linux 工具行、顶栏入口和停止入口一并恢复/保留。
 - DSH 移动端改为独立壳层，并按 Eta 的视觉语言重做：暖灰画布 + 白色卡片、16–24px 圆角与 hairline 描边；桌面 rail 改为固定顶栏 + 左侧抽屉，聊天列占满视口，设置页改为全屏 sheet（横向分类 chip、设置行单卡化、说明文字不再被挤成竖排）。工作区/模式改为 chip，选中会话带 3px 强调条，代码块与行内代码有独立表面，主题切换对画布/卡片/边框做 0.3s 颜色过渡，并补 `:focus-visible` 焦点环。动画只用 transform+opacity：抽屉 0.34s 缓出、入口分段入场、sheet 上滑、菜单缩放淡入、仅最后一条消息上浮；`prefers-reduced-motion` 下全部关闭。性能上滚动容器加 `overscroll-behavior: contain`，抽屉 `translate3d`+`contain`，消息项 `contain: layout style`，不使用 `transition: all`，也不对大子树做入场动画。样式块带 `eta-mobile-start/end` 标记，安装脚本可重复清理并追加，旧版 CSS 不会残留。
 - 原生 Markdown 分式改为“分子 / 横向分数线 / 分母”的居中布局，分数线按最宽文本测量，并修正 frac、dfrac、big、lim 等命令的归一化。
-- OpenCode 上游 2.1.2 的“自定义提供商”表单固定报 `provider.custom.unavailable`；Eta 改为从自身 provider/model 数据直接同步 `opencode.json`，映射上下文、视觉、工具、思考等级和自定义请求头/体，并执行 `opencode reload`。同步会先从 provider 的 `/models` 补全工具/视觉/上下文/输出上限，再写入 `limit.context`、`limit.output`、`capabilities.tools`、`capabilities.input` 和 `capabilities.reasoning`；同时保留已存在 provider 的手工 baseURL、API key、headers/body。
+- OpenCode 上游 2.1.2 的“自定义提供商”表单固定报 `provider.custom.unavailable`；Eta 改为从自身 provider/model 数据直接同步 `opencode.json`，映射上下文、视觉、工具、思考等级和自定义请求头/体，并执行 `opencode reload`；每次打开 OpenCode 前自动同步，运行中后台刷新，手动按钮只保留在 WebView 菜单。同步会先从 provider 的 `/models` 补全工具/视觉/上下文/输出上限，再写入 `limit.context`、`limit.output`、`capabilities.tools`、`capabilities.input` 和 `capabilities.reasoning`；同时保留已存在 provider 的手工 baseURL、API key、headers/body。
 - 修复 DSH 移动 CSS 的 `#root` 规则泄漏到 OpenCode 的问题：CSS 仅在检测到 DSH `.pI_x6G_frame` 后注入，并在选择器上用 `:has` 限定 DSH，OpenCode 不再多出 56px 顶部空白。
 - 扩展 Agent WebView 标签栏改用 Compose/Miuix 主题；Enter 捕获改为 window capture，OpenCode 用 `insertLineBreak`，DSH Lexical 用 `beforeinput(insertLineBreak)`，均能换行而不发送。
 - OpenCode 原生 titlebar 在 Android WebView 中会重复读取 safe-area inset，导致顶部约 60px 空白；已把移动端 titlebar 固定为 36px，连接页/首页/会话页统一从顶部开始。
 - 扩展 Agent 已运行时点击右上角启动/打开走快速路径：只查一次状态和日志 URL，直接打开 WebView，不再重复执行启动检查、日志轮询和配对。
-- WebView 新建页面弹窗改为 Miuix 样式，提供 OpenCode / DeepSeek Harness / Kimi Code / 文件管理器快速入口，并保留自定义 loopback 地址输入。
-- 新增 MT 管理器风格的双窗口 Linux 文件管理器：左右窗口各自维护路径/历史/选择，当前窗口浮起；复制/移动直接从当前窗口到另一窗口（无粘贴步骤），底部后退/前进/新建/同步/上级五个动作，支持路径跳转、搜索、排序、隐藏文件、长按居中操作菜单、多选、重命名/属性/删除、文本查看与编辑；操作优先走 root shell / PRoot，shell 不可用时回退到 App 直接访问 rootfs。
+- WebView 新建页面弹窗改为 Miuix 样式，提供 OpenCode / DeepSeek Harness / Kimi Code / 文件管理器快速入口，三个 Agent 使用各自品牌图标，并保留自定义 loopback 地址输入。
+- 新增 MT 管理器风格的双窗口 Linux 文件管理器：左右窗口各自维护路径/历史/选择，点击或滚动任意一列立即激活，活跃列通过中缝阴影浮起；复制/移动直接从当前窗口到另一窗口（无粘贴步骤，长按菜单箭头指向目标列），底部后退/前进/新建/同步/上级五个动作；长按居中菜单含复制/移动/删除/重命名/压缩/属性/添加书签/多选，压缩生成 tar.gz，书签持久化；目录列举优先直接读取宿主可访问路径，避免切换目录转圈。
 - 修复 DSH 顶部空白：不再在 CSS 中重复叠加 `env(safe-area-inset-top)`，且 `#root` 只在 `#eta-mobile-bar` 实际插入后才让出高度。
 - 更新中英文 README 与三语字符串。
 

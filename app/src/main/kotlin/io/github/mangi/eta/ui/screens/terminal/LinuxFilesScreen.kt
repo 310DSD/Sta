@@ -10,6 +10,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -62,6 +64,8 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material.icons.rounded.Sort
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material.icons.rounded.VideoFile
@@ -83,6 +87,8 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.state.ToggleableState
@@ -96,9 +102,12 @@ import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
 import io.github.mangi.eta.R
 import io.github.mangi.eta.agent.terminal.LinuxDistribution
+import io.github.mangi.eta.agent.terminal.LinuxExecutionBackend
 import io.github.mangi.eta.agent.terminal.LinuxEnvironmentPaths
 import io.github.mangi.eta.agent.terminal.LinuxFileExplorer
 import io.github.mangi.eta.agent.terminal.ShellProcessSupervisor
+import io.github.mangi.eta.agent.terminal.TerminalPrivateStorage
+import io.github.mangi.eta.agent.terminal.TerminalRuntime
 import io.github.mangi.eta.ui.components.EtaCard
 import io.github.mangi.eta.ui.components.EtaMonospace
 import io.github.mangi.eta.ui.components.EtaPreferenceColors
@@ -131,7 +140,7 @@ import java.util.Date
 import java.util.Locale
 
 private enum class FileSort { NAME, SIZE, DATE }
-private enum class NameDialogKind { FOLDER, FILE, RENAME }
+private enum class NameDialogKind { FOLDER, FILE, RENAME, COMPRESS }
 
 private class FilePaneState(initialPath: String) {
     var path by mutableStateOf(initialPath)
@@ -141,6 +150,7 @@ private class FilePaneState(initialPath: String) {
     var history by mutableStateOf(listOf(initialPath))
     var historyIndex by mutableStateOf(0)
     var refreshKey by mutableStateOf(0)
+    var loading by mutableStateOf(false)
 }
 
 private data class NameDialogState(val kind: NameDialogKind, val initial: String = "")
@@ -172,6 +182,15 @@ internal fun LinuxFilesScreen(
     }
     val installed = rootfsDir != null && LinuxEnvironmentPaths.rootfsReady(rootfsDir.absolutePath)
     val shellSupervisor = remember { ShellProcessSupervisor() }
+    val hostWorkspace = remember(rootfsDir) {
+        if (rootfsDir != null &&
+            LinuxEnvironmentPaths.backendOf(rootfsDir.absolutePath) == LinuxExecutionBackend.CHROOT
+        ) {
+            java.io.File(TerminalRuntime.ROOT_WORKSPACE_PATH)
+        } else {
+            TerminalPrivateStorage.workspace(appContext.filesDir)
+        }
+    }
     DisposableEffect(Unit) { onDispose { shellSupervisor.beginClosing() } }
 
     val panes = remember { listOf(FilePaneState("/"), FilePaneState("/workspace")) }
@@ -186,6 +205,8 @@ internal fun LinuxFilesScreen(
     var nameDialog by remember { mutableStateOf<NameDialogState?>(null) }
     var nameInput by remember { mutableStateOf("") }
     var contextTarget by remember { mutableStateOf<ContextTarget?>(null) }
+    var compressTargets by remember { mutableStateOf<List<String>?>(null) }
+    var mutating by remember { mutableStateOf(false) }
     var deleteTargets by remember { mutableStateOf<List<String>?>(null) }
     var propertiesTarget by remember { mutableStateOf<String?>(null) }
     var properties by remember { mutableStateOf<LinuxFileExplorer.Metadata?>(null) }
@@ -204,11 +225,12 @@ internal fun LinuxFilesScreen(
 
     suspend fun loadPane(pane: FilePaneState) {
         if (!installed || rootfsDir == null) return
-        pane.entries = null
+        pane.loading = true
         pane.error = null
         val result = withContext(Dispatchers.IO) {
-            LinuxFileExplorer.list(shellSupervisor, rootfsDir, pane.path)
+            LinuxFileExplorer.list(shellSupervisor, rootfsDir, pane.path, hostWorkspace)
         }
+        pane.loading = false
         when (result) {
             is LinuxFileExplorer.ListResult.Success -> pane.entries = result.entries
             LinuxFileExplorer.ListResult.NotDirectory -> pane.error = R.string.linux_files_error_not_directory
@@ -284,8 +306,18 @@ internal fun LinuxFilesScreen(
         onSuccess: () -> Unit,
     ) {
         val dir = rootfsDir ?: return
+        if (mutating) return
+        mutating = true
         scope.launch {
-            val result = withContext(Dispatchers.IO) { operation(shellSupervisor, dir) }
+            val result = try {
+                withContext(Dispatchers.IO) { operation(shellSupervisor, dir) }
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                mutating = false
+                throw cancelled
+            } catch (_: Throwable) {
+                LinuxFileExplorer.MutateResult.CommandFailed
+            }
+            mutating = false
             when (result) {
                 LinuxFileExplorer.MutateResult.Success -> onSuccess()
                 LinuxFileExplorer.MutateResult.NotInstalled ->
@@ -310,7 +342,7 @@ internal fun LinuxFilesScreen(
         fileResult = null
         editing = false
         editorDirty = false
-        fileResult = withContext(Dispatchers.IO) { LinuxFileExplorer.readText(shellSupervisor, dir, path) }
+        fileResult = withContext(Dispatchers.IO) { LinuxFileExplorer.readText(shellSupervisor, dir, path, hostWorkspace = hostWorkspace) }
     }
 
     LaunchedEffect(propertiesTarget) {
@@ -318,7 +350,7 @@ internal fun LinuxFilesScreen(
         val dir = rootfsDir ?: return@LaunchedEffect
         properties = null
         properties = withContext(Dispatchers.IO) {
-            when (val result = LinuxFileExplorer.stat(shellSupervisor, dir, path)) {
+            when (val result = LinuxFileExplorer.stat(shellSupervisor, dir, path, hostWorkspace = hostWorkspace)) {
                 is LinuxFileExplorer.StatResult.Success -> result.metadata
                 else -> null
             }
@@ -392,6 +424,11 @@ internal fun LinuxFilesScreen(
                             modifier = Modifier.size(20.dp),
                         )
                     }
+                    BookmarkMenu(
+                        context = appContext,
+                        currentPath = active.path,
+                        onPick = { path -> navigate(activePane, path) },
+                    )
                     StorageMenu(onPick = { path -> navigate(activePane, path) })
                     HeaderMoreMenu(
                         showHidden = showHidden,
@@ -444,7 +481,7 @@ internal fun LinuxFilesScreen(
                             saving = true
                             scope.launch {
                                 val result = withContext(Dispatchers.IO) {
-                                    LinuxFileExplorer.writeText(shellSupervisor, dir, path, editorText)
+                                    LinuxFileExplorer.writeText(shellSupervisor, dir, path, editorText, hostWorkspace = hostWorkspace)
                                 }
                                 saving = false
                                 if (result == LinuxFileExplorer.WriteResult.Success) {
@@ -577,6 +614,11 @@ internal fun LinuxFilesScreen(
                                 nameDialog = NameDialogState(NameDialogKind.RENAME, name)
                                 nameInput = name
                             },
+                            onCompress = {
+                                compressTargets = active.selected.toList()
+                                nameDialog = NameDialogState(NameDialogKind.COMPRESS)
+                                nameInput = defaultArchiveName()
+                            },
                             onProperties = {
                                 val name = active.selected.firstOrNull() ?: return@SelectionBar
                                 propertiesTarget = joinPath(active.path, name)
@@ -610,6 +652,7 @@ internal fun LinuxFilesScreen(
     NameDialog(
         state = nameDialog,
         input = nameInput,
+        busy = mutating,
         onInputChange = { nameInput = it },
         onDismiss = { nameDialog = null },
         onConfirm = {
@@ -634,6 +677,25 @@ internal fun LinuxFilesScreen(
                         refreshPane(activePane)
                     },
                 )
+                NameDialogKind.COMPRESS -> {
+                    val targets = compressTargets.orEmpty()
+                    mutate(
+                        operation = { supervisor, dir ->
+                            LinuxFileExplorer.compress(
+                                supervisor,
+                                dir,
+                                targets.map { joinPath(active.path, it) },
+                                active.path,
+                                value,
+                            )
+                        },
+                        onSuccess = {
+                            nameDialog = null
+                            compressTargets = null
+                            refreshPane(activePane)
+                        },
+                    )
+                }
                 NameDialogKind.RENAME -> {
                     val oldName = dialog.initial
                     mutate(
@@ -743,16 +805,8 @@ internal fun LinuxFilesScreen(
         val otherPath = panes[1 - target.paneIndex].path
         FileContextMenu(
             name = target.entry.name,
+            targetOnLeft = target.paneIndex == 1,
             onDismiss = { contextTarget = null },
-            onOpen = {
-                contextTarget = null
-                activate(target.paneIndex)
-                if (target.entry.isDir) {
-                    navigate(target.paneIndex, targetPath)
-                } else {
-                    viewerPath = targetPath
-                }
-            },
             onSelect = {
                 contextTarget = null
                 activate(target.paneIndex)
@@ -798,6 +852,22 @@ internal fun LinuxFilesScreen(
                 activate(target.paneIndex)
                 propertiesTarget = targetPath
             },
+            onCompress = {
+                contextTarget = null
+                activate(target.paneIndex)
+                compressTargets = listOf(target.entry.name)
+                nameDialog = NameDialogState(NameDialogKind.COMPRESS)
+                nameInput = defaultArchiveName()
+            },
+            onBookmark = {
+                contextTarget = null
+                val added = LinuxFileBookmarks.add(context, targetPath)
+                toast(
+                    context.getString(
+                        if (added) R.string.file_manager_bookmark_added else R.string.file_manager_bookmark_exists,
+                    ),
+                )
+            },
         )
     }
 }
@@ -805,14 +875,16 @@ internal fun LinuxFilesScreen(
 @Composable
 private fun FileContextMenu(
     name: String,
+    targetOnLeft: Boolean,
     onDismiss: () -> Unit,
-    onOpen: () -> Unit,
     onSelect: () -> Unit,
     onCopy: () -> Unit,
     onMove: () -> Unit,
     onDelete: () -> Unit,
     onRename: () -> Unit,
     onProperties: () -> Unit,
+    onCompress: () -> Unit,
+    onBookmark: () -> Unit,
 ) {
     Dialog(
         onDismissRequest = onDismiss,
@@ -853,21 +925,22 @@ private fun FileContextMenu(
                     color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.08f),
                 )
                 Spacer(Modifier.height(6.dp))
+                val arrow = if (targetOnLeft) "←  " else "→  "
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    ContextAction(Icons.Rounded.FolderOpen, stringResource(R.string.file_manager_open), onOpen, Modifier.weight(1f))
-                    ContextAction(Icons.Rounded.Check, stringResource(R.string.file_manager_select), onSelect, Modifier.weight(1f))
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    ContextAction(Icons.Rounded.ContentCopy, stringResource(R.string.file_manager_copy), onCopy, Modifier.weight(1f))
-                    ContextAction(Icons.Rounded.DriveFileMove, stringResource(R.string.file_manager_move), onMove, Modifier.weight(1f))
+                    ContextAction(Icons.Rounded.ContentCopy, arrow + stringResource(R.string.file_manager_copy), onCopy, Modifier.weight(1f))
+                    ContextAction(Icons.Rounded.DriveFileMove, arrow + stringResource(R.string.file_manager_move), onMove, Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                     ContextAction(Icons.Rounded.Delete, stringResource(R.string.file_manager_delete), onDelete, Modifier.weight(1f), danger = true)
                     ContextAction(Icons.Rounded.Edit, stringResource(R.string.file_manager_rename), onRename, Modifier.weight(1f))
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ContextAction(Icons.Rounded.Archive, stringResource(R.string.file_manager_compress), onCompress, Modifier.weight(1f))
                     ContextAction(Icons.Rounded.Info, stringResource(R.string.file_manager_properties), onProperties, Modifier.weight(1f))
-                    Spacer(Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ContextAction(Icons.Rounded.Star, stringResource(R.string.file_manager_add_bookmark), onBookmark, Modifier.weight(1f))
+                    ContextAction(Icons.Rounded.Check, stringResource(R.string.file_manager_select), onSelect, Modifier.weight(1f))
                 }
             }
         }
@@ -1013,6 +1086,12 @@ private fun PaneView(
     Column(
         modifier = modifier
             .fillMaxHeight()
+            .pointerInput(Unit) {
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false, pass = PointerEventPass.Initial)
+                    onActivate()
+                }
+            }
             .zIndex(if (active) 1f else 0f)
             .shadow(elevation = if (active) 20.dp else 0.dp, clip = false)
             .background(background)
@@ -1021,7 +1100,7 @@ private fun PaneView(
         LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
             if (pane.path != "/") {
                 item(key = "..") {
-                    ParentRow(onClick = onUp)
+                    ParentRow(onClick = { if (!pane.loading) onUp() })
                 }
             }
             when {
@@ -1053,9 +1132,11 @@ private fun PaneView(
                         selectionMode = selectionMode,
                         active = active,
                         onClick = {
-                            if (selectionMode) onSelect(entry.name) else onOpen(entry)
+                            if (!pane.loading) {
+                                if (selectionMode) onSelect(entry.name) else onOpen(entry)
+                            }
                         },
-                        onLongClick = { onLongPress(entry) },
+                        onLongClick = { if (!pane.loading) onLongPress(entry) },
                     )
                 }
             }
@@ -1248,6 +1329,7 @@ private fun SelectionBar(
     onCopy: () -> Unit,
     onMove: () -> Unit,
     onRename: () -> Unit,
+    onCompress: () -> Unit,
     onProperties: () -> Unit,
     onDelete: () -> Unit,
 ) {
@@ -1255,6 +1337,7 @@ private fun SelectionBar(
         ToolItem(Icons.Rounded.ContentCopy, stringResource(R.string.file_manager_copy), onCopy, modifier = Modifier.weight(1f))
         ToolItem(Icons.Rounded.DriveFileMove, stringResource(R.string.file_manager_move), onMove, modifier = Modifier.weight(1f))
         ToolItem(Icons.Rounded.Edit, stringResource(R.string.file_manager_rename), onRename, enabled = canRename, modifier = Modifier.weight(1f))
+        ToolItem(Icons.Rounded.Archive, stringResource(R.string.file_manager_compress), onCompress, modifier = Modifier.weight(1f))
         ToolItem(Icons.Rounded.Info, stringResource(R.string.file_manager_properties), onProperties, modifier = Modifier.weight(1f))
         ToolItem(Icons.Rounded.Delete, stringResource(R.string.file_manager_delete), onDelete, danger = true, modifier = Modifier.weight(1f))
     }
@@ -1304,6 +1387,65 @@ private fun BottomActionBar(content: @Composable androidx.compose.foundation.lay
             verticalAlignment = Alignment.CenterVertically,
             content = content,
         )
+    }
+}
+
+@Composable
+private fun BookmarkMenu(
+    context: Context,
+    currentPath: String,
+    onPick: (String) -> Unit,
+) {
+    var show by remember { mutableStateOf(false) }
+    var bookmarks by remember { mutableStateOf(LinuxFileBookmarks.load(context)) }
+    LaunchedEffect(show) {
+        if (show) bookmarks = LinuxFileBookmarks.load(context)
+    }
+    Box {
+        IconButton(onClick = { show = true }, modifier = Modifier.size(40.dp)) {
+            Icon(Icons.Rounded.Star, stringResource(R.string.file_manager_bookmarks), Modifier.size(20.dp))
+        }
+        WindowListPopup(
+            show = show,
+            alignment = PopupPositionProvider.Align.End,
+            onDismissRequest = { show = false },
+        ) {
+            val bookmarked = currentPath in bookmarks
+            val entries = buildList {
+                add(
+                    (if (bookmarked) R.string.file_manager_remove_bookmark else R.string.file_manager_add_bookmark) to
+                        (if (bookmarked) Icons.Rounded.StarBorder else Icons.Rounded.Star),
+                )
+                bookmarks.forEach { path -> add(path to Icons.Rounded.Star) }
+            }
+            ListPopupColumn {
+                entries.forEachIndexed { index, (textOrRes, icon) ->
+                    val text = if (textOrRes is Int) stringResource(textOrRes) else textOrRes.toString()
+                    DropdownImpl(
+                        item = DropdownItem(
+                            text = text,
+                            icon = { iconModifier -> Icon(icon, null, iconModifier.size(20.dp)) },
+                        ),
+                        optionSize = entries.size,
+                        isSelected = false,
+                        index = index,
+                        onSelectedIndexChange = {
+                            show = false
+                            if (index == 0) {
+                                if (bookmarked) {
+                                    LinuxFileBookmarks.remove(context, currentPath)
+                                } else {
+                                    LinuxFileBookmarks.add(context, currentPath)
+                                }
+                                bookmarks = LinuxFileBookmarks.load(context)
+                            } else {
+                                onPick(bookmarks[index - 1])
+                            }
+                        },
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -1453,6 +1595,7 @@ private fun ViewerPane(
 private fun NameDialog(
     state: NameDialogState?,
     input: String,
+    busy: Boolean,
     onInputChange: (String) -> Unit,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
@@ -1464,6 +1607,7 @@ private fun NameDialog(
             NameDialogKind.FOLDER -> stringResource(R.string.file_manager_new_folder)
             NameDialogKind.FILE -> stringResource(R.string.file_manager_new_file)
             NameDialogKind.RENAME -> stringResource(R.string.file_manager_rename)
+            NameDialogKind.COMPRESS -> stringResource(R.string.file_manager_compress)
         },
         onDismissRequest = onDismiss,
     ) {
@@ -1480,7 +1624,7 @@ private fun NameDialog(
                 confirmText = stringResource(R.string.file_manager_confirm),
                 onCancel = onDismiss,
                 onConfirm = onConfirm,
-                confirmEnabled = input.trim().isNotEmpty(),
+                confirmEnabled = input.trim().isNotEmpty() && !busy,
             )
         }
     }
@@ -1546,6 +1690,9 @@ private fun parentDirectory(path: String): String {
 
 private fun joinPath(parent: String, name: String): String =
     if (parent == "/") "/$name" else "${parent.trimEnd('/')}/$name"
+
+private fun defaultArchiveName(): String =
+    "archive-" + SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date()) + ".tar.gz"
 
 private fun compactSummary(context: Context, entry: LinuxFileExplorer.Entry): String {
     val time = formatTime(entry.mtimeEpochSeconds)

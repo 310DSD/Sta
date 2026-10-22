@@ -164,15 +164,15 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
                 return@launch
             }
 
-            if (agent == ExtensionAgent.OPENCODE && agent !in runningExtensionAgents) {
-                // 首次启动 OpenCode 前自动同步一次，避免只在菜单里同步后忘记重启服务。
-                withContext(Dispatchers.IO) {
-                    runCatching {
-                        ProviderRepository.ensureBuiltInsMerged()
-                        val providers = ProviderRepository.allProviders()
-                        if (OpenCodeProviderConfig.syncSummary(providers).first > 0) {
-                            OpenCodeProviderDialog.sync(getApplication(), providers)
-                        }
+            if (agent == ExtensionAgent.OPENCODE) {
+                // 自动同步：首次启动前阻塞写入；已在运行时后台刷新配置，不拖慢打开速度。
+                if (runningUrl != null) {
+                    viewModelScope.launch(Dispatchers.IO) {
+                        runCatching { syncOpenCodeProviders() }
+                    }
+                } else {
+                    withContext(Dispatchers.IO) {
+                        runCatching { syncOpenCodeProviders() }
                     }
                 }
             }
@@ -191,6 +191,14 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
                 is ExtensionAgentLaunchResult.Failed -> ExtensionAgentUiState(agent, ExtensionAgentPhase.FAILED, result.code)
             }
             onFinished(result)
+        }
+    }
+
+    private suspend fun syncOpenCodeProviders() {
+        ProviderRepository.ensureBuiltInsMerged()
+        val providers = ProviderRepository.allProviders()
+        if (OpenCodeProviderConfig.syncSummary(providers).first > 0) {
+            OpenCodeProviderDialog.sync(getApplication(), providers)
         }
     }
 

@@ -160,4 +160,22 @@ class LinuxFileExplorerTest {
             supervisor.beginClosing()
         }
     }
+
+    @Test
+    fun compressRejectsInvalidArchiveNameAndRootPath() {
+        val supervisor = ShellProcessSupervisor()
+        try {
+            val root = readyRootfs()
+            assertEquals(
+                LinuxFileExplorer.MutateResult.InvalidPath,
+                LinuxFileExplorer.compress(supervisor, root, listOf("/etc"), "/", "../escape.tar.gz"),
+            )
+            assertEquals(
+                LinuxFileExplorer.MutateResult.InvalidPath,
+                LinuxFileExplorer.compress(supervisor, root, listOf("/"), "/", "ok.tar.gz"),
+            )
+        } finally {
+            supervisor.beginClosing()
+        }
+    }
 }

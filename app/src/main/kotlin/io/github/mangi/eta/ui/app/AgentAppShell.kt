@@ -88,7 +88,6 @@ internal fun AgentAppShell(
     onNewConversation: () -> Unit,
     onOpenTerminal: () -> Unit,
     onLaunchExtensionAgent: (ExtensionAgent) -> Unit,
-    onConfigureOpenCodeProvider: () -> Unit,
     extensionAgentLabel: String,
     canStopExtensionAgent: Boolean,
     runningExtensionAgents: Set<ExtensionAgent>,
@@ -131,7 +130,6 @@ internal fun AgentAppShell(
                             onNewConversation = onNewConversation,
                             onOpenTerminal = onOpenTerminal,
                             onLaunchExtensionAgent = onLaunchExtensionAgent,
-                            onConfigureOpenCodeProvider = onConfigureOpenCodeProvider,
                             extensionAgentLabel = extensionAgentLabel,
                             canStopExtensionAgent = canStopExtensionAgent,
                             runningExtensionAgents = runningExtensionAgents,
@@ -194,7 +192,6 @@ private fun AgentTopBar(
     onNewConversation: () -> Unit,
     onOpenTerminal: () -> Unit,
     onLaunchExtensionAgent: (ExtensionAgent) -> Unit,
-    onConfigureOpenCodeProvider: () -> Unit,
     extensionAgentLabel: String,
     canStopExtensionAgent: Boolean,
     runningExtensionAgents: Set<ExtensionAgent>,
@@ -231,7 +228,6 @@ private fun AgentTopBar(
                 onNewConversation = onNewConversation,
                 onOpenTerminal = onOpenTerminal,
                 onLaunchExtensionAgent = onLaunchExtensionAgent,
-                onConfigureOpenCodeProvider = onConfigureOpenCodeProvider,
                 extensionAgentLabel = extensionAgentLabel,
                 canStopExtensionAgent = canStopExtensionAgent,
                 runningExtensionAgents = runningExtensionAgents,
@@ -275,7 +271,6 @@ private fun TopBarOverflowMenu(
     onNewConversation: () -> Unit,
     onOpenTerminal: () -> Unit,
     onLaunchExtensionAgent: (ExtensionAgent) -> Unit,
-    onConfigureOpenCodeProvider: () -> Unit,
     extensionAgentLabel: String,
     canStopExtensionAgent: Boolean,
     runningExtensionAgents: Set<ExtensionAgent>,
@@ -300,7 +295,6 @@ private fun TopBarOverflowMenu(
             val newConversationText = stringResource(R.string.action_new_conversation)
             val openTerminalText = stringResource(R.string.action_open_terminal)
             val openCodeText = stringResource(R.string.action_launch_agent_web, ExtensionAgent.OPENCODE.displayName)
-            val openCodeProviderText = stringResource(R.string.opencode_provider_config)
             val dshText = stringResource(R.string.action_launch_agent_web, ExtensionAgent.DSH.displayName)
             val kimiText = stringResource(R.string.action_launch_agent_web, ExtensionAgent.KIMI.displayName)
             val openBrowserText = stringResource(R.string.action_open_browser)
@@ -314,7 +308,6 @@ private fun TopBarOverflowMenu(
                 newConversationText,
                 openTerminalText,
                 openCodeText,
-                openCodeProviderText,
                 dshText,
                 kimiText,
                 openBrowserText,
@@ -344,16 +337,6 @@ private fun TopBarOverflowMenu(
                     ),
                     DropdownItem(
                         text = openCodeText,
-                        icon = { modifier ->
-                            Icon(
-                                imageVector = Icons.Rounded.Terminal,
-                                contentDescription = null,
-                                modifier = modifier.size(TopBarMenuIconSize),
-                            )
-                        },
-                    ),
-                    DropdownItem(
-                        text = openCodeProviderText,
                         icon = { modifier ->
                             Icon(
                                 imageVector = Icons.Rounded.Terminal,
@@ -418,11 +401,10 @@ private fun TopBarOverflowMenu(
                                 0 -> onNewConversation()
                                 1 -> onOpenTerminal()
                                 2 -> onLaunchExtensionAgent(ExtensionAgent.OPENCODE)
-                                3 -> onConfigureOpenCodeProvider()
-                                4 -> onLaunchExtensionAgent(ExtensionAgent.DSH)
-                                5 -> onLaunchExtensionAgent(ExtensionAgent.KIMI)
-                                6 -> onOpenBrowser()
-                                else -> running.getOrNull(index - 7)?.let(onStopExtensionAgent)
+                                3 -> onLaunchExtensionAgent(ExtensionAgent.DSH)
+                                4 -> onLaunchExtensionAgent(ExtensionAgent.KIMI)
+                                5 -> onOpenBrowser()
+                                else -> running.getOrNull(index - 6)?.let(onStopExtensionAgent)
                             }
                         },
                     )
