@@ -29,7 +29,7 @@ internal data class OpenCodeProviderDraft(
 
 internal object OpenCodeProviderConfig {
     const val CONFIG_PATH = "/root/.config/opencode/opencode.json"
-    const val PACKAGE = "aisdk:@ai-sdk/openai-compatible"
+    const val PACKAGE = "@opencode/ai/providers/openai-compatible"
 
     /** 返回合并后的完整 JSON；输入为空时创建最小配置。 */
     fun merge(existingJson: String?, draft: OpenCodeProviderDraft): String {
@@ -125,7 +125,7 @@ internal object OpenCodeProviderConfig {
             if (provider.apiKey.isNotBlank()) put("apiKey", provider.apiKey)
         })
         if (provider.customHeaders.isNotEmpty()) put("headers", headersJson(provider.customHeaders))
-        if (provider.customBody.isNotEmpty()) put("extraBody", bodyJson(provider.customBody))
+        if (provider.customBody.isNotEmpty()) put("body", bodyJson(provider.customBody))
         put("models", JSONObject().apply {
             provider.models.filter { it.isEnabled }.forEach { model ->
                 put(modelKey(model), modelJson(model))
@@ -252,16 +252,16 @@ internal object OpenCodeProviderConfig {
     }
 
     private fun packageName(provider: ProviderSetting): String = when {
-        provider is AnthropicProviderSetting -> "aisdk:@ai-sdk/anthropic"
+        provider is AnthropicProviderSetting -> "@opencode/ai/providers/anthropic"
         // 本地网关通常只实现 OpenAI Chat Completions；手工导入版也固定使用
         // openai-compatible。不要因为 Eta 的 responses 选项把本地网关切成
         // @ai-sdk/openai 的 /responses 路由。
         isLocalGateway(provider.baseUrl) -> PACKAGE
         provider is OpenAiCompatibleProviderSetting ->
-            if (provider.endpointMode == OpenAiEndpointMode.RESPONSES) "aisdk:@ai-sdk/openai"
+            if (provider.endpointMode == OpenAiEndpointMode.RESPONSES) "@opencode/ai/providers/openai-compatible/responses"
             else PACKAGE
         provider is CustomProviderSetting ->
-            if (provider.endpointMode == OpenAiEndpointMode.RESPONSES) "aisdk:@ai-sdk/openai"
+            if (provider.endpointMode == OpenAiEndpointMode.RESPONSES) "@opencode/ai/providers/openai-compatible/responses"
             else PACKAGE
         else -> PACKAGE
     }

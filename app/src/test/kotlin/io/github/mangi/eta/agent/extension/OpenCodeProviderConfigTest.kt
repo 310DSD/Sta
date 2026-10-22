@@ -205,7 +205,7 @@ class OpenCodeProviderConfigTest {
         )
         val merged = OpenCodeProviderConfig.mergeEtaProviders(null, listOf(provider))
         val root = JSONObject(merged).getJSONObject("providers").getJSONObject("wb")
-        assertEquals("aisdk:@ai-sdk/openai-compatible", root.getString("package"))
+        assertEquals(OpenCodeProviderConfig.PACKAGE, root.getString("package"))
         assertEquals("https://example.com/v1", root.getJSONObject("settings").getString("baseURL"))
         val model = root.getJSONObject("models").getJSONObject("deepseek-v4-flash")
         assertEquals(1_000_000, model.getJSONObject("limit").getInt("context"))
