@@ -80,8 +80,14 @@ internal object OpenCodeProviderConfig {
         }
         val usedIds = mutableSetOf<String>()
         syncableProviders(providers).forEach { provider ->
-                val openCodeId = uniqueProviderId(provider, usedIds)
-                targetProviders.put(openCodeId, providerJson(provider))
+                val openCodeId = findExistingProviderId(targetProviders, provider)
+                    ?: uniqueProviderId(provider, usedIds)
+                val generated = providerJson(provider)
+                val existing = targetProviders.optJSONObject(openCodeId)
+                targetProviders.put(
+                    openCodeId,
+                    if (existing == null) generated else mergeProvider(existing, generated),
+                )
             }
         return root.toString(2)
     }
@@ -115,16 +121,90 @@ internal object OpenCodeProviderConfig {
         put("name", provider.name)
         put("package", packageName(provider))
         put("settings", JSONObject().apply {
-            put("baseURL", provider.baseUrl)
+            put("baseURL", provider.baseUrl.trim().trimEnd('/'))
             if (provider.apiKey.isNotBlank()) put("apiKey", provider.apiKey)
         })
         if (provider.customHeaders.isNotEmpty()) put("headers", headersJson(provider.customHeaders))
-        if (provider.customBody.isNotEmpty()) put("body", bodyJson(provider.customBody))
+        if (provider.customBody.isNotEmpty()) put("extraBody", bodyJson(provider.customBody))
         put("models", JSONObject().apply {
             provider.models.filter { it.isEnabled }.forEach { model ->
                 put(modelKey(model), modelJson(model))
             }
         })
+    }
+
+    /**
+     * 保留用户手工添加的 provider 连接信息。同步只补充/更新模型元数据，不能把手工配置里
+     * 可用的 baseURL、API key、headers 或 body 冲掉；本地网关通常正是靠这些字段工作。
+     */
+    private fun mergeProvider(existing: JSONObject, generated: JSONObject): JSONObject {
+        val merged = JSONObject(existing.toString())
+        if (!generated.optString("name").isNullOrBlank()) merged.put("name", generated.optString("name"))
+        if (!generated.optString("package").isNullOrBlank()) merged.put("package", generated.optString("package"))
+
+        val existingSettings = existing.optJSONObject("settings")
+        val generatedSettings = generated.optJSONObject("settings")
+        if (generatedSettings != null) {
+            val settings = JSONObject(generatedSettings.toString())
+            existingSettings?.keys()?.forEach { key ->
+                val value = existingSettings.opt(key)
+                if (value != null && value != JSONObject.NULL && value.toString().isNotBlank()) {
+                    settings.put(key, value)
+                }
+            }
+            merged.put("settings", settings)
+        }
+
+        mergeObjectField(existing, generated, merged, "headers")
+        mergeObjectField(existing, generated, merged, "extraBody")
+        mergeObjectField(existing, generated, merged, "body")
+
+        val models = merged.optJSONObject("models") ?: JSONObject().also { merged.put("models", it) }
+        generated.optJSONObject("models")?.keys()?.forEach { key ->
+            val generatedModel = generated.getJSONObject("models").getJSONObject(key)
+            val existingModel = models.optJSONObject(key)
+            models.put(key, if (existingModel == null) generatedModel else mergeModel(existingModel, generatedModel))
+        }
+        return merged
+    }
+
+    private fun mergeObjectField(
+        existing: JSONObject,
+        generated: JSONObject,
+        target: JSONObject,
+        key: String,
+    ) {
+        val existingValue = existing.optJSONObject(key)
+        val generatedValue = generated.optJSONObject(key)
+        if (existingValue == null && generatedValue == null) return
+        val merged = JSONObject(generatedValue?.toString() ?: "{}")
+        existingValue?.keys()?.forEach { nestedKey ->
+            val value = existingValue.opt(nestedKey)
+            if (value != null && value != JSONObject.NULL && value.toString().isNotBlank()) {
+                merged.put(nestedKey, value)
+            }
+        }
+        target.put(key, merged)
+    }
+
+    private fun mergeModel(existing: JSONObject, generated: JSONObject): JSONObject {
+        val merged = JSONObject(generated.toString())
+        // 手工模型配置里的自定义 header/body 优先；其余 Eta 元数据继续由 generated 提供。
+        mergeObjectField(existing, generated, merged, "headers")
+        mergeObjectField(existing, generated, merged, "body")
+        mergeObjectField(existing, generated, merged, "extraBody")
+        existing.optJSONObject("settings")?.let { settings ->
+            val generatedSettings = generated.optJSONObject("settings")
+            val mergedSettings = JSONObject(generatedSettings?.toString() ?: "{}")
+            settings.keys().forEach { key ->
+                val value = settings.opt(key)
+                if (value != null && value != JSONObject.NULL && value.toString().isNotBlank()) {
+                    mergedSettings.put(key, value)
+                }
+            }
+            merged.put("settings", mergedSettings)
+        }
+        return merged
     }
 
     private fun modelJson(model: Model): JSONObject = JSONObject().apply {
@@ -171,14 +251,50 @@ internal object OpenCodeProviderConfig {
         }
     }
 
-    private fun packageName(provider: ProviderSetting): String = when (provider) {
-        is AnthropicProviderSetting -> "aisdk:@ai-sdk/anthropic"
-        is OpenAiCompatibleProviderSetting ->
+    private fun packageName(provider: ProviderSetting): String = when {
+        provider is AnthropicProviderSetting -> "aisdk:@ai-sdk/anthropic"
+        // 本地网关通常只实现 OpenAI Chat Completions；手工导入版也固定使用
+        // openai-compatible。不要因为 Eta 的 responses 选项把本地网关切成
+        // @ai-sdk/openai 的 /responses 路由。
+        isLocalGateway(provider.baseUrl) -> PACKAGE
+        provider is OpenAiCompatibleProviderSetting ->
             if (provider.endpointMode == OpenAiEndpointMode.RESPONSES) "aisdk:@ai-sdk/openai"
             else PACKAGE
-        is CustomProviderSetting ->
+        provider is CustomProviderSetting ->
             if (provider.endpointMode == OpenAiEndpointMode.RESPONSES) "aisdk:@ai-sdk/openai"
             else PACKAGE
+        else -> PACKAGE
+    }
+
+    private fun isLocalGateway(baseUrl: String): Boolean {
+        val normalized = baseUrl.trim().lowercase()
+        return normalized.startsWith("http://127.0.0.1") ||
+            normalized.startsWith("http://localhost") ||
+            normalized.startsWith("http://10.0.2.2") ||
+            normalized.startsWith("http://[::1]")
+    }
+
+    /**
+     * 如果用户手工添加过同一个本地网关（ID 可能不同），按规范化 baseURL 复用原 provider ID，
+     * 不新建一个指向相同地址的新 provider；这样同步只会补充模型，不会让用户选到另一份坏配置。
+     */
+    private fun findExistingProviderId(
+        providers: JSONObject,
+        provider: ProviderSetting,
+    ): String? {
+        val baseUrl = provider.baseUrl.trim().trimEnd('/')
+        val modelKeys = provider.models.filter { it.isEnabled }.map(::modelKey).toSet()
+        val allowModelMatch = isLocalGateway(provider.baseUrl)
+        val keys = providers.keys()
+        while (keys.hasNext()) {
+            val key = keys.next()
+            val existingProvider = providers.optJSONObject(key) ?: continue
+            val settings = existingProvider.optJSONObject("settings")
+            if (settings?.optString("baseURL")?.trim()?.trimEnd('/') == baseUrl) return key
+            val existingModels = existingProvider.optJSONObject("models") ?: continue
+            if (allowModelMatch && modelKeys.any { existingModels.has(it) }) return key
+        }
+        return null
     }
 
     private fun uniqueProviderId(provider: ProviderSetting, used: MutableSet<String>): String {

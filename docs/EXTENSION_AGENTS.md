@@ -115,6 +115,8 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
   `opencode reload` 并重启 OpenCode managed service；首次启动 OpenCode 前也会自动同步
   一次。映射包含模型上下文长度、视觉输入、工具能力、思考等级（variants）、
   自定义请求头和请求体；原有 OpenCode MCP/插件/其他 provider 配置保留。
+  对已存在的同名或同 baseURL 的 provider，会保留用户手工配置的 baseURL、API key、
+  headers/body 和模型自定义字段，只补充 Eta 的模型元数据，避免覆盖可用的本地网关。
 
 ## 5. 验证
 

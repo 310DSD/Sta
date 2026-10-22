@@ -18,7 +18,6 @@ internal object PhoneOperation {
             "search_calendar_events",
             "list_alarms",
             "read_note",
-            "circle_to_search",
         )
     val writes =
         setOf(

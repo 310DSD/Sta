@@ -93,6 +93,90 @@ class OpenCodeProviderConfigTest {
     }
 
     @Test
+    fun syncPreservesExistingManualLocalGatewayConnectionFields() {
+        val existing = """
+            {
+              "providers": {
+                "wb": {
+                  "name": "WorkBuddy manual",
+                  "package": "aisdk:@ai-sdk/openai-compatible",
+                  "settings": {
+                    "baseURL": "http://127.0.0.1:8317/v1",
+                    "apiKey": "manual-key",
+                    "timeout": 120000
+                  },
+                  "headers": { "X-Gateway-Token": "manual-token" },
+                  "models": {
+                    "deepseek-v4-flash": {
+                      "name": "DeepSeek V4 Flash",
+                      "headers": { "X-Model": "manual" }
+                    }
+                  }
+                }
+              }
+            }
+        """.trimIndent()
+        val provider = OpenAiCompatibleProviderSetting(
+            id = "wb",
+            name = "WorkBuddy",
+            baseUrl = "http://127.0.0.1:9999/v1",
+            apiKey = "eta-key",
+            models = listOf(
+                Model(
+                    id = "m1",
+                    modelId = "deepseek-v4-flash",
+                    displayName = "DeepSeek V4 Flash",
+                    contextWindow = 1_000_000,
+                    toolCall = true,
+                ),
+            ),
+        )
+        val root = JSONObject(OpenCodeProviderConfig.mergeEtaProviders(existing, listOf(provider)))
+            .getJSONObject("providers").getJSONObject("wb")
+        val settings = root.getJSONObject("settings")
+        assertEquals("http://127.0.0.1:8317/v1", settings.getString("baseURL"))
+        assertEquals("manual-key", settings.getString("apiKey"))
+        assertEquals(120000, settings.getInt("timeout"))
+        assertEquals("manual-token", root.getJSONObject("headers").getString("X-Gateway-Token"))
+        val model = root.getJSONObject("models").getJSONObject("deepseek-v4-flash")
+        assertEquals(1_000_000, model.getJSONObject("limit").getInt("context"))
+        assertEquals("manual", model.getJSONObject("headers").getString("X-Model"))
+    }
+
+    @Test
+    fun syncReusesManualProviderByIdentityOfModels() {
+        val existing = """
+            {
+              "providers": {
+                "manual-gateway": {
+                  "name": "Manual gateway",
+                  "package": "aisdk:@ai-sdk/openai-compatible",
+                  "settings": {
+                    "baseURL": "http://127.0.0.1:8317/v1",
+                    "apiKey": "manual-key"
+                  },
+                  "models": { "deepseek-v4-flash": { "name": "DeepSeek" } }
+                }
+              }
+            }
+        """.trimIndent()
+        val provider = OpenAiCompatibleProviderSetting(
+            id = "some-uuid",
+            name = "Eta local gateway",
+            baseUrl = "http://127.0.0.1:9999/v1",
+            apiKey = "eta-key",
+            models = listOf(Model(id = "m1", modelId = "deepseek-v4-flash", displayName = "DeepSeek")),
+        )
+        val providers = JSONObject(OpenCodeProviderConfig.mergeEtaProviders(existing, listOf(provider)))
+            .getJSONObject("providers")
+        assertTrue(providers.has("manual-gateway"))
+        assertEquals(
+            "http://127.0.0.1:8317/v1",
+            providers.getJSONObject("manual-gateway").getJSONObject("settings").getString("baseURL"),
+        )
+    }
+
+    @Test
     fun etaProvidersMapContextVisionToolsAndReasoning() {
         val provider = OpenAiCompatibleProviderSetting(
             id = "wb",
