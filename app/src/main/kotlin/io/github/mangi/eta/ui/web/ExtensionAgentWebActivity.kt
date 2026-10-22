@@ -377,6 +377,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
       '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="4.5" width="17" height="15" rx="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M15.5 4.5v15" stroke="currentColor" stroke-width="1.4"/></svg>' +
     '</button>';
   document.body.appendChild(bar);
+  document.body.classList.add('eta-has-bar');
 
   var scrim = document.createElement('div');
   scrim.id = 'eta-scrim';

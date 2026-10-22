@@ -179,7 +179,7 @@ internal object LinuxPackageProfiles {
   }
   /* Only reserve the app bar once the shell script actually inserted it; otherwise a
      failed injection would leave a blank strip at the top of DSH. */
-  body:has(#eta-mobile-bar) #root:has(.pI_x6G_frame) {
+  body.eta-has-bar #root:has(.pI_x6G_frame) {
     height: calc(100dvh - var(--eta-topbar-h)) !important;
     margin-top: var(--eta-topbar-h) !important;
   }

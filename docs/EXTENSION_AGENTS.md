@@ -77,7 +77,8 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
     10px 上浮；`prefers-reduced-motion: reduce` 下全部关闭；
   - 性能：滚动容器 `overscroll-behavior: contain`；抽屉用 `translate3d` + `contain` 提升为
     合成层；消息项用 `contain: layout style` 隔离重排；不使用 `transition: all`，
-    不对大子树做入场动画，也不在滚动区域叠加大面积 `backdrop-filter`；
+    不对大子树做入场动画，也不在滚动区域叠加大面积 `backdrop-filter`；顶栏让位用
+    `body.eta-has-bar` 类而不是 `:has`，减少抽屉开合时的样式失效重算；
   - 深浅色都只引用 DSH 自己的 `--dsw-*` 变量再派生，不写死颜色。
   样式块以 `/* eta-mobile-start */ … /* eta-mobile-end */` 追加到 `dsh-web-frontend` 资源；
   安装脚本先删除 `/* eta-mobile` 到文件末尾的旧块再写入，可重复执行。WebView 侧在检测到
