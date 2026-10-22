@@ -86,9 +86,8 @@ internal object OpenCodeProviderDialog {
             runOneShotShell(
                 processSupervisor = supervisor,
                 identity = identity,
-                command = "/usr/local/bin/opencode reload >/dev/null 2>&1 || true; " +
-                    "/usr/local/bin/opencode service restart >/dev/null 2>&1 || true",
-                timeoutSeconds = 30,
+                command = "/usr/local/bin/opencode reload >/dev/null 2>&1 || true",
+                timeoutSeconds = 20,
                 environment = distribution.terminalEnvironment,
                 linuxRootfsPath = rootfs.absolutePath,
             )
