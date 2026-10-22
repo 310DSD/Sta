@@ -106,7 +106,8 @@ internal object OpenCodeProviderConfig {
         providers.filter { provider ->
             provider.isEnabled &&
                 provider.baseUrl.isNotBlank() &&
-                provider.models.any { it.isEnabled }
+                provider.models.any { it.isEnabled } &&
+                (provider.apiKey.isNotBlank() || provider.customHeaders.isNotEmpty())
         }
 
     private fun providerJson(provider: ProviderSetting): JSONObject = JSONObject().apply {
