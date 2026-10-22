@@ -213,8 +213,13 @@ internal object OpenCodeProviderConfig {
         }.toList()
         put("capabilities", JSONObject().apply {
             put("tools", model.supportsTools)
-            put("input", input)
-            put("output", model.outputModalities.ifEmpty { listOf(Model.TEXT_MODALITY) })
+            // JSONObject.put 对 Kotlin List 的行为依赖底层 org.json 版本；显式构造
+            // JSONArray，确保 OpenCode 2 schema 看到的是 ["text"] 而不是 "[text]"。
+            put("input", org.json.JSONArray(input))
+            put(
+                "output",
+                org.json.JSONArray(model.outputModalities.ifEmpty { listOf(Model.TEXT_MODALITY) }),
+            )
             reasoningCapabilities(model)?.let { put("reasoning", it) }
         })
         val variants = reasoningVariants(model)
