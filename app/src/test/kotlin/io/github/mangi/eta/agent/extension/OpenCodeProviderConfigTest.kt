@@ -221,5 +221,14 @@ class OpenCodeProviderConfigTest {
             listOf("off", "low", "high", "max"),
             (0 until variants.length()).map { variants.getJSONObject(it).getString("id") },
         )
+        val reasoning = model.getJSONObject("capabilities").getJSONObject("reasoning")
+        assertEquals(true, reasoning.getBoolean("supported"))
+        assertEquals(true, reasoning.getBoolean("toggle"))
+        assertEquals(
+            listOf("low", "high", "max"),
+            reasoning.getJSONArray("effort").let { array ->
+                (0 until array.length()).map(array::getString)
+            },
+        )
     }
 }

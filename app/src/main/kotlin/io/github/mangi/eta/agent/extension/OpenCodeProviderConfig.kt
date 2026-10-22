@@ -106,15 +106,7 @@ internal object OpenCodeProviderConfig {
         providers.filter { provider ->
             provider.isEnabled &&
                 provider.baseUrl.isNotBlank() &&
-                provider.models.any { it.isEnabled } &&
-                (
-                    provider.apiKey.isNotBlank() ||
-                        !provider.isBuiltIn ||
-                        provider.customHeaders.any { it.name.contains("auth", ignoreCase = true) } ||
-                        provider.baseUrl.startsWith("http://127.0.0.1") ||
-                        provider.baseUrl.startsWith("http://localhost") ||
-                        provider.baseUrl.startsWith("https://localhost")
-                    )
+                provider.models.any { it.isEnabled }
         }
 
     private fun providerJson(provider: ProviderSetting): JSONObject = JSONObject().apply {
@@ -222,11 +214,29 @@ internal object OpenCodeProviderConfig {
             put("tools", model.supportsTools)
             put("input", input)
             put("output", model.outputModalities.ifEmpty { listOf(Model.TEXT_MODALITY) })
+            reasoningCapabilities(model)?.let { put("reasoning", it) }
         })
         val variants = reasoningVariants(model)
         if (variants != null && variants.length() > 0) put("variants", variants)
         if (model.customHeaders.isNotEmpty()) put("headers", headersJson(model.customHeaders))
         if (model.customBody.isNotEmpty()) put("body", bodyJson(model.customBody))
+    }
+
+    private fun reasoningCapabilities(model: Model): JSONObject? {
+        if (!model.supportsReasoning) return null
+        val capabilities = model.effectiveReasoningCapabilities
+        val efforts = capabilities?.selectableEfforts
+            ?.filter { it != ReasoningEffort.DEFAULT && it != ReasoningEffort.OFF }
+            ?.map { it.wireValue }
+            .orEmpty()
+        return JSONObject().apply {
+            put("supported", true)
+            if (capabilities?.canDisable == true) put("toggle", true)
+            if (efforts.isNotEmpty()) put("effort", org.json.JSONArray(efforts))
+            if (capabilities?.supportsBudget == true && capabilities.maxBudgetTokens != null) {
+                put("budget", JSONObject().put("max", capabilities.maxBudgetTokens))
+            }
+        }
     }
 
     private fun reasoningVariants(model: Model): org.json.JSONArray? {
@@ -253,10 +263,6 @@ internal object OpenCodeProviderConfig {
 
     private fun packageName(provider: ProviderSetting): String = when {
         provider is AnthropicProviderSetting -> "@opencode/ai/providers/anthropic"
-        // 本地网关通常只实现 OpenAI Chat Completions；手工导入版也固定使用
-        // openai-compatible。不要因为 Eta 的 responses 选项把本地网关切成
-        // @ai-sdk/openai 的 /responses 路由。
-        isLocalGateway(provider.baseUrl) -> PACKAGE
         provider is OpenAiCompatibleProviderSetting ->
             if (provider.endpointMode == OpenAiEndpointMode.RESPONSES) "@opencode/ai/providers/openai-compatible/responses"
             else PACKAGE
@@ -264,14 +270,6 @@ internal object OpenCodeProviderConfig {
             if (provider.endpointMode == OpenAiEndpointMode.RESPONSES) "@opencode/ai/providers/openai-compatible/responses"
             else PACKAGE
         else -> PACKAGE
-    }
-
-    private fun isLocalGateway(baseUrl: String): Boolean {
-        val normalized = baseUrl.trim().lowercase()
-        return normalized.startsWith("http://127.0.0.1") ||
-            normalized.startsWith("http://localhost") ||
-            normalized.startsWith("http://10.0.2.2") ||
-            normalized.startsWith("http://[::1]")
     }
 
     /**
@@ -284,7 +282,6 @@ internal object OpenCodeProviderConfig {
     ): String? {
         val baseUrl = provider.baseUrl.trim().trimEnd('/')
         val modelKeys = provider.models.filter { it.isEnabled }.map(::modelKey).toSet()
-        val allowModelMatch = isLocalGateway(provider.baseUrl)
         val keys = providers.keys()
         while (keys.hasNext()) {
             val key = keys.next()
@@ -292,7 +289,7 @@ internal object OpenCodeProviderConfig {
             val settings = existingProvider.optJSONObject("settings")
             if (settings?.optString("baseURL")?.trim()?.trimEnd('/') == baseUrl) return key
             val existingModels = existingProvider.optJSONObject("models") ?: continue
-            if (allowModelMatch && modelKeys.any { existingModels.has(it) }) return key
+            if (modelKeys.any { existingModels.has(it) }) return key
         }
         return null
     }
