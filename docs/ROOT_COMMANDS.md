@@ -17,6 +17,20 @@ CLASSPATH="$APK" app_process /system/bin \
   io.github.mangi.eta.agent.phone.CircleSearchCommand 2
 ```
 
+可以把它封装成其他 Root 程序更容易调用的固定命令：
+
+```bash
+cat >/data/local/tmp/eta-circle-search <<'EOF'
+#!/system/bin/sh
+APK="$(pm path io.github.mangi.eta | sed 's/^package://')"
+exec env CLASSPATH="$APK" /system/bin/app_process /system/bin io.github.mangi.eta.agent.phone.CircleSearchCommand "$@"
+EOF
+chmod 755 /data/local/tmp/eta-circle-search
+```
+
+之后其他 Root 程序直接执行 `/data/local/tmp/eta-circle-search`，或传
+`/data/local/tmp/eta-circle-search 2` 指定 entry point。
+
 行为：
 
 - 成功：stdout 输出 `OK`，退出码 `0`；
