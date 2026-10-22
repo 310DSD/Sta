@@ -1507,4 +1507,7 @@
   <string name="file_manager_sync">同步</string>
   <string name="file_manager_storage">存储</string>
   <string name="file_manager_stats">文件夹 %1$d · 文件 %2$d</string>
+  <string name="file_manager_context_hint">选择操作</string>
+  <string name="file_manager_open">打开</string>
+  <string name="file_manager_select">多选</string>
 </resources>

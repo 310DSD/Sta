@@ -1529,4 +1529,7 @@
   <string name="file_manager_sync">Sync</string>
   <string name="file_manager_storage">Storage</string>
   <string name="file_manager_stats">Folders: %1$d   Files: %2$d</string>
+  <string name="file_manager_context_hint">Choose an action</string>
+  <string name="file_manager_open">Open</string>
+  <string name="file_manager_select">Select</string>
 </resources>

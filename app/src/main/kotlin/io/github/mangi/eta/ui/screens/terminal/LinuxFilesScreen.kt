@@ -26,6 +26,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -88,6 +89,8 @@ import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -142,6 +145,11 @@ private class FilePaneState(initialPath: String) {
 
 private data class NameDialogState(val kind: NameDialogKind, val initial: String = "")
 
+private data class ContextTarget(
+    val paneIndex: Int,
+    val entry: LinuxFileExplorer.Entry,
+)
+
 /**
  * MT 管理器风格的双窗口 Linux 文件管理器。
  *
@@ -177,6 +185,7 @@ internal fun LinuxFilesScreen(
     var pathInput by remember { mutableStateOf("") }
     var nameDialog by remember { mutableStateOf<NameDialogState?>(null) }
     var nameInput by remember { mutableStateOf("") }
+    var contextTarget by remember { mutableStateOf<ContextTarget?>(null) }
     var deleteTargets by remember { mutableStateOf<List<String>?>(null) }
     var propertiesTarget by remember { mutableStateOf<String?>(null) }
     var properties by remember { mutableStateOf<LinuxFileExplorer.Metadata?>(null) }
@@ -489,9 +498,9 @@ internal fun LinuxFilesScreen(
                                 activate(0)
                                 panes[0].selected = panes[0].selected.toggle(name)
                             },
-                            onLongSelect = { name ->
+                            onLongPress = { entry ->
                                 activate(0)
-                                panes[0].selected = panes[0].selected + name
+                                contextTarget = ContextTarget(0, entry)
                             },
                         )
                         Box(
@@ -520,9 +529,9 @@ internal fun LinuxFilesScreen(
                                 activate(1)
                                 panes[1].selected = panes[1].selected.toggle(name)
                             },
-                            onLongSelect = { name ->
+                            onLongPress = { entry ->
                                 activate(1)
-                                panes[1].selected = panes[1].selected + name
+                                contextTarget = ContextTarget(1, entry)
                             },
                         )
                     }
@@ -727,6 +736,164 @@ internal fun LinuxFilesScreen(
             }
         }
     }
+
+    contextTarget?.let { target ->
+        val pane = panes[target.paneIndex]
+        val targetPath = joinPath(pane.path, target.entry.name)
+        val otherPath = panes[1 - target.paneIndex].path
+        FileContextMenu(
+            name = target.entry.name,
+            onDismiss = { contextTarget = null },
+            onOpen = {
+                contextTarget = null
+                activate(target.paneIndex)
+                if (target.entry.isDir) {
+                    navigate(target.paneIndex, targetPath)
+                } else {
+                    viewerPath = targetPath
+                }
+            },
+            onSelect = {
+                contextTarget = null
+                activate(target.paneIndex)
+                panes[target.paneIndex].selected = setOf(target.entry.name)
+            },
+            onCopy = {
+                contextTarget = null
+                mutate(
+                    operation = { supervisor, dir ->
+                        LinuxFileExplorer.copyInto(supervisor, dir, listOf(targetPath), otherPath)
+                    },
+                    onSuccess = {
+                        refreshPane(target.paneIndex)
+                        refreshPane(1 - target.paneIndex)
+                    },
+                )
+            },
+            onMove = {
+                contextTarget = null
+                mutate(
+                    operation = { supervisor, dir ->
+                        LinuxFileExplorer.moveInto(supervisor, dir, listOf(targetPath), otherPath)
+                    },
+                    onSuccess = {
+                        refreshPane(target.paneIndex)
+                        refreshPane(1 - target.paneIndex)
+                    },
+                )
+            },
+            onDelete = {
+                contextTarget = null
+                activate(target.paneIndex)
+                deleteTargets = listOf(target.entry.name)
+            },
+            onRename = {
+                contextTarget = null
+                activate(target.paneIndex)
+                nameDialog = NameDialogState(NameDialogKind.RENAME, target.entry.name)
+                nameInput = target.entry.name
+            },
+            onProperties = {
+                contextTarget = null
+                activate(target.paneIndex)
+                propertiesTarget = targetPath
+            },
+        )
+    }
+}
+
+@Composable
+private fun FileContextMenu(
+    name: String,
+    onDismiss: () -> Unit,
+    onOpen: () -> Unit,
+    onSelect: () -> Unit,
+    onCopy: () -> Unit,
+    onMove: () -> Unit,
+    onDelete: () -> Unit,
+    onRename: () -> Unit,
+    onProperties: () -> Unit,
+) {
+    Dialog(
+        onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Box(
+            modifier = Modifier.fillMaxSize().padding(24.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Column(
+                modifier = Modifier
+                    .widthIn(max = 360.dp)
+                    .shadow(24.dp, RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(18.dp))
+                    .background(MiuixTheme.colorScheme.surface)
+                    .padding(16.dp),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = name,
+                        style = MiuixTheme.textStyles.body2,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(32.dp)) {
+                        Icon(Icons.Rounded.Close, null, Modifier.size(18.dp))
+                    }
+                }
+                Text(
+                    text = stringResource(R.string.file_manager_context_hint),
+                    style = MiuixTheme.textStyles.footnote2,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    modifier = Modifier.padding(bottom = 10.dp),
+                )
+                HorizontalDivider(
+                    thickness = 0.33.dp,
+                    color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+                )
+                Spacer(Modifier.height(6.dp))
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ContextAction(Icons.Rounded.FolderOpen, stringResource(R.string.file_manager_open), onOpen, Modifier.weight(1f))
+                    ContextAction(Icons.Rounded.Check, stringResource(R.string.file_manager_select), onSelect, Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ContextAction(Icons.Rounded.ContentCopy, stringResource(R.string.file_manager_copy), onCopy, Modifier.weight(1f))
+                    ContextAction(Icons.Rounded.DriveFileMove, stringResource(R.string.file_manager_move), onMove, Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ContextAction(Icons.Rounded.Delete, stringResource(R.string.file_manager_delete), onDelete, Modifier.weight(1f), danger = true)
+                    ContextAction(Icons.Rounded.Edit, stringResource(R.string.file_manager_rename), onRename, Modifier.weight(1f))
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    ContextAction(Icons.Rounded.Info, stringResource(R.string.file_manager_properties), onProperties, Modifier.weight(1f))
+                    Spacer(Modifier.weight(1f))
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ContextAction(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    danger: Boolean = false,
+) {
+    val color = if (danger) MiuixTheme.colorScheme.error else MiuixTheme.colorScheme.onSurface
+    Row(
+        modifier = modifier
+            .clip(RoundedCornerShape(10.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 8.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Icon(icon, null, Modifier.size(21.dp), tint = color)
+        Text(text = label, style = MiuixTheme.textStyles.footnote1, color = color, maxLines = 1)
+    }
 }
 
 @Composable
@@ -839,7 +1006,7 @@ private fun PaneView(
     onUp: () -> Unit,
     onOpen: (LinuxFileExplorer.Entry) -> Unit,
     onSelect: (String) -> Unit,
-    onLongSelect: (String) -> Unit,
+    onLongPress: (LinuxFileExplorer.Entry) -> Unit,
 ) {
     val context = LocalContext.current
     val background = if (active) MiuixTheme.colorScheme.surface else MiuixTheme.colorScheme.surfaceContainer
@@ -847,7 +1014,7 @@ private fun PaneView(
         modifier = modifier
             .fillMaxHeight()
             .zIndex(if (active) 1f else 0f)
-            .shadow(if (active) 8.dp else 0.dp)
+            .shadow(elevation = if (active) 20.dp else 0.dp, clip = false)
             .background(background)
             .combinedClickable(onClick = onActivate, onLongClick = onActivate),
     ) {
@@ -888,7 +1055,7 @@ private fun PaneView(
                         onClick = {
                             if (selectionMode) onSelect(entry.name) else onOpen(entry)
                         },
-                        onLongClick = { onLongSelect(entry.name) },
+                        onLongClick = { onLongPress(entry) },
                     )
                 }
             }

@@ -1437,4 +1437,7 @@
   <string name="file_manager_sync">同步</string>
   <string name="file_manager_storage">儲存</string>
   <string name="file_manager_stats">資料夾 %1$d · 檔案 %2$d</string>
+  <string name="file_manager_context_hint">選擇操作</string>
+  <string name="file_manager_open">開啟</string>
+  <string name="file_manager_select">多選</string>
 </resources>
