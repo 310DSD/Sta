@@ -2,6 +2,8 @@
 
 **简体中文** | [English](README_EN.md)
 
+> **Sta 分支**：本仓库是 [Eta](https://github.com/Mangi-11/Eta) 的分支，重点完善扩展 Agent（OpenCode / DeepSeek Harness / Kimi Code）的移动端体验，并为 DSH 提供贴近 Eta 的移动壳。改动说明与构建方式见 [STA.md](STA.md)。
+
  <p><a href="https://github.com/Mangi-11/Eta/releases"><img src="https://img.shields.io/github/downloads/Mangi-11/Eta/total?logo=github&amp;label=Downloads&amp;color=1677FF" alt="GitHub Releases 累计下载量"></a> <img src="https://img.shields.io/badge/minSdk-33-3DDC84?logo=android&amp;logoColor=white" alt="minSdk 33"> <img src="https://img.shields.io/badge/Kotlin-2.4.20-7F52FF?logo=kotlin&amp;logoColor=white" alt="Kotlin 2.4.20"> <img src="https://img.shields.io/badge/AGP-9.4.1-3DDC84?logo=android&amp;logoColor=white" alt="AGP 9.4.1"> <img src="https://img.shields.io/badge/Assistant%20Integrations-ColorOS%20%26%20HyperOS-1677FF" alt="Assistant integrations for ColorOS and HyperOS"></p>
 
 **面向 Android 的第三方系统级 AI 助手**

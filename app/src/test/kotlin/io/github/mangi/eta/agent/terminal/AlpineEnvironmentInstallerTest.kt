@@ -138,6 +138,9 @@ class AlpineEnvironmentInstallerTest {
             assertTrue(dshScript.contains("--include=optional"))
             assertTrue(dshScript.contains("registry.npmmirror.com"))
             assertTrue(dshScript.contains("eta-mobile"))
+            // 样式块必须可重复安装：先删除旧块，再写入带结束标记的新块。
+            assertTrue(dshScript.contains("eta-mobile-start"))
+            assertTrue(dshScript.contains("eta-mobile-end"))
         }
         LinuxDistribution.entries.forEach { distribution ->
             assertTrue(LinuxPackageProfiles.SSH.spec(distribution).packages.isNotEmpty())
@@ -149,6 +152,18 @@ class AlpineEnvironmentInstallerTest {
             }
         }
         assertEquals(LinuxPackageProfiles.ALL.map { it.id }.distinct(), LinuxPackageProfiles.ALL.map { it.id })
+    }
+
+    @Test
+    fun dshMobileCssKeepsShellAnchorsAndMotionFallbacks() {
+        val css = LinuxPackageProfiles.DSH_MOBILE_CSS
+        assertTrue(css.contains("#eta-mobile-bar"))
+        assertTrue(css.contains("#eta-scrim"))
+        assertTrue(css.contains(".pI_x6G_frame"))
+        assertTrue(css.contains("[data-sidebar-collapsed]"))
+        assertTrue(css.contains("prefers-reduced-motion: reduce"))
+        // 安装脚本用单引号包裹 CSS；单引号会提前结束 shell 字符串。
+        assertFalse(css.contains("'"))
     }
 
     @Test

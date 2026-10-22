@@ -21,7 +21,9 @@ internal object AlpineEnvironmentPaths {
     const val NODE_TOOLS_REVISION = 2
     const val SSH_TOOLS_REVISION = 1
     const val OPENCODE_TOOLS_REVISION = 1
-    const val DSH_TOOLS_REVISION = 1
+    // revision 2：移动端样式 v3（Eta 风格、抽屉/设置过渡动画、布局与滚动性能）；
+    // 已就绪环境需重跑安装脚本以替换注入的样式块。
+    const val DSH_TOOLS_REVISION = 2
     const val KIMI_TOOLS_REVISION = 1
 
     fun environmentDir(context: Context): File =

@@ -118,16 +118,41 @@ internal object LinuxPackageProfiles {
             "npm install -g --prefix /usr/local --include=optional @opencode/cli@2.1.2"
 
     internal val DSH_MOBILE_CSS = """
-/* Eta mobile shell v2 – DSH */
-:root { --eta-topbar-h: 56px; }
+/* Eta mobile shell v3 - DSH
+   Goals: match Eta quiet, card-based mobile look without touching DSH logic.
+   Every selector below is either an existing DSH anchor or a hook created by
+   Eta own mobile shell (#eta-mobile-bar / #eta-scrim). */
+
+:root {
+  --eta-topbar-h: calc(56px + env(safe-area-inset-top, 0px));
+  --eta-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --eta-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --eta-dur: 0.24s;
+}
 
 @media (max-width: 720px) {
+  /* ---------- Design tokens (body carries the DSH alias variables) ---------- */
+  body:has(.pI_x6G_frame) {
+    --eta-canvas: color-mix(in srgb, var(--dsw-alias-label-primary, #0f1115) 3%, var(--dsw-alias-bg-base, #fff));
+    --eta-surface: var(--dsw-alias-bg-base, #fff);
+    --eta-hairline: var(--dsw-alias-border-l2, #0000001a);
+    --eta-hairline-strong: var(--dsw-alias-border-l3, #0000001f);
+    --eta-muted: var(--dsw-alias-label-secondary, #61666b);
+    --eta-faint: var(--dsw-alias-label-tertiary, #81858c);
+    --eta-hover: var(--dsw-alias-interactive-bg-hover, #2631480f);
+    --eta-active: var(--dsw-alias-interactive-bg-active, #2631481f);
+    --eta-accent: var(--dsw-alias-link, #4176e6);
+    --eta-on-accent: var(--dsw-alias-label-primary-foreground, #fff);
+    --eta-card-shadow: 0 10px 30px rgb(0 0 0 / 7%), 0 1px 2px rgb(0 0 0 / 4%);
+    -webkit-tap-highlight-color: transparent;
+  }
+
   html:has(.pI_x6G_frame),
   body:has(.pI_x6G_frame) {
     width: 100%;
     height: 100%;
     overflow: hidden !important;
-    background: var(--dsw-alias-bg-base);
+    background: var(--eta-canvas);
   }
   body:has(.pI_x6G_frame) { overscroll-behavior: none; }
   #root:has(.pI_x6G_frame) {
@@ -135,48 +160,47 @@ internal object LinuxPackageProfiles {
     margin-top: var(--eta-topbar-h) !important;
   }
 
-  /* Native-feeling top bar. */
+  /* ---------- Top bar ---------- */
   #eta-mobile-bar,
-  .VOzbGW_panel,
-  .VOzbGW_nav,
-  .VOzbGW_navList,
-  .VOzbGW_navCell,
-  .VOzbGW_content,
-  .VOzbGW_options,
-  .eta-icon {
-    box-sizing: border-box !important;
-  }
+  #eta-scrim,
+  .eta-icon,
+  .eta-heading,
+  .eta-title { box-sizing: border-box !important; }
+
   #eta-mobile-bar {
     position: fixed;
     z-index: 90;
     inset: 0 0 auto;
     height: var(--eta-topbar-h);
+    padding: env(safe-area-inset-top, 0px) 8px 0;
     display: flex;
     align-items: center;
     gap: 2px;
-    padding: 0 6px;
-    box-sizing: border-box;
-    background: color-mix(in srgb, var(--dsw-alias-bg-base) 88%, transparent);
-    -webkit-backdrop-filter: blur(18px) saturate(1.2);
-    backdrop-filter: blur(18px) saturate(1.2);
-    border-bottom: .5px solid var(--dsw-alias-border-l3);
-    color: var(--dsw-alias-label-primary);
+    background: var(--eta-canvas);
+    border-bottom: 0.5px solid var(--eta-hairline);
+    color: var(--dsw-alias-label-primary, #0f1115);
+    transition: background-color var(--eta-dur) ease, border-color var(--eta-dur) ease;
   }
+
   .eta-icon {
-    width: 40px;
-    height: 40px;
+    width: 42px;
+    height: 42px;
     flex: none;
     display: inline-flex;
     align-items: center;
     justify-content: center;
+    padding: 0;
     border: 0;
-    border-radius: 12px;
+    border-radius: 14px;
     background: transparent;
     color: inherit;
-    padding: 0;
-    -webkit-tap-highlight-color: transparent;
+    transition: background-color 0.16s ease, transform 0.16s var(--eta-ease), opacity 0.16s ease;
   }
-  .eta-icon:active { background: var(--dsw-alias-interactive-bg-hover); }
+  .eta-icon:active {
+    background: var(--eta-active);
+    transform: scale(0.9);
+  }
+
   .eta-heading {
     flex: 1;
     min-width: 0;
@@ -189,98 +213,222 @@ internal object LinuxPackageProfiles {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 15px;
-    line-height: 20px;
+    font-size: 16px;
+    line-height: 22px;
     font-weight: 600;
-    letter-spacing: .01em;
+    letter-spacing: 0.005em;
   }
+
+  /* ---------- Drawer scrim ---------- */
   #eta-scrim {
     position: fixed;
     z-index: 80;
     inset: 0;
-    background: rgb(0 0 0 / 32%);
+    background: rgb(0 0 0 / 36%);
     opacity: 0;
     pointer-events: none;
-    transition: opacity .24s ease;
+    transition: opacity 0.28s ease;
   }
   body.eta-drawer-open #eta-scrim { opacity: 1; pointer-events: auto; }
   body.eta-drawer-open #eta-mobile-bar { visibility: hidden; }
 
-  /* The DSH desktop three-column frame becomes a single mobile column. */
+  /* ---------- Frame: desktop 3 columns -> one mobile column ---------- */
   .pI_x6G_frame {
     grid-template-columns: minmax(0, 1fr) !important;
     grid-template-rows: minmax(0, 1fr) auto !important;
     height: 100% !important;
-    background: var(--dsw-alias-bg-base) !important;
+    background: var(--eta-canvas) !important;
   }
   .pI_x6G_centerCol {
     grid-column: 1 / -1 !important;
     width: 100% !important;
     border: 0 !important;
+    background: var(--eta-canvas) !important;
   }
   .pI_x6G_rightbarCol { grid-column: 1 / -1 !important; }
 
-  /* Desktop rail becomes an off-canvas drawer. */
+  /* ---------- Sidebar -> off-canvas drawer ---------- */
   .pI_x6G_sidebarCol {
     position: fixed !important;
     z-index: 120 !important;
     inset: 0 auto 0 0 !important;
-    width: min(86vw, 340px) !important;
+    width: min(84vw, 320px) !important;
     min-width: 0 !important;
     max-width: none !important;
-    border-right: 1px solid var(--dsw-alias-border-l3) !important;
-    box-shadow: 0 18px 60px rgb(0 0 0 / 18%) !important;
-    transform: translateX(-104%) !important;
-    transition: transform .28s cubic-bezier(.2, .8, .2, 1) !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
+    background: var(--eta-surface) !important;
+    border-right: 0.5px solid var(--eta-hairline) !important;
+    border-radius: 0 22px 22px 0 !important;
+    box-shadow: 0 24px 64px rgb(0 0 0 / 22%) !important;
+    transform: translate3d(-102%, 0, 0) !important;
+    transition: transform 0.34s var(--eta-ease-out) !important;
+    will-change: transform;
     overflow: hidden !important;
   }
   .pI_x6G_frame:not([data-sidebar-collapsed]) .pI_x6G_sidebarCol {
-    transform: translateX(0) !important;
+    transform: translate3d(0, 0, 0) !important;
   }
-  .pI_x6G_sidebarCol .hHd-Xa_root { width: 100% !important; }
+  .pI_x6G_sidebarCol .hHd-Xa_root {
+    width: 100% !important;
+    padding: 0 10px !important;
+    background: transparent !important;
+  }
   .pI_x6G_sidebarCol .hHd-Xa_collapsed { width: 100% !important; }
 
-  /* Full-width conversation column. The desktop chat column has a 680px floor
-     that clips every mobile message; replace it with the viewport width. */
-  .wSkVaW_root { --dsh-conversation-column-width: 100vw !important; }
+  .hHd-Xa_logoRow {
+    height: 58px !important;
+    padding: 0 6px !important;
+  }
+  .hHd-Xa_newSession {
+    height: 44px !important;
+    border-radius: 14px !important;
+    background: var(--eta-hover) !important;
+    transition: background-color 0.16s ease, transform 0.16s var(--eta-ease) !important;
+  }
+  .hHd-Xa_newSession:active { transform: scale(0.98); }
+  .hHd-Xa_newSessionShortcut { opacity: 0.5; }
+
+  .hHd-Xa_panelRow {
+    height: 40px !important;
+    border-radius: 12px !important;
+    transition: background-color 0.16s ease !important;
+  }
+  .hHd-Xa_panelRow:active,
+  .hHd-Xa_panelRow:hover { background: var(--eta-hover) !important; }
+
+  .YDXeBa_sessionRow {
+    height: 40px !important;
+    margin: 1px 0 !important;
+    padding: 0 10px !important;
+    border-radius: 12px !important;
+    transition: background-color 0.16s ease, transform 0.16s var(--eta-ease) !important;
+  }
+  .YDXeBa_sessionRow:active {
+    transform: scale(0.985);
+    background: var(--eta-active) !important;
+  }
+  .YDXeBa_selected { background: var(--eta-active) !important; }
+  .YDXeBa_title { font-size: 14px !important; }
+  .YDXeBa_time { font-size: 11px !important; color: var(--eta-faint) !important; }
+  .YDXeBa_projectRow { border-radius: 12px !important; }
+
+  /* ---------- Conversation ---------- */
+  .wSkVaW_root {
+    --dsh-conversation-column-width: 100vw !important;
+    background: var(--eta-canvas) !important;
+  }
   .wSkVaW_body,
   .wSkVaW_embeddedBody {
-    --dsh-chat-content-width: calc(100vw - 24px) !important;
-    --dsh-composer-card-max-width: calc(100vw - 24px) !important;
-    --dsh-composer-side-clearance: 12px !important;
+    --dsh-chat-content-width: calc(100vw - 28px) !important;
+    --dsh-composer-card-max-width: calc(100vw - 28px) !important;
+    --dsh-composer-side-clearance: 14px !important;
   }
   .wSkVaW_header { display: none !important; }
   .wSkVaW_scrollBody {
     margin-right: 0 !important;
     scrollbar-gutter: auto !important;
+    overscroll-behavior: contain;
   }
   .wSkVaW_composerHero {
     width: 100% !important;
-    padding: 0 12px 14px !important;
-    gap: 10px !important;
+    padding: 0 14px calc(14px + env(safe-area-inset-bottom, 0px)) !important;
+    gap: 12px !important;
   }
-  .wSkVaW_heroWorkspaceRow { padding: 0 12px !important; }
+  .wSkVaW_heroWorkspaceRow { padding: 0 14px !important; }
 
-  /* Composer: larger touch area, softer surface, no desktop min-width. */
+  .EvIC1a_column { max-width: 100% !important; }
+  .EvIC1a_flowItem { animation: eta-rise 0.3s var(--eta-ease) both; }
+
+  /* User bubble: soft surface, generous radius, Eta-like rhythm. */
+  .Sixlwa_userRow { justify-content: flex-end !important; }
+  .Sixlwa_bubble {
+    max-width: 84% !important;
+    padding: 10px 14px !important;
+    border-radius: 20px 20px 6px 20px !important;
+    background: color-mix(in srgb, var(--eta-accent) 11%, var(--eta-surface)) !important;
+    border: 0.5px solid var(--eta-hairline) !important;
+    font-size: 15px !important;
+    line-height: 1.6 !important;
+  }
+  .Sixlwa_turnErrorRow {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 10px !important;
+    box-sizing: border-box !important;
+    padding: 12px 14px !important;
+    border-radius: 16px !important;
+    background: color-mix(in srgb, #f25a5a 8%, var(--eta-surface)) !important;
+    border: 0.5px solid color-mix(in srgb, #f25a5a 22%, transparent) !important;
+  }
+  .Sixlwa_turnErrorCopy { flex: 1 1 auto !important; min-width: 0 !important; }
+  .Sixlwa_turnErrorMessage { font-size: 12.5px !important; line-height: 1.6 !important; }
+
+  /* ---------- Composer ---------- */
   .uV2eYG_card {
-    border-radius: 20px !important;
-    box-shadow: 0 8px 28px rgb(0 0 0 / 8%), 0 0 0 .5px var(--dsw-alias-border-l3) !important;
+    border-radius: 24px !important;
+    background: var(--eta-surface) !important;
+    border: 0.5px solid var(--eta-hairline-strong) !important;
+    box-shadow: var(--eta-card-shadow) !important;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease !important;
+  }
+  .uV2eYG_card:focus-within {
+    border-color: var(--eta-hairline-strong) !important;
+    box-shadow: var(--eta-card-shadow) !important;
   }
   .uV2eYG_input {
-    min-height: 56px !important;
+    min-height: 64px !important;
+    padding: 14px 16px 2px !important;
     font-size: 15px !important;
     line-height: 24px !important;
-    padding: 14px 16px 2px !important;
   }
-  .uV2eYG_placeholder { padding: 14px 16px 2px !important; font-size: 15px !important; }
+  .uV2eYG_placeholder {
+    min-height: 64px !important;
+    padding: 14px 16px 2px !important;
+    font-size: 15px !important;
+    color: var(--eta-faint) !important;
+  }
   .uV2eYG_dock { padding: 6px 10px 10px !important; gap: 4px !important; }
-  .uV2eYG_primary { width: 38px !important; height: 38px !important; border-radius: 50% !important; }
+  .uV2eYG_add {
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    transition: background-color 0.16s ease, transform 0.16s var(--eta-ease) !important;
+  }
+  .uV2eYG_add:active { background: var(--eta-active) !important; transform: scale(0.92); }
+  .uV2eYG_primary {
+    width: 36px !important;
+    height: 36px !important;
+    border-radius: 50% !important;
+    background: var(--dsw-alias-button-primary-fill, #0f1115) !important;
+    color: var(--eta-on-accent) !important;
+    transition: transform 0.16s var(--eta-ease), opacity 0.16s ease !important;
+  }
+  .uV2eYG_primary:active { transform: scale(0.9); }
 
-  /* Settings / dialogs become full-screen sheets with horizontal nav chips. */
+  /* ---------- Menus & popovers ---------- */
+  ._list_4ub78_7,
+  ._submenu_4ub78_8 {
+    padding: 6px !important;
+    border-radius: 16px !important;
+    border: 0.5px solid var(--eta-hairline) !important;
+    box-shadow: 0 18px 48px rgb(0 0 0 / 16%), 0 2px 8px rgb(0 0 0 / 6%) !important;
+    animation: eta-pop 0.16s var(--eta-ease) both;
+    transform-origin: top center;
+  }
+  ._item_4ub78_90 {
+    border-radius: 10px !important;
+    transition: background-color 0.14s ease !important;
+  }
+
+  /* ---------- Settings / dialogs -> full-screen sheet ---------- */
+  .VOzbGW_panel,
+  .VOzbGW_panel * { box-sizing: border-box !important; }
+
   .VOzbGW_overlay {
     align-items: stretch !important;
     justify-content: stretch !important;
     padding: 0 !important;
+    background: var(--eta-canvas) !important;
   }
   .VOzbGW_panel {
     position: relative !important;
@@ -288,10 +436,13 @@ internal object LinuxPackageProfiles {
     max-width: none !important;
     height: 100dvh !important;
     max-height: none !important;
+    padding-top: env(safe-area-inset-top, 0px) !important;
     border-radius: 0 !important;
-    flex-direction: column !important;
     display: flex !important;
+    flex-direction: column !important;
     overflow: hidden !important;
+    background: var(--eta-canvas) !important;
+    animation: eta-sheet-in 0.32s var(--eta-ease-out) both;
   }
   .VOzbGW_nav {
     width: 100% !important;
@@ -301,37 +452,52 @@ internal object LinuxPackageProfiles {
     flex-direction: column !important;
     padding: 0 !important;
     border-right: 0 !important;
-    border-bottom: 1px solid var(--dsw-alias-border-l3) !important;
+    border-bottom: 0.5px solid var(--eta-hairline) !important;
+    background: var(--eta-canvas) !important;
   }
   .VOzbGW_navTitle {
     display: block !important;
-    padding: 14px 154px 6px 16px !important;
-    font-size: 20px !important;
+    padding: 14px 60px 8px 18px !important;
+    font-size: 22px !important;
     line-height: 30px !important;
+    font-weight: 600 !important;
   }
   .VOzbGW_navList {
     width: 100% !important;
+    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 24px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 24px), transparent 100%);
     flex-direction: row !important;
-    flex-wrap: wrap !important;
-    gap: 6px !important;
-    padding: 4px 12px 10px !important;
-    overflow: visible !important;
+    flex-wrap: nowrap !important;
+    gap: 8px !important;
+    padding: 2px 14px 12px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
     scrollbar-width: none !important;
+    scroll-snap-type: x proximity;
+    overscroll-behavior-x: contain;
   }
+  .VOzbGW_navList::-webkit-scrollbar { display: none; }
   .VOzbGW_navCell {
     flex: 0 0 auto !important;
     width: auto !important;
-    height: 34px !important;
-    padding: 0 12px !important;
+    height: 36px !important;
+    padding: 0 14px !important;
+    gap: 7px !important;
     border-radius: 999px !important;
     white-space: nowrap !important;
-    gap: 6px !important;
+    scroll-snap-align: start;
+    background: var(--eta-surface) !important;
+    border: 0.5px solid var(--eta-hairline) !important;
+    transition: background-color 0.16s ease, color 0.16s ease, transform 0.16s var(--eta-ease) !important;
   }
-  .VOzbGW_navLabel {
-    width: auto !important;
-    font-size: 13px !important;
-    white-space: nowrap !important;
+  .VOzbGW_navCell:active { transform: scale(0.96); }
+  .VOzbGW_active {
+    background: var(--dsw-alias-button-primary-fill, #0f1115) !important;
+    color: var(--eta-on-accent) !important;
+    border-color: transparent !important;
   }
+  .VOzbGW_navLabel { width: auto !important; font-size: 13.5px !important; white-space: nowrap !important; }
+
   .VOzbGW_content {
     width: 100% !important;
     max-width: none !important;
@@ -340,12 +506,13 @@ internal object LinuxPackageProfiles {
     min-height: 0 !important;
     display: flex !important;
     flex-direction: column !important;
+    background: var(--eta-canvas) !important;
   }
   .VOzbGW_header {
     position: absolute !important;
     z-index: 3 !important;
-    top: 8px !important;
-    right: 8px !important;
+    top: calc(env(safe-area-inset-top, 0px) + 10px) !important;
+    right: 10px !important;
     width: auto !important;
     min-height: 0 !important;
     height: auto !important;
@@ -353,22 +520,131 @@ internal object LinuxPackageProfiles {
     border: 0 !important;
     background: transparent !important;
   }
+  .VOzbGW_close {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 50% !important;
+    background: var(--eta-hover) !important;
+    transition: background-color 0.16s ease, transform 0.16s var(--eta-ease) !important;
+  }
+  .VOzbGW_close:active { transform: scale(0.9); }
+
   .VOzbGW_options {
     width: 100% !important;
     max-width: none !important;
     flex: 1 !important;
     min-height: 0 !important;
     overflow-y: auto !important;
-    padding: 8px 16px 36px !important;
+    padding: 6px 14px calc(36px + env(safe-area-inset-bottom, 0px)) !important;
+    overscroll-behavior: contain;
+  }
+  .VOzbGW_options > div,
+  .VOzbGW_options > div > div { width: 100% !important; min-width: 0 !important; }
+
+  /* Setting rows: never let Chinese labels collapse into one-character columns. */
+  .oY77xG_row,
+  .hVGvvW_row,
+  ._2XZxNq_row,
+  .Pt1bsG_row,
+  .nhfO0a_setting,
+  .T1PP_q_row,
+  .gi5gtW_row,
+  .bVCLcG_row {
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 14px !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 0 8px !important;
+    padding: 12px 14px !important;
+    border: 0.5px solid var(--eta-hairline) !important;
+    border-radius: 16px !important;
+    background: var(--eta-surface) !important;
+  }
+  .VOzbGW_options [class*="_rowText"],
+  .VOzbGW_options [class*="_settingText"],
+  .oY77xG_rowText,
+  ._2XZxNq_rowText,
+  .T1PP_q_rowText,
+  .nhfO0a_settingText {
+    flex: 1 1 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    padding-right: 0 !important;
+  }
+  .oY77xG_selector,
+  ._2XZxNq_selector,
+  .T1PP_q_selector {
+    flex: 0 0 auto !important;
+    width: auto !important;
+    min-width: 0 !important;
+    white-space: nowrap !important;
+  }
+  ._8HJdBW_themeCube {
+    padding: 14px 8px !important;
+    font-size: 13px !important;
+    white-space: nowrap !important;
+    border-radius: 14px !important;
+    transition: background-color 0.16s ease, border-color 0.16s ease, transform 0.16s var(--eta-ease) !important;
+  }
+  ._8HJdBW_themeCube:active { transform: scale(0.96); }
+  ._01tsjW_group .bVCLcG_row {
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+  }
+  ._8HJdBW_group,
+  ._01tsjW_group {
+    width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 0 8px !important;
+    padding: 12px 14px !important;
+    border: 0.5px solid var(--eta-hairline) !important;
+    border-radius: 16px !important;
+    background: var(--eta-surface) !important;
+  }
+  ._8HJdBW_cubeRow {
+    display: grid !important;
+    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+  .yIbyla_row { padding: 12px 4px !important; color: var(--eta-faint) !important; }
+
+  @keyframes eta-rise {
+    from { opacity: 0; transform: translate3d(0, 6px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+  @keyframes eta-sheet-in {
+    from { opacity: 0; transform: translate3d(0, 26px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
+  @keyframes eta-pop {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
   }
 }
-    """.trimIndent()
+
+@media (max-width: 720px) and (prefers-reduced-motion: reduce) {
+  body:has(.pI_x6G_frame) *,
+  body:has(.pI_x6G_frame) *::before,
+  body:has(.pI_x6G_frame) *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+""".trimIndent()
 
     internal val DSH_MOBILE_CSS_INSTALL =
         "for f in /usr/local/lib/node_modules/@deepseek-ai/dsh-web-frontend/dist/assets/index-*.css; do " +
             "[ -f \"${'$'}f\" ] || continue; " +
-            "sed -i '/^\\/\\* eta-mobile/d' \"${'$'}f\"; " +
-            "printf '%s\n' '/* eta-mobile-v2 */ $DSH_MOBILE_CSS' >> \"${'$'}f\"; done"
+            "sed -i '/^\\/\\* eta-mobile/,${'$'}d' \"${'$'}f\"; " +
+            "printf '%s\\n' '/* eta-mobile-start */' '$DSH_MOBILE_CSS' '/* eta-mobile-end */' >> \"${'$'}f\"; done"
 
     private val DSH_INSTALL_SCRIPT =
         "(npm install -g --prefix /usr/local --include=optional --registry=https://registry.npmmirror.com " +
