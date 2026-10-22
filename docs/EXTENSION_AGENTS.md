@@ -100,14 +100,19 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
   Compose/Miuix 主题，与 Eta 主界面一致。WebView 保留每个标签独立登录态，不直接复用
   单例 `AgentBrowserSession`，避免模型浏览器与 Agent 共享导航/Cookie 状态。
 - 移动宽度下注入 Enter→换行脚本：使用 window capture 捕获，textarea 用
-  `setRangeText`，contenteditable 用 `execCommand('insertLineBreak')`，因此 OpenCode
-  和 DSH 都能换行而不是发送；Shift/Ctrl/Cmd/Alt 语义保留。
+  `setRangeText`；OpenCode 的 contenteditable 用 `execCommand('insertLineBreak')`；
+  DSH 的 Lexical editor 走 `beforeinput(insertLineBreak)`，因为 `execCommand` 会触发
+  Lexical 清空草稿。Shift/Ctrl/Cmd/Alt 语义保留。
+- OpenCode WebView 的原生 titlebar 会读取 `env(safe-area-inset-top)` 作为内联高度；
+  Android WebView 已经由 Eta 处理状态栏，因此额外把 `header[data-slot=titlebar-v2]`
+  的高度固定为 36px，避免再次出现顶部大块空白。
 - OpenCode 2.1.2 的 Settings → Providers → “自定义 OpenAI 兼容提供商”保存逻辑是上游
   未实现的占位代码，固定抛出 `provider.custom.unavailable`（“此服务器上无法使用自定义
   提供商”），服务端也没有配置写入 API。Eta 不再维护第二套手工表单，而是在内置 WebView
   的 `⋮` 菜单和首页顶栏溢出菜单提供“同步 Eta 提供商到 OpenCode”：直接读取 Eta 的
   provider/model 数据，合并写入 `/root/.config/opencode/opencode.json`，再执行
-  `opencode reload`。映射包含模型上下文长度、视觉输入、工具能力、思考等级（variants）、
+  `opencode reload` 并重启 OpenCode managed service；首次启动 OpenCode 前也会自动同步
+  一次。映射包含模型上下文长度、视觉输入、工具能力、思考等级（variants）、
   自定义请求头和请求体；原有 OpenCode MCP/插件/其他 provider 配置保留。
 
 ## 5. 验证

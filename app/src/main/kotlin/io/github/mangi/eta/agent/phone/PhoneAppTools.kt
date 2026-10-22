@@ -25,6 +25,7 @@ internal class PhoneAppTools(
                         "get_hotspot",
                         "set_hotspot",
                         "set_sound_mode",
+                        "circle_to_search",
                     )
         if (tool == "set_sound_mode" && !rootAvailable())
             return PhoneOperations.execute(context, tool, arguments)

@@ -103,6 +103,7 @@ internal object OpenCodeProviderConfig {
                 provider.models.any { it.isEnabled } &&
                 (
                     provider.apiKey.isNotBlank() ||
+                        !provider.isBuiltIn ||
                         provider.customHeaders.any { it.name.contains("auth", ignoreCase = true) } ||
                         provider.baseUrl.startsWith("http://127.0.0.1") ||
                         provider.baseUrl.startsWith("http://localhost") ||

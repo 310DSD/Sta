@@ -1,5 +1,6 @@
 package io.github.mangi.eta.ui.web
 
+import android.content.Context
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.lifecycleScope
@@ -28,7 +29,10 @@ internal object OpenCodeProviderDialog {
     fun show(activity: ComponentActivity, onSaved: () -> Unit) {
         activity.lifecycleScope.launch {
             val providers = withContext(Dispatchers.IO) {
-                runCatching { ProviderRepository.allProviders() }.getOrElse { emptyList() }
+                runCatching {
+                    ProviderRepository.ensureBuiltInsMerged()
+                    ProviderRepository.allProviders()
+                }.getOrElse { emptyList() }
             }
             val (providerCount, modelCount) = OpenCodeProviderConfig.syncSummary(providers)
             if (providerCount == 0) {
@@ -40,11 +44,11 @@ internal object OpenCodeProviderDialog {
                 "正在同步 $providerCount 个提供商、$modelCount 个模型…",
                 Toast.LENGTH_SHORT,
             ).show()
-            val error = withContext(Dispatchers.IO) { writeConfig(activity, providers) }
+            val error = withContext(Dispatchers.IO) { sync(activity, providers) }
             if (error == null) {
                 Toast.makeText(
                     activity,
-                    "已同步 $providerCount 个提供商、$modelCount 个模型到 OpenCode",
+                    "已同步 $providerCount 个提供商、$modelCount 个模型到 ${OpenCodeProviderConfig.CONFIG_PATH}",
                     Toast.LENGTH_SHORT,
                 ).show()
                 onSaved()
@@ -54,10 +58,10 @@ internal object OpenCodeProviderDialog {
         }
     }
 
-    private fun writeConfig(activity: ComponentActivity, providers: List<ProviderSetting>): String? {
-        val distribution = LinuxEnvironmentSettingsRepository.current(activity)
-        val backend = LinuxEnvironmentSettingsRepository.backend(activity, distribution)
-        val rootfs = LinuxEnvironmentPaths.rootfsDir(activity, distribution, backend)
+    internal fun sync(context: Context, providers: List<ProviderSetting>): String? {
+        val distribution = LinuxEnvironmentSettingsRepository.current(context)
+        val backend = LinuxEnvironmentSettingsRepository.backend(context, distribution)
+        val rootfs = LinuxEnvironmentPaths.rootfsDir(context, distribution, backend)
         if (!LinuxEnvironmentPaths.rootfsReady(rootfs.absolutePath)) return "Linux 环境尚未安装"
         val supervisor = ShellProcessSupervisor()
         return try {
@@ -82,8 +86,9 @@ internal object OpenCodeProviderDialog {
             runOneShotShell(
                 processSupervisor = supervisor,
                 identity = identity,
-                command = "/usr/local/bin/opencode reload >/dev/null 2>&1 || true",
-                timeoutSeconds = 20,
+                command = "/usr/local/bin/opencode reload >/dev/null 2>&1 || true; " +
+                    "/usr/local/bin/opencode service restart >/dev/null 2>&1 || true",
+                timeoutSeconds = 30,
                 environment = distribution.terminalEnvironment,
                 linuxRootfsPath = rootfs.absolutePath,
             )

@@ -1,6 +1,7 @@
 package io.github.mangi.eta.agent.phone
 
 import android.content.Context
+import io.github.mangi.eta.hook.system.CircleToSearchInvoker
 import org.json.JSONObject
 
 internal object PhoneOperations {
@@ -31,6 +32,14 @@ internal object PhoneOperations {
                     "set_sound_mode" ->
                         NativeSystemOperations(context, userId ?: 0, markMutation)
                             .execute(tool, args)
+                    "circle_to_search" ->
+                        if (CircleToSearchInvoker.trigger("PhoneCommandMain"))
+                            PhoneOperation.ok(tool).put("status", "triggered")
+                        else
+                            PhoneOperation.failure(
+                                "CIRCLE_TO_SEARCH_UNAVAILABLE",
+                                "系统 Contextual Search 服务不可用",
+                            )
                     "list_calendars",
                     "read_calendar_event",
                     "search_calendar_events",

@@ -7,6 +7,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.mangi.eta.agent.extension.ExtensionAgent
+import io.github.mangi.eta.agent.extension.OpenCodeProviderConfig
 import io.github.mangi.eta.agent.terminal.DetachedTaskSupervisor
 import io.github.mangi.eta.agent.terminal.LinuxEnvironmentPaths
 import io.github.mangi.eta.agent.terminal.SharedFolderMounts
@@ -14,7 +15,9 @@ import io.github.mangi.eta.agent.terminal.linuxPackageProfileReady
 import io.github.mangi.eta.agent.terminal.terminalEnvironment
 import io.github.mangi.eta.core.AndroidAgentLogger
 import io.github.mangi.eta.data.repository.ExtensionAgentSettingsRepository
+import io.github.mangi.eta.data.repository.ProviderRepository
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
+import io.github.mangi.eta.ui.web.OpenCodeProviderDialog
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
@@ -151,6 +154,18 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
         extensionAgentJob = viewModelScope.launch {
             val distribution = LinuxEnvironmentSettingsRepository.current(getApplication())
             val backend = LinuxEnvironmentSettingsRepository.backend(getApplication(), distribution)
+            if (agent == ExtensionAgent.OPENCODE && agent !in runningExtensionAgents) {
+                // 首次启动 OpenCode 前自动同步一次，避免只在菜单里同步后忘记重启服务。
+                withContext(Dispatchers.IO) {
+                    runCatching {
+                        ProviderRepository.ensureBuiltInsMerged()
+                        val providers = ProviderRepository.allProviders()
+                        if (OpenCodeProviderConfig.syncSummary(providers).first > 0) {
+                            OpenCodeProviderDialog.sync(getApplication(), providers)
+                        }
+                    }
+                }
+            }
             val result = try {
                 extensionAgentLauncher.launch(agent, distribution.terminalEnvironment, backend)
             } catch (cancelled: kotlinx.coroutines.CancellationException) {

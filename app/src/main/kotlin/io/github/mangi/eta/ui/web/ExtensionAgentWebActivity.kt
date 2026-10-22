@@ -3,6 +3,7 @@ package io.github.mangi.eta.ui.web
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Intent
+import android.content.pm.ApplicationInfo
 import android.net.Uri
 import android.os.Bundle
 import android.text.InputType
@@ -69,6 +70,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
             return
         }
 
+        if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) WebView.setWebContentsDebuggingEnabled(true)
         val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         val tabBar = ComposeView(this).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
@@ -388,10 +390,16 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                 if (target.tagName === 'TEXTAREA') {
                   var start = target.selectionStart == null ? target.value.length : target.selectionStart;
                   var end = target.selectionEnd == null ? start : target.selectionEnd;
-                  target.setRangeText('\n', start, end, 'end');
+                  target.setRangeText(String.fromCharCode(10), start, end, 'end');
                   target.dispatchEvent(new Event('input', { bubbles: true }));
+                } else if (target.closest('[data-lexical-editor="true"], .uV2eYG_input')) {
+                  // Lexical (DSH) ignores execCommand; drive its beforeinput path instead.
+                  var lexical = target.closest('[data-lexical-editor="true"], .uV2eYG_input');
+                  lexical.dispatchEvent(new InputEvent('beforeinput', {
+                    bubbles: true, cancelable: true, inputType: 'insertLineBreak'
+                  }));
                 } else if (!document.execCommand('insertLineBreak')) {
-                  document.execCommand('insertText', false, '\n');
+                  document.execCommand('insertText', false, String.fromCharCode(10));
                 }
               }, true);
             })();
@@ -404,6 +412,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
               style.id = 'eta-opencode-webview';
               style.textContent = '@media (max-width:767px){' +
                 '#root:not(:has(.pI_x6G_frame)){margin-top:0!important}' +
+                'header[data-slot=titlebar-v2]{height:36px!important;padding-top:0!important;padding-bottom:0!important}' +
                 'main[data-component=connect-server]{padding-top:16px!important}' +
                 '.server-connect-content{margin-top:0!important;margin-bottom:0!important}' +
                 '}';

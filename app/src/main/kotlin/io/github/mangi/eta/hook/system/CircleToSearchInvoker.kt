@@ -55,6 +55,18 @@ internal object CircleToSearchInvoker {
         logger: ModuleLogger,
         source: String,
         entryPoint: Int = ModuleConfig.CIRCLE_TO_SEARCH_ENTRYPOINT,
+    ): Boolean = triggerInternal(logger, source, entryPoint)
+
+    /** 供 Root 手机命令通道使用；系统服务调用不需要 Xposed logger。 */
+    fun trigger(
+        source: String,
+        entryPoint: Int = ModuleConfig.CIRCLE_TO_SEARCH_ENTRYPOINT,
+    ): Boolean = triggerInternal(null, source, entryPoint)
+
+    private fun triggerInternal(
+        logger: ModuleLogger?,
+        source: String,
+        entryPoint: Int,
     ): Boolean {
         val binder = getContextualSearchBinder() ?: return false
         return runCatching {
@@ -71,10 +83,10 @@ internal object CircleToSearchInvoker {
             } else {
                 startContextualSearch.method.invoke(service, entryPoint)
             }
-            logger.debug { "$source: 已触发 Circle to Search" }
+            logger?.debug { "$source: 已触发 Circle to Search" }
             true
         }.getOrElse { throwable ->
-            logger.errorThrottled(
+            logger?.errorThrottled(
                 key = "${source}_cts_trigger_failed",
                 throwable = throwable
             ) { "$source: 触发 Circle to Search 失败" }
