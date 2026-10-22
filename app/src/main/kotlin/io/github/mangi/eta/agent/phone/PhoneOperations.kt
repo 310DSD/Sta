@@ -1,7 +1,7 @@
 package io.github.mangi.eta.agent.phone
 
 import android.content.Context
-import io.github.mangi.eta.hook.system.CircleToSearchInvoker
+import io.github.mangi.eta.hook.system.CircleToSearchService
 import org.json.JSONObject
 
 internal object PhoneOperations {
@@ -33,7 +33,7 @@ internal object PhoneOperations {
                         NativeSystemOperations(context, userId ?: 0, markMutation)
                             .execute(tool, args)
                     "circle_to_search" ->
-                        if (CircleToSearchInvoker.trigger("PhoneCommandMain"))
+                        if (CircleToSearchService.trigger())
                             PhoneOperation.ok(tool).put("status", "triggered")
                         else
                             PhoneOperation.failure(

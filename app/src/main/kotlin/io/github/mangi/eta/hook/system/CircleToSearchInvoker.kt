@@ -1,24 +1,12 @@
 package io.github.mangi.eta.hook.system
 
+import android.content.Context
+import android.content.Intent
 import io.github.mangi.eta.core.HookSupport
 import io.github.mangi.eta.core.ModuleConfig
 import io.github.mangi.eta.core.ModuleLogger
 
-import android.content.Context
-import android.content.Intent
-import android.os.IBinder
-import java.lang.reflect.Method
-
 internal object CircleToSearchInvoker {
-
-    @Volatile
-    private var getServiceMethod: Method? = null
-
-    @Volatile
-    private var asInterfaceMethod: Method? = null
-
-    @Volatile
-    private var startContextualSearchMethod: StartContextualSearchMethod? = null
 
     fun isAvailable(
         context: Context,
@@ -41,113 +29,34 @@ internal object CircleToSearchInvoker {
             return false
         }
 
-        val binder = getContextualSearchBinder() ?: run {
+        if (!CircleToSearchService.isBinderAlive()) {
             logger.warnThrottled("${source}_cts_service_missing") {
                 "$source: contextual_search service 不可用，$fallbackMessage"
             }
             return false
         }
 
-        return binder.isBinderAlive
+        return true
     }
 
     fun trigger(
         logger: ModuleLogger,
         source: String,
         entryPoint: Int = ModuleConfig.CIRCLE_TO_SEARCH_ENTRYPOINT,
-    ): Boolean = triggerInternal(logger, source, entryPoint)
+    ): Boolean {
+        if (!CircleToSearchService.trigger(entryPoint)) {
+            logger.errorThrottled(key = "${source}_cts_trigger_failed") {
+                "$source: 触发 Circle to Search 失败"
+            }
+            return false
+        }
+        logger.debug { "$source: 已触发 Circle to Search" }
+        return true
+    }
 
     /** 供 Root 手机命令通道使用；系统服务调用不需要 Xposed logger。 */
     fun trigger(
         source: String,
         entryPoint: Int = ModuleConfig.CIRCLE_TO_SEARCH_ENTRYPOINT,
-    ): Boolean = triggerInternal(null, source, entryPoint)
-
-    private fun triggerInternal(
-        logger: ModuleLogger?,
-        source: String,
-        entryPoint: Int,
-    ): Boolean {
-        val binder = getContextualSearchBinder() ?: return false
-        return runCatching {
-            // 直接调用系统 binder，避免再走 OEM OCR/识屏分发链。
-            val asInterface = resolveAsInterfaceMethod() ?: return@runCatching false
-            val startContextualSearch = resolveStartContextualSearchMethod() ?: return@runCatching false
-            val service = asInterface.invoke(null, binder) ?: return@runCatching false
-            if (startContextualSearch.hasConfigParameter) {
-                startContextualSearch.method.invoke(
-                    service,
-                    entryPoint,
-                    null
-                )
-            } else {
-                startContextualSearch.method.invoke(service, entryPoint)
-            }
-            logger?.debug { "$source: 已触发 Circle to Search" }
-            true
-        }.getOrElse { throwable ->
-            logger?.errorThrottled(
-                key = "${source}_cts_trigger_failed",
-                throwable = throwable
-            ) { "$source: 触发 Circle to Search 失败" }
-            false
-        }
-    }
-
-    private fun getContextualSearchBinder(): IBinder? =
-        runCatching {
-            resolveGetServiceMethod()?.invoke(null, ModuleConfig.CONTEXTUAL_SEARCH_SERVICE) as? IBinder
-        }.getOrNull()
-
-    private fun resolveGetServiceMethod(): Method? {
-        getServiceMethod?.let { return it }
-        return runCatching {
-            Class.forName("android.os.ServiceManager")
-                .getDeclaredMethod("getService", String::class.java)
-                .apply { isAccessible = true }
-        }.getOrNull()?.also { getServiceMethod = it }
-    }
-
-    private fun resolveAsInterfaceMethod(): Method? {
-        asInterfaceMethod?.let { return it }
-        return runCatching {
-            Class.forName("android.app.contextualsearch.IContextualSearchManager\$Stub")
-                .getDeclaredMethod("asInterface", IBinder::class.java)
-                .apply { isAccessible = true }
-        }.getOrNull()?.also { asInterfaceMethod = it }
-    }
-
-    private fun resolveStartContextualSearchMethod(): StartContextualSearchMethod? {
-        startContextualSearchMethod?.let { return it }
-        val serviceClass = runCatching {
-            Class.forName("android.app.contextualsearch.IContextualSearchManager")
-        }.getOrNull() ?: return null
-
-        val withConfig = runCatching {
-            val configClass = Class.forName("android.app.contextualsearch.ContextualSearchConfig")
-            serviceClass.getDeclaredMethod(
-                "startContextualSearch",
-                Int::class.javaPrimitiveType!!,
-                configClass
-            ).apply { isAccessible = true }
-        }.getOrNull()
-        if (withConfig != null) {
-            return StartContextualSearchMethod(withConfig, hasConfigParameter = true)
-                .also { startContextualSearchMethod = it }
-        }
-
-        return runCatching {
-            serviceClass.getDeclaredMethod(
-                "startContextualSearch",
-                Int::class.javaPrimitiveType!!
-            ).apply { isAccessible = true }
-        }.getOrNull()?.let { method ->
-            StartContextualSearchMethod(method, hasConfigParameter = false)
-        }?.also { startContextualSearchMethod = it }
-    }
-
-    private data class StartContextualSearchMethod(
-        val method: Method,
-        val hasConfigParameter: Boolean
-    )
+    ): Boolean = CircleToSearchService.trigger(entryPoint)
 }
