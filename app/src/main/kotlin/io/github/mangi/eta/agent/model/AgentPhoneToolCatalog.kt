@@ -37,14 +37,6 @@ internal object AgentPhoneToolCatalog {
                 direct = true,
             ),
             Entry(
-                "circle_to_search",
-                "一圈即搜",
-                "直接触发系统 Contextual Search / Circle to Search 识屏，不经过 OEM OCR 分发；需要系统暴露该服务。",
-                false,
-                RootRequirement.REQUIRED,
-                direct = true,
-            ),
-            Entry(
                 "get_device_state",
                 "查询系统开关",
                 "查询指定系统开关，不用 GUI。",

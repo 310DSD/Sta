@@ -64,3 +64,8 @@
 -keep class io.github.mangi.eta.agent.phone.PhoneCommandMain {
     public static void main(java.lang.String[]);
 }
+
+# Root CLI for Circle to Search, invoked by other root programs through app_process.
+-keep class io.github.mangi.eta.agent.phone.CircleSearchCommand {
+    public static void main(java.lang.String[]);
+}

@@ -154,6 +154,16 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
         extensionAgentJob = viewModelScope.launch {
             val distribution = LinuxEnvironmentSettingsRepository.current(getApplication())
             val backend = LinuxEnvironmentSettingsRepository.backend(getApplication(), distribution)
+            val runningUrl = withContext(Dispatchers.IO) {
+                extensionAgentLauncher.openRunning(agent, distribution.terminalEnvironment, backend)
+            }
+            if (runningUrl != null) {
+                runningExtensionAgents = runningExtensionAgents + agent
+                extensionAgentState = ExtensionAgentUiState(agent, ExtensionAgentPhase.RUNNING)
+                onFinished(ExtensionAgentLaunchResult.Opened(runningUrl))
+                return@launch
+            }
+
             if (agent == ExtensionAgent.OPENCODE && agent !in runningExtensionAgents) {
                 // 首次启动 OpenCode 前自动同步一次，避免只在菜单里同步后忘记重启服务。
                 withContext(Dispatchers.IO) {

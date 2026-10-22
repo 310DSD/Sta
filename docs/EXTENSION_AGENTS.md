@@ -83,7 +83,8 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
 - `ExtensionAgentWebSession.kt`：启动/复用 daemon，轮询日志提取 loopback URL；
   OpenCode wrapper 启动共享服务并输出 `service status` 地址，随后执行 `opencode pair` 获取一次性
   `/auth/connect/...` 登录链接；失败时只回收本次创建且未成功交给浏览器的任务。
-- `ExtensionAgentLauncher.kt`：解析 Linux 环境、取得前台执行租约、按 Agent 串行化启动。
+- `ExtensionAgentLauncher.kt`：解析 Linux 环境、取得前台执行租约、按 Agent 串行化启动；
+  已运行任务走 `openRunning` 快速路径，只查状态和日志 URL 后直接打开 WebView。
 - `ExtensionAgentUiState.kt`：检查中/未安装/就绪/启动中/运行中/失败六态与错误文案。
 
 ### 4.3 UI

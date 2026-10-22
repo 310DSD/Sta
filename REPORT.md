@@ -85,7 +85,8 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 - 修复 DSH 移动 CSS 的 `#root` 规则泄漏到 OpenCode 的问题：CSS 仅在检测到 DSH `.pI_x6G_frame` 后注入，并在选择器上用 `:has` 限定 DSH，OpenCode 不再多出 56px 顶部空白。
 - 扩展 Agent WebView 标签栏改用 Compose/Miuix 主题；Enter 捕获改为 window capture，OpenCode 用 `insertLineBreak`，DSH Lexical 用 `beforeinput(insertLineBreak)`，均能换行而不发送。
 - OpenCode 原生 titlebar 在 Android WebView 中会重复读取 safe-area inset，导致顶部约 60px 空白；已把移动端 titlebar 固定为 36px，连接页/首页/会话页统一从顶部开始。
-- 新增 `circle_to_search` 手机工具入口，通过系统 Contextual Search binder 直接触发一圈即搜，不经过 OEM OCR 分发。
+- 提供 `CircleSearchCommand` root `app_process` CLI，其他 Root 程序可直接调用系统 Contextual Search binder，不经过 OEM OCR 分发；`PhoneCommandMain` 的 `circle_to_search` 作为通用 root 通道，不加入 Agent 工具目录。
+- 扩展 Agent 已运行时点击右上角启动/打开走快速路径：只查一次状态和日志 URL，直接打开 WebView，不再重复执行启动检查、日志轮询和配对。
 - 更新中英文 README 与三语字符串。
 
 ### 验证

@@ -37,6 +37,7 @@ internal class ExtensionAgentLauncher(
     private val context: Context,
     private val daemonSupervisor: DetachedTaskSupervisor,
 ) {
+    private val lastUrls = ConcurrentHashMap<ExtensionAgent, String>()
     private val session = ExtensionAgentWebSession(
         tasks = object : ExtensionAgentWebSession.Tasks {
             override fun list() = daemonSupervisor.list()
@@ -100,7 +101,7 @@ internal class ExtensionAgentLauncher(
             }
             try {
                 currentCoroutineContext().ensureActive()
-                session.launch(
+                val result = session.launch(
                     agent = agent,
                     environment = environment,
                     identity = identity,
@@ -125,10 +126,28 @@ internal class ExtensionAgentLauncher(
                         }
                     }
                 }
+                if (result is ExtensionAgentLaunchResult.Opened) lastUrls[agent] = result.url
+                result
             } finally {
                 if (identity == "user") AgentExecutionService.release(launchId)
             }
         }
+    }
+
+    /**
+     * 已运行任务快速路径：只读一次状态和日志，URL 已知时直接打开 WebView，
+     * 不再走 launch 的安装检查、锁、日志轮询和配对流程。
+     */
+    suspend fun openRunning(
+        agent: ExtensionAgent,
+        environment: TerminalEnvironment,
+        backend: LinuxExecutionBackend,
+    ): String? = withContext(Dispatchers.IO) {
+        val status = status(agent, environment, backend)
+        if (!status.running) return@withContext null
+        val url = status.url ?: lastUrls[agent]
+        if (url.isNullOrBlank()) return@withContext null
+        if (session.open(url)) url else null
     }
 
     suspend fun status(

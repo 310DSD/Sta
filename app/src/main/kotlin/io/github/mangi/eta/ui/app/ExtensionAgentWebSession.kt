@@ -30,6 +30,8 @@ internal class ExtensionAgentWebSession(
         fun stop(id: String)
     }
 
+    fun open(url: String): Boolean = openUrl(url)
+
     suspend fun launch(
         agent: ExtensionAgent,
         environment: TerminalEnvironment,
