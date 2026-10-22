@@ -11,12 +11,18 @@ import io.github.mangi.eta.agent.terminal.LinuxFileExplorer
 import io.github.mangi.eta.agent.terminal.ShellProcessSupervisor
 import io.github.mangi.eta.agent.terminal.runOneShotShell
 import io.github.mangi.eta.agent.terminal.terminalEnvironment
+import io.github.mangi.eta.data.model.AnthropicProviderSetting
+import io.github.mangi.eta.data.model.CustomProviderSetting
+import io.github.mangi.eta.data.model.Model
+import io.github.mangi.eta.data.model.OpenAiCompatibleProviderSetting
 import io.github.mangi.eta.data.model.ProviderSetting
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
 import io.github.mangi.eta.data.repository.ProviderRepository
+import io.github.mangi.eta.data.repository.RemoteModelFetcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 
 /**
  * 直接把 Eta 的 provider/model 数据同步为 OpenCode 的 `providers` 配置。
@@ -58,7 +64,42 @@ internal object OpenCodeProviderDialog {
         }
     }
 
-    internal fun sync(context: Context, providers: List<ProviderSetting>): String? {
+    /**
+     * Eta 的部分模型元数据来自 /models；同步前补一次远端能力，避免把后端明确支持的
+     * tools/images/output limit 丢掉。远端不可用时继续使用 Eta 已保存的数据。
+     */
+    private suspend fun enrichRemoteMetadata(providers: List<ProviderSetting>): List<ProviderSetting> =
+        providers.map { provider ->
+            val remote = withTimeoutOrNull(6_000) {
+                RemoteModelFetcher.fetch(provider).getOrNull()
+            }.orEmpty()
+            if (remote.isEmpty()) provider else provider.withModels(
+                provider.models.map { stored ->
+                    val fetched = remote.firstOrNull {
+                        it.modelId.equals(stored.modelId, ignoreCase = true)
+                    } ?: return@map stored
+                    stored.copy(
+                        contextWindow = stored.contextWindowOverride ?: fetched.contextWindow ?: stored.contextWindow,
+                        maxOutputTokens = fetched.maxOutputTokens ?: stored.maxOutputTokens,
+                        inputModalities = fetched.inputModalities.ifEmpty { stored.inputModalities },
+                        outputModalities = fetched.outputModalities.ifEmpty { stored.outputModalities },
+                        attachment = fetched.attachment ?: stored.attachment,
+                        toolCall = fetched.toolCall ?: stored.toolCall,
+                        reasoning = fetched.reasoning ?: stored.reasoning,
+                        reasoningCapabilities = stored.reasoningCapabilities ?: fetched.reasoningCapabilities,
+                    )
+                },
+            )
+        }
+
+    private fun ProviderSetting.withModels(models: List<Model>): ProviderSetting = when (this) {
+        is OpenAiCompatibleProviderSetting -> copy(models = models)
+        is AnthropicProviderSetting -> copy(models = models)
+        is CustomProviderSetting -> copy(models = models)
+    }
+
+    internal suspend fun sync(context: Context, providers: List<ProviderSetting>): String? {
+        val enrichedProviders = enrichRemoteMetadata(providers)
         val distribution = LinuxEnvironmentSettingsRepository.current(context)
         val backend = LinuxEnvironmentSettingsRepository.backend(context, distribution)
         val rootfs = LinuxEnvironmentPaths.rootfsDir(context, distribution, backend)
@@ -73,7 +114,7 @@ internal object OpenCodeProviderDialog {
                 LinuxFileExplorer.ReadResult.CommandFailed -> return "无法读取 OpenCode 配置"
                 LinuxFileExplorer.ReadResult.Binary -> return "OpenCode 配置不是文本文件"
             }
-            val merged = runCatching { OpenCodeProviderConfig.mergeEtaProviders(existing, providers) }
+            val merged = runCatching { OpenCodeProviderConfig.mergeEtaProviders(existing, enrichedProviders) }
                 .getOrElse { return "配置文件解析失败：${it.message}" }
             when (LinuxFileExplorer.writeText(supervisor, rootfs, OpenCodeProviderConfig.CONFIG_PATH, merged)) {
                 LinuxFileExplorer.WriteResult.Success -> Unit

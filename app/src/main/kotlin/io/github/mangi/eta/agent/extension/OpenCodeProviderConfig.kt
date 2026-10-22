@@ -204,15 +204,18 @@ internal object OpenCodeProviderConfig {
         put("name", model.displayName)
         put("modelID", model.modelId.ifBlank { model.id })
         val context = model.contextWindowOverride ?: model.contextWindow
-        if (context != null && context > 0) {
-            put("limit", JSONObject().put("context", context))
-        }
+        val limit = JSONObject()
+        if (context != null && context > 0) limit.put("context", context)
+        model.maxOutputTokens?.takeIf { it > 0 }?.let { limit.put("output", it) }
+        if (limit.length() > 0) put("limit", limit)
         val input = buildSet {
             addAll(model.inputModalities)
             if (model.supportsVision) add(Model.IMAGE_MODALITY)
         }.toList()
         put("capabilities", JSONObject().apply {
-            put("tools", model.supportsTools)
+            // 未知能力不要写成 false，否则会把可用的工具/视觉能力锁死；
+            // 只有 Eta 明确知道时才写。
+            model.toolCall?.let { put("tools", it) }
             // JSONObject.put 对 Kotlin List 的行为依赖底层 org.json 版本；显式构造
             // JSONArray，确保 OpenCode 2 schema 看到的是 ["text"] 而不是 "[text]"。
             put("input", org.json.JSONArray(input))

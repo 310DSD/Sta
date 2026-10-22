@@ -47,6 +47,23 @@ class RemoteModelFetcherTest {
     }
 
     @Test
+    fun parsesWorkbuddyStyleCapabilityFields() {
+        val model = RemoteModelFetcher.parseOpenAiModels(
+            """
+            {"data":[{
+              "id":"deepseek-v4.1-flash",
+              "supports_tool_call":true,
+              "supports_images":true,
+              "max_output_tokens":128000
+            }]}
+            """.trimIndent()
+        ).single()
+        assertTrue(model.supportsTools)
+        assertTrue(model.supportsVision)
+        assertEquals(128000, model.maxOutputTokens)
+    }
+
+    @Test
     fun enrichesKnownModelsFromOfficialCatalog() {
         val provider = OpenAiCompatibleProviderSetting(
             id = "p1",

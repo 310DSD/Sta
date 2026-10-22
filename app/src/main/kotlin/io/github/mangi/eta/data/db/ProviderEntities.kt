@@ -72,6 +72,7 @@ internal data class ProviderModelEntity(
     @ColumnInfo(name = "owned_by") val ownedBy: String?,
     @ColumnInfo(name = "context_window") val contextWindow: Int?,
     @ColumnInfo(name = "context_window_override") val contextWindowOverride: Int?,
+    @ColumnInfo(name = "max_output_tokens") val maxOutputTokens: Int?,
     @ColumnInfo(name = "input_modalities_json") val inputModalitiesJson: String,
     @ColumnInfo(name = "output_modalities_json") val outputModalitiesJson: String,
     @ColumnInfo(name = "attachment") val attachment: Boolean?,
@@ -214,6 +215,7 @@ private fun Model.toEntity(providerId: String): ProviderModelEntity =
         ownedBy = ownedBy,
         contextWindow = contextWindow,
         contextWindowOverride = contextWindowOverride,
+        maxOutputTokens = maxOutputTokens,
         inputModalitiesJson = ProviderJson.encodeStrings(inputModalities),
         outputModalitiesJson = ProviderJson.encodeStrings(outputModalities),
         attachment = attachment,
@@ -243,6 +245,7 @@ private fun ProviderModelEntity.toDomain(): Model =
         sortOrder = sortOrder,
         contextWindow = contextWindow,
         contextWindowOverride = contextWindowOverride,
+        maxOutputTokens = maxOutputTokens,
         inputModalities = ProviderJson.decodeStrings(inputModalitiesJson).ifEmpty {
             listOf(Model.TEXT_MODALITY)
         },

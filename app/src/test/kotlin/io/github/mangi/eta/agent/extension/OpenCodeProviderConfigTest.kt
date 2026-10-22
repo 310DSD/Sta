@@ -127,6 +127,7 @@ class OpenCodeProviderConfigTest {
                     modelId = "deepseek-v4-flash",
                     displayName = "DeepSeek V4 Flash",
                     contextWindow = 1_000_000,
+                    maxOutputTokens = 128000,
                     toolCall = true,
                 ),
             ),
@@ -140,6 +141,7 @@ class OpenCodeProviderConfigTest {
         assertEquals("manual-token", root.getJSONObject("headers").getString("X-Gateway-Token"))
         val model = root.getJSONObject("models").getJSONObject("deepseek-v4-flash")
         assertEquals(1_000_000, model.getJSONObject("limit").getInt("context"))
+        assertEquals(128000, model.getJSONObject("limit").getInt("output"))
         assertEquals("manual", model.getJSONObject("headers").getString("X-Model"))
     }
 
@@ -189,6 +191,7 @@ class OpenCodeProviderConfigTest {
                     modelId = "deepseek-v4-flash",
                     displayName = "DeepSeek V4 Flash",
                     contextWindow = 1_000_000,
+                    maxOutputTokens = 128000,
                     inputModalities = listOf(Model.TEXT_MODALITY, Model.IMAGE_MODALITY),
                     toolCall = true,
                     reasoning = true,
@@ -209,6 +212,7 @@ class OpenCodeProviderConfigTest {
         assertEquals("https://example.com/v1", root.getJSONObject("settings").getString("baseURL"))
         val model = root.getJSONObject("models").getJSONObject("deepseek-v4-flash")
         assertEquals(1_000_000, model.getJSONObject("limit").getInt("context"))
+        assertEquals(128000, model.getJSONObject("limit").getInt("output"))
         assertEquals(true, model.getJSONObject("capabilities").getBoolean("tools"))
         assertEquals(
             listOf("text", "image"),

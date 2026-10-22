@@ -81,7 +81,7 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 - Kimi Code 原 profile、Linux 工具行、顶栏入口和停止入口一并恢复/保留。
 - DSH 移动端改为独立壳层：隐藏桌面 rail、固定顶栏 + 抽屉、聊天列占满视口、设置页全屏 + 横向分类 chip；旧版保守 CSS 会被启动脚本清理后重新追加。
 - 原生 Markdown 分式改为“分子 / 横向分数线 / 分母”的居中布局，分数线按最宽文本测量，并修正 frac、dfrac、big、lim 等命令的归一化。
-- OpenCode 上游 2.1.2 的“自定义提供商”表单固定报 `provider.custom.unavailable`；Eta 改为从自身 provider/model 数据直接同步 `opencode.json`，映射上下文、视觉、工具、思考等级和自定义请求头/体，并执行 `opencode reload`。同步会保留已存在 provider 的手工 baseURL、API key、headers/body（本地网关场景），只补充模型元数据。
+- OpenCode 上游 2.1.2 的“自定义提供商”表单固定报 `provider.custom.unavailable`；Eta 改为从自身 provider/model 数据直接同步 `opencode.json`，映射上下文、视觉、工具、思考等级和自定义请求头/体，并执行 `opencode reload`。同步会先从 provider 的 `/models` 补全工具/视觉/上下文/输出上限，再写入 `limit.context`、`limit.output`、`capabilities.tools`、`capabilities.input` 和 `capabilities.reasoning`；同时保留已存在 provider 的手工 baseURL、API key、headers/body。
 - 修复 DSH 移动 CSS 的 `#root` 规则泄漏到 OpenCode 的问题：CSS 仅在检测到 DSH `.pI_x6G_frame` 后注入，并在选择器上用 `:has` 限定 DSH，OpenCode 不再多出 56px 顶部空白。
 - 扩展 Agent WebView 标签栏改用 Compose/Miuix 主题；Enter 捕获改为 window capture，OpenCode 用 `insertLineBreak`，DSH Lexical 用 `beforeinput(insertLineBreak)`，均能换行而不发送。
 - OpenCode 原生 titlebar 在 Android WebView 中会重复读取 safe-area inset，导致顶部约 60px 空白；已把移动端 titlebar 固定为 36px，连接页/首页/会话页统一从顶部开始。

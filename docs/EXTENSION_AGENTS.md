@@ -113,8 +113,10 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
   的 `⋮` 菜单和首页顶栏溢出菜单提供“同步 Eta 提供商到 OpenCode”：直接读取 Eta 的
   provider/model 数据，合并写入 `/root/.config/opencode/opencode.json`，再执行
   `opencode reload` 刷新配置；首次启动 OpenCode 前也会自动同步
-  一次。映射包含模型上下文长度、视觉输入、工具能力、思考等级（variants）、
-  自定义请求头和请求体；原有 OpenCode MCP/插件/其他 provider 配置保留。
+  一次。同步会先从 provider 的 `/models` 补全后端声明的工具、视觉、上下文和输出上限，
+  再映射 `limit.context` / `limit.output`、`capabilities.tools`、`capabilities.input`、
+  `capabilities.reasoning`、`variants` 及自定义请求头和请求体；原有 OpenCode MCP/插件/
+  其他 provider 配置保留。
   对已存在的同名、同 baseURL 或相同模型 ID 的 provider，会保留用户手工配置的
   baseURL、API key、headers/body 和模型自定义字段，只补充 Eta 的模型元数据。
   这是统一的 provider 合并规则，不按 127/localhost 做运行时特化。

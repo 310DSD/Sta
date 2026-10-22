@@ -169,8 +169,22 @@ internal object RemoteModelFetcher {
             outputModalities = stringList("output_modalities", "outputModalities")
                 ?: architecture?.stringList("output_modalities", "outputModalities")
                 ?: emptyList(),
-            attachment = boolean("attachment", "vision", "supports_image_in"),
-            toolCall = boolean("tool_call", "toolCall", "tools")
+            attachment = boolean(
+                "attachment",
+                "vision",
+                "supports_image_in",
+                "supports_images",
+                "supportsImages",
+                "supports_image",
+            ),
+            toolCall = boolean(
+                "tool_call",
+                "toolCall",
+                "tools",
+                "supports_tool_call",
+                "supportsToolCall",
+                "supports_tools",
+            )
                 ?: supportedParameters.supportsAny("tools"),
             reasoning = boolean("reasoning", "thinking", "supports_reasoning")
                 ?: supportedParameters.supportsAny(
@@ -189,6 +203,12 @@ internal object RemoteModelFetcher {
                 ?: supportedParameters.supportsAny("structured_outputs", "response_format"),
             supportsTemperature = boolean("supports_temperature", "supportsTemperature")
                 ?: supportedParameters.supportsAny("temperature"),
+            maxOutputTokens = positiveInt(
+                "max_output_tokens",
+                "maxOutputTokens",
+                "max_completion_tokens",
+                "maxCompletionTokens",
+            ),
         )
     }
 
@@ -322,12 +342,23 @@ internal object RemoteModelFetcher {
             "attachment",
             "vision",
             "supports_image_in",
+            "supports_images",
+            "supportsImages",
+            "supports_image",
             "supports_video_in",
         )
         if (capabilityNames.none(::containsKey)) return emptyList()
         return buildList {
             add(Model.TEXT_MODALITY)
-            if (boolean("attachment", "vision", "supports_image_in") == true) {
+            if (boolean(
+                    "attachment",
+                    "vision",
+                    "supports_image_in",
+                    "supports_images",
+                    "supportsImages",
+                    "supports_image",
+                ) == true
+            ) {
                 add(Model.IMAGE_MODALITY)
             }
             if (boolean("supports_video_in") == true) {
