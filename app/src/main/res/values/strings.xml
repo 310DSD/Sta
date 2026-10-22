@@ -1523,4 +1523,10 @@
   <string name="webview_file_manager">File manager</string>
   <string name="webview_file_manager_summary">Manage files in the Linux environment</string>
   <string name="webview_agent_summary">Open web UI</string>
+  <string name="file_manager_back">Back</string>
+  <string name="file_manager_forward">Forward</string>
+  <string name="file_manager_up">Up</string>
+  <string name="file_manager_sync">Sync</string>
+  <string name="file_manager_storage">Storage</string>
+  <string name="file_manager_stats">Folders: %1$d   Files: %2$d</string>
 </resources>

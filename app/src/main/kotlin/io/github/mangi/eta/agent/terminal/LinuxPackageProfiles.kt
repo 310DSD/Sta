@@ -118,17 +118,18 @@ internal object LinuxPackageProfiles {
             "npm install -g --prefix /usr/local --include=optional @opencode/cli@2.1.2"
 
     internal val DSH_MOBILE_CSS = """
-/* Eta mobile shell v4 - DSH
+/* Eta mobile shell v5 - DSH
    Goals: match Eta quiet, card-based mobile look without touching DSH logic.
    Every selector below is either an existing DSH anchor or a hook created by
    Eta own mobile shell (#eta-mobile-bar / #eta-scrim). */
 
 :root {
   --eta-topbar-h: 56px;
-  --eta-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --eta-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
-  --eta-spring: cubic-bezier(0.34, 1.28, 0.64, 1);
-  --eta-dur: 0.24s;
+  --eta-ease: cubic-bezier(0.33, 1, 0.68, 1);
+  --eta-ease-out: cubic-bezier(0.32, 0.72, 0, 1);
+  --eta-spring: cubic-bezier(0.3, 1.12, 0.6, 1);
+  --eta-spring-soft: cubic-bezier(0.34, 1.2, 0.64, 1);
+  --eta-dur: 0.26s;
 }
 
 @media (max-width: 720px) {
@@ -202,7 +203,7 @@ internal object LinuxPackageProfiles {
     background: var(--eta-canvas);
     border-bottom: 0.5px solid var(--eta-hairline);
     color: var(--dsw-alias-label-primary, #0f1115);
-    transition: background-color var(--eta-dur) ease, border-color var(--eta-dur) ease;
+    transition: background-color var(--eta-dur) ease, border-color var(--eta-dur) ease, opacity 0.2s ease;
     contain: layout paint style;
   }
 
@@ -218,11 +219,11 @@ internal object LinuxPackageProfiles {
     border-radius: 14px;
     background: transparent;
     color: inherit;
-    transition: background-color 0.16s ease, transform 0.16s var(--eta-spring), opacity 0.16s ease;
+    transition: background-color 0.2s ease, transform 0.2s var(--eta-spring), opacity 0.2s ease;
   }
   .eta-icon:active {
     background: var(--eta-active);
-    transform: scale(0.9);
+    transform: scale(0.94);
   }
 
   .eta-heading {
@@ -251,10 +252,14 @@ internal object LinuxPackageProfiles {
     background: rgb(0 0 0 / 36%);
     opacity: 0;
     pointer-events: none;
-    transition: opacity 0.28s ease;
+    transition: opacity 0.34s var(--eta-ease);
   }
   body.eta-drawer-open #eta-scrim { opacity: 1; pointer-events: auto; }
-  body.eta-drawer-open #eta-mobile-bar { visibility: hidden; }
+  body.eta-drawer-open #eta-mobile-bar {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s ease, visibility 0s 0.2s;
+  }
 
   /* ---------- Frame: desktop 3 columns -> one mobile column ---------- */
   .pI_x6G_frame {
@@ -283,14 +288,16 @@ internal object LinuxPackageProfiles {
     border-right: 0.5px solid var(--eta-hairline) !important;
     border-radius: 0 22px 22px 0 !important;
     box-shadow: 0 18px 48px rgb(0 0 0 / 20%) !important;
-    transform: translate3d(-102%, 0, 0) !important;
-    transition: transform 0.34s var(--eta-ease-out) !important;
-    will-change: transform;
+    transform: translate3d(-100%, 0, 0) scale(0.99) !important;
+    opacity: 0.55;
+    transition: transform 0.42s var(--eta-ease-out), opacity 0.32s ease !important;
+    will-change: transform, opacity;
     contain: layout paint style;
     overflow: hidden !important;
   }
   .pI_x6G_frame:not([data-sidebar-collapsed]) .pI_x6G_sidebarCol {
-    transform: translate3d(0, 0, 0) !important;
+    transform: translate3d(0, 0, 0) scale(1) !important;
+    opacity: 1;
   }
   .pI_x6G_sidebarCol .hHd-Xa_root {
     width: 100% !important;
@@ -313,7 +320,7 @@ internal object LinuxPackageProfiles {
     border-radius: 14px !important;
     background: var(--eta-hover) !important;
     border: 0.5px solid var(--eta-hairline) !important;
-    transition: background-color 0.16s ease, transform 0.16s var(--eta-ease) !important;
+    transition: background-color 0.2s ease, transform 0.2s var(--eta-spring-soft) !important;
   }
   .hHd-Xa_newSession:active { transform: scale(0.98); }
   .hHd-Xa_newSessionContent { justify-content: flex-start !important; }
@@ -333,7 +340,7 @@ internal object LinuxPackageProfiles {
     margin: 1px 0 !important;
     padding: 0 10px 0 14px !important;
     border-radius: 12px !important;
-    transition: background-color 0.16s ease, transform 0.16s var(--eta-ease) !important;
+    transition: background-color 0.2s ease, transform 0.2s var(--eta-spring-soft) !important;
   }
   .YDXeBa_selected::before {
     content: "";
@@ -386,7 +393,7 @@ internal object LinuxPackageProfiles {
     border-radius: 999px !important;
     background: color-mix(in srgb, var(--eta-surface) 72%, transparent) !important;
     border: 0.5px solid var(--eta-hairline) !important;
-    transition: background-color 0.16s ease, transform 0.16s var(--eta-spring) !important;
+    transition: background-color 0.2s ease, transform 0.2s var(--eta-spring) !important;
   }
   .pXSMma_workspace:active,
   .cubgiG_seat:active { transform: scale(0.96); background: var(--eta-hover) !important; }
@@ -401,7 +408,7 @@ internal object LinuxPackageProfiles {
     contain: layout style;
   }
   .EvIC1a_flowItem:last-child {
-    animation: eta-rise 0.28s var(--eta-ease) both;
+    animation: eta-rise 0.36s var(--eta-ease-out) both;
   }
   .EvIC1a_column pre {
     border-radius: 14px !important;
@@ -414,7 +421,7 @@ internal object LinuxPackageProfiles {
   }
   .xzv4MW_action {
     border-radius: 50% !important;
-    transition: background-color 0.16s ease, transform 0.16s var(--eta-ease) !important;
+    transition: background-color 0.2s ease, transform 0.2s var(--eta-spring-soft) !important;
   }
   .xzv4MW_action:active { transform: scale(0.9); }
 
@@ -470,7 +477,7 @@ internal object LinuxPackageProfiles {
     width: 32px !important;
     height: 32px !important;
     border-radius: 50% !important;
-    transition: background-color 0.16s ease, transform 0.16s var(--eta-ease) !important;
+    transition: background-color 0.2s ease, transform 0.2s var(--eta-spring-soft) !important;
   }
   .uV2eYG_add:active { background: var(--eta-active) !important; transform: scale(0.92); }
   .uV2eYG_primary {
@@ -490,7 +497,7 @@ internal object LinuxPackageProfiles {
     border-radius: 16px !important;
     border: 0.5px solid var(--eta-hairline) !important;
     box-shadow: 0 18px 48px rgb(0 0 0 / 16%), 0 2px 8px rgb(0 0 0 / 6%) !important;
-    animation: eta-pop 0.16s var(--eta-ease) both;
+    animation: eta-pop 0.2s var(--eta-ease-out) both;
     transform-origin: top center;
   }
   ._item_4ub78_90 {
@@ -522,7 +529,7 @@ internal object LinuxPackageProfiles {
     flex-direction: column !important;
     overflow: hidden !important;
     background: var(--eta-canvas) !important;
-    animation: eta-sheet-in 0.32s var(--eta-ease-out) both;
+    animation: eta-sheet-in 0.4s var(--eta-ease-out) both;
   }
   .VOzbGW_nav {
     width: 100% !important;
@@ -568,7 +575,7 @@ internal object LinuxPackageProfiles {
     scroll-snap-align: start;
     background: var(--eta-surface) !important;
     border: 0.5px solid var(--eta-hairline) !important;
-    transition: background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease, transform 0.16s var(--eta-spring) !important;
+    transition: background-color 0.22s ease, color 0.22s ease, box-shadow 0.22s ease, transform 0.22s var(--eta-spring) !important;
   }
   .VOzbGW_navCell:active { transform: scale(0.96); }
   .VOzbGW_active {
@@ -606,7 +613,7 @@ internal object LinuxPackageProfiles {
     height: 34px !important;
     border-radius: 50% !important;
     background: var(--eta-hover) !important;
-    transition: background-color 0.16s ease, transform 0.16s var(--eta-ease) !important;
+    transition: background-color 0.2s ease, transform 0.2s var(--eta-spring-soft) !important;
   }
   .VOzbGW_close:active { transform: scale(0.9); }
 
@@ -708,10 +715,10 @@ internal object LinuxPackageProfiles {
   }
 
   body.eta-drawer-open .hHd-Xa_newSession {
-    animation: eta-slide-in 0.34s var(--eta-ease-out) both;
+    animation: eta-slide-in 0.42s var(--eta-ease-out) both;
   }
   body.eta-drawer-open .hHd-Xa_panelList {
-    animation: eta-slide-in 0.34s var(--eta-ease-out) 0.03s both;
+    animation: eta-slide-in 0.42s var(--eta-ease-out) 0.05s both;
   }
 
   @keyframes eta-slide-in {
@@ -719,16 +726,16 @@ internal object LinuxPackageProfiles {
     to { opacity: 1; transform: translate3d(0, 0, 0); }
   }
   @keyframes eta-rise {
-    from { opacity: 0; transform: translate3d(0, 6px, 0); }
+    from { opacity: 0; transform: translate3d(0, 10px, 0); }
     to { opacity: 1; transform: translate3d(0, 0, 0); }
   }
   @keyframes eta-sheet-in {
-    from { opacity: 0; transform: translate3d(0, 26px, 0); }
-    to { opacity: 1; transform: translate3d(0, 0, 0); }
+    from { opacity: 0; transform: translate3d(0, 44px, 0) scale(0.985); }
+    to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
   }
   @keyframes eta-pop {
-    from { opacity: 0; transform: scale(0.97); }
-    to { opacity: 1; transform: scale(1); }
+    from { opacity: 0; transform: translate3d(0, -6px, 0) scale(0.96); }
+    to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
   }
 }
 

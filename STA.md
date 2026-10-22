@@ -37,8 +37,8 @@ DSH Web 前端是桌面优先布局。Sta 在**不修改 DSH 逻辑和 DOM 锚�
 - 视觉向 Eta 靠拢：暖灰画布、白色卡片、16–24px 圆角、hairline 描边、克制阴影；
   工作区/模式为 chip，选中会话带 3px 强调条，代码块与行内代码有独立表面。
 - 主题切换时画布、卡片、边框做 0.3s 颜色过渡，`:focus-visible` 提供键盘焦点环。
-- 动画只使用 `transform` / `opacity`：抽屉 0.34s 缓出、入口分段入场、sheet 上滑、
-  菜单缩放淡入、仅最后一条消息上浮；`prefers-reduced-motion: reduce` 下全部关闭。
+- 动画只使用 `transform` / `opacity`：抽屉 0.42s 缓出并轻微缩放/淡入、入口分段入场、
+  sheet 44px 上滑、菜单缩放淡入、仅最后一条消息 10px 上浮；`prefers-reduced-motion: reduce` 下全部关闭。
 - 性能：`overscroll-behavior: contain`、`translate3d` + `contain` 合成层、
   消息项 `contain: layout style`、不使用 `transition: all`，不对大子树做入场动画，
   不在滚动区域叠加大面积 `backdrop-filter`。
@@ -51,10 +51,12 @@ DSH Web 前端是桌面优先布局。Sta 在**不修改 DSH 逻辑和 DOM 锚�
 
 ### Linux 文件管理器
 
-内置 MT 管理器风格的 rootfs 文件管理器，可从 WebView 新建页面弹窗或 Linux 工具页进入：
+内置 MT 管理器风格的双窗口 rootfs 文件管理器，可从 WebView 新建页面弹窗或 Linux 工具页进入：
 
+- 左右两个文件窗口同时显示，各自维护路径、历史、选择与滚动位置；当前窗口浮起，顶部只显示当前窗口路径与文件夹/文件数量；
+- 复制 / 移动直接从当前窗口到另一窗口，没有单独的粘贴步骤；底部提供后退、前进、新建、同步、上级五个动作；
 - 根目录 / 工作区 / 主目录 / 临时 / 共享快捷入口，路径输入、当前目录搜索、排序、隐藏文件；
-- 长按或复选框多选，底部复制 / 移动 / 重命名 / 属性 / 删除，剪贴板跨目录粘贴；
+- 长按或复选框多选，选中后底部切换为复制 / 移动 / 重命名 / 属性 / 删除；
 - 文本文件查看与编辑，二进制文件提示不可预览；
 - 操作优先走 root shell / PRoot，保留 Linux 权限与符号链接语义；shell 不可用时，
   列表、读取、属性和写入回退到 App 进程直接访问 rootfs。

@@ -7,29 +7,33 @@ import android.text.format.Formatter
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.InsertDriveFile
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Android
@@ -54,10 +58,10 @@ import androidx.compose.material.icons.rounded.Info
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material.icons.rounded.NoteAdd
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Save
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.SelectAll
 import androidx.compose.material.icons.rounded.Sort
+import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material.icons.rounded.VideoFile
 import androidx.compose.material.icons.rounded.Visibility
@@ -68,11 +72,13 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -81,6 +87,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.navigationevent.NavigationEventInfo
 import androidx.navigationevent.compose.NavigationBackHandler
 import androidx.navigationevent.compose.rememberNavigationEventState
@@ -108,7 +115,10 @@ import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.InfiniteProgressIndicator
 import top.yukonga.miuix.kmp.basic.ListPopupColumn
+import top.yukonga.miuix.kmp.basic.MiuixScrollBehavior
 import top.yukonga.miuix.kmp.basic.PopupPositionProvider
+import top.yukonga.miuix.kmp.basic.Scaffold
+import top.yukonga.miuix.kmp.basic.SmallTopAppBar
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
 import top.yukonga.miuix.kmp.theme.MiuixTheme
@@ -118,16 +128,26 @@ import java.util.Date
 import java.util.Locale
 
 private enum class FileSort { NAME, SIZE, DATE }
-private enum class ClipboardMode { COPY, MOVE }
 private enum class NameDialogKind { FOLDER, FILE, RENAME }
 
-private data class FileClipboard(val paths: List<String>, val mode: ClipboardMode)
+private class FilePaneState(initialPath: String) {
+    var path by mutableStateOf(initialPath)
+    var entries by mutableStateOf<List<LinuxFileExplorer.Entry>?>(null)
+    var error by mutableStateOf<Int?>(null)
+    var selected by mutableStateOf<Set<String>>(emptySet())
+    var history by mutableStateOf(listOf(initialPath))
+    var historyIndex by mutableStateOf(0)
+    var refreshKey by mutableStateOf(0)
+}
+
 private data class NameDialogState(val kind: NameDialogKind, val initial: String = "")
 
 /**
- * MT 风格的 Linux 文件管理器：浏览 rootfs、搜索当前目录、多选、复制/剪切/粘贴、
- * 重命名、删除、新建、属性与文本编辑。所有文件操作都经 root shell / PRoot，
- * 保留 Linux 的属主、符号链接与权限语义。
+ * MT 管理器风格的双窗口 Linux 文件管理器。
+ *
+ * 左右窗口各自维护路径、历史、选择与列表；复制/移动直接从当前窗口到另一窗口，
+ * 没有单独的粘贴步骤。文件操作优先走 root shell / PRoot，shell 不可用时回退到
+ * App 进程直接访问 rootfs。
  */
 @Composable
 internal fun LinuxFilesScreen(
@@ -146,23 +166,20 @@ internal fun LinuxFilesScreen(
     val shellSupervisor = remember { ShellProcessSupervisor() }
     DisposableEffect(Unit) { onDispose { shellSupervisor.beginClosing() } }
 
-    var currentPath by remember { mutableStateOf("/workspace") }
-    var entries by remember { mutableStateOf<List<LinuxFileExplorer.Entry>?>(null) }
-    var listError by remember { mutableStateOf<Int?>(null) }
-    var refreshKey by remember { mutableStateOf(0) }
-    var selected by remember { mutableStateOf<Set<String>>(emptySet()) }
-    var clipboard by remember { mutableStateOf<FileClipboard?>(null) }
+    val panes = remember { listOf(FilePaneState("/"), FilePaneState("/workspace")) }
+    var activePane by remember { mutableStateOf(1) }
     var showHidden by remember { mutableStateOf(false) }
     var sort by remember { mutableStateOf(FileSort.NAME) }
     var searchOpen by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+
+    var pathDialogPane by remember { mutableStateOf<Int?>(null) }
+    var pathInput by remember { mutableStateOf("") }
     var nameDialog by remember { mutableStateOf<NameDialogState?>(null) }
     var nameInput by remember { mutableStateOf("") }
     var deleteTargets by remember { mutableStateOf<List<String>?>(null) }
     var propertiesTarget by remember { mutableStateOf<String?>(null) }
     var properties by remember { mutableStateOf<LinuxFileExplorer.Metadata?>(null) }
-    var pathDialog by remember { mutableStateOf(false) }
-    var pathInput by remember { mutableStateOf(currentPath) }
 
     var viewerPath by remember { mutableStateOf<String?>(null) }
     var fileResult by remember { mutableStateOf<LinuxFileExplorer.ReadResult?>(null) }
@@ -176,21 +193,105 @@ internal fun LinuxFilesScreen(
         Toast.makeText(appContext, message, Toast.LENGTH_SHORT).show()
     } }
 
-    fun refresh() { refreshKey += 1 }
-
-    LaunchedEffect(currentPath, refreshKey, linuxDistribution, installed) {
-        if (!installed || rootfsDir == null) return@LaunchedEffect
-        entries = null
-        listError = null
+    suspend fun loadPane(pane: FilePaneState) {
+        if (!installed || rootfsDir == null) return
+        pane.entries = null
+        pane.error = null
         val result = withContext(Dispatchers.IO) {
-            LinuxFileExplorer.list(shellSupervisor, rootfsDir, currentPath)
+            LinuxFileExplorer.list(shellSupervisor, rootfsDir, pane.path)
         }
         when (result) {
-            is LinuxFileExplorer.ListResult.Success -> entries = result.entries
-            LinuxFileExplorer.ListResult.NotDirectory -> listError = R.string.linux_files_error_not_directory
+            is LinuxFileExplorer.ListResult.Success -> pane.entries = result.entries
+            LinuxFileExplorer.ListResult.NotDirectory -> pane.error = R.string.linux_files_error_not_directory
             LinuxFileExplorer.ListResult.Unreadable,
             LinuxFileExplorer.ListResult.CommandFailed,
-            LinuxFileExplorer.ListResult.NotInstalled -> listError = R.string.linux_files_error_unreadable
+            LinuxFileExplorer.ListResult.NotInstalled -> pane.error = R.string.linux_files_error_unreadable
+        }
+    }
+
+    LaunchedEffect(installed, panes[0].path, panes[0].refreshKey) { loadPane(panes[0]) }
+    LaunchedEffect(installed, panes[1].path, panes[1].refreshKey) { loadPane(panes[1]) }
+
+    fun activate(index: Int) {
+        if (activePane != index) panes[activePane].selected = emptySet()
+        activePane = index
+    }
+
+    fun navigate(index: Int, path: String, recordHistory: Boolean = true, activatePane: Boolean = true) {
+        val pane = panes[index]
+        val normalized = normalizeDirectory(path)
+        if (activatePane) activate(index)
+        if (normalized == pane.path) {
+            pane.refreshKey += 1
+            return
+        }
+        if (recordHistory) {
+            val history = pane.history.take(pane.historyIndex + 1) + normalized
+            pane.history = history
+            pane.historyIndex = history.lastIndex
+        }
+        pane.path = normalized
+        pane.selected = emptySet()
+    }
+
+    fun goBack(index: Int) {
+        val pane = panes[index]
+        if (pane.historyIndex <= 0) return
+        pane.historyIndex -= 1
+        pane.path = pane.history[pane.historyIndex]
+        pane.selected = emptySet()
+    }
+
+    fun goForward(index: Int) {
+        val pane = panes[index]
+        if (pane.historyIndex >= pane.history.lastIndex) return
+        pane.historyIndex += 1
+        pane.path = pane.history[pane.historyIndex]
+        pane.selected = emptySet()
+    }
+
+    fun visibleEntries(index: Int): List<LinuxFileExplorer.Entry> =
+        panes[index].entries.orEmpty()
+            .filter { showHidden || !it.name.startsWith(".") }
+            .filter {
+                index != activePane || searchQuery.isBlank() ||
+                    it.name.contains(searchQuery, ignoreCase = true)
+            }
+            .sortedWith(
+                compareBy<LinuxFileExplorer.Entry> { !it.isDir }
+                    .thenBy {
+                        when (sort) {
+                            FileSort.NAME -> it.name.lowercase(Locale.getDefault())
+                            FileSort.SIZE -> it.sizeBytes.toString().padStart(20, '0')
+                            FileSort.DATE -> it.mtimeEpochSeconds.toString().padStart(20, '0')
+                        }
+                    },
+            )
+
+    fun refreshPane(index: Int) { panes[index].refreshKey += 1 }
+
+    fun mutate(
+        operation: (ShellProcessSupervisor, java.io.File) -> LinuxFileExplorer.MutateResult,
+        onSuccess: () -> Unit,
+    ) {
+        val dir = rootfsDir ?: return
+        scope.launch {
+            val result = withContext(Dispatchers.IO) { operation(shellSupervisor, dir) }
+            when (result) {
+                LinuxFileExplorer.MutateResult.Success -> onSuccess()
+                LinuxFileExplorer.MutateResult.NotInstalled ->
+                    toast(context.getString(R.string.linux_files_not_installed))
+                LinuxFileExplorer.MutateResult.InvalidPath ->
+                    toast(context.getString(R.string.file_manager_error_invalid_name))
+                LinuxFileExplorer.MutateResult.NotFound ->
+                    toast(context.getString(R.string.file_manager_error_not_found))
+                LinuxFileExplorer.MutateResult.AlreadyExists ->
+                    toast(context.getString(R.string.file_manager_error_exists))
+                LinuxFileExplorer.MutateResult.Unreadable ->
+                    toast(context.getString(R.string.file_manager_error_permission))
+                LinuxFileExplorer.MutateResult.CommandFailed ->
+                    toast(context.getString(R.string.file_manager_error_operation))
+            }
         }
     }
 
@@ -222,63 +323,10 @@ internal fun LinuxFilesScreen(
         editorDirty = false
     }
 
-    fun navigate(path: String) {
-        val normalized = normalizeDirectory(path)
-        if (normalized != currentPath) {
-            currentPath = normalized
-            selected = emptySet()
-            searchQuery = ""
-            searchOpen = false
-        }
-        refresh()
-    }
-
-    fun mutate(
-        operation: (ShellProcessSupervisor, java.io.File) -> LinuxFileExplorer.MutateResult,
-        onSuccess: () -> Unit = {},
-    ) {
-        val dir = rootfsDir ?: return
-        scope.launch {
-            val result = withContext(Dispatchers.IO) { operation(shellSupervisor, dir) }
-            when (result) {
-                LinuxFileExplorer.MutateResult.Success -> {
-                    onSuccess()
-                    refresh()
-                }
-                LinuxFileExplorer.MutateResult.NotInstalled ->
-                    toast(context.getString(R.string.linux_files_not_installed))
-                LinuxFileExplorer.MutateResult.InvalidPath ->
-                    toast(context.getString(R.string.file_manager_error_invalid_name))
-                LinuxFileExplorer.MutateResult.NotFound ->
-                    toast(context.getString(R.string.file_manager_error_not_found))
-                LinuxFileExplorer.MutateResult.AlreadyExists ->
-                    toast(context.getString(R.string.file_manager_error_exists))
-                LinuxFileExplorer.MutateResult.Unreadable ->
-                    toast(context.getString(R.string.file_manager_error_permission))
-                LinuxFileExplorer.MutateResult.CommandFailed ->
-                    toast(context.getString(R.string.file_manager_error_operation))
-            }
-        }
-    }
-
-    val visibleEntries = remember(entries, showHidden, sort, searchQuery) {
-        entries.orEmpty()
-            .filter { showHidden || !it.name.startsWith(".") }
-            .filter { searchQuery.isBlank() || it.name.contains(searchQuery, ignoreCase = true) }
-            .sortedWith(
-                compareBy<LinuxFileExplorer.Entry> { !it.isDir }
-                    .thenBy {
-                        when (sort) {
-                            FileSort.NAME -> it.name.lowercase(Locale.getDefault())
-                            FileSort.SIZE -> it.sizeBytes.toString().padStart(20, '0')
-                            FileSort.DATE -> it.mtimeEpochSeconds.toString().padStart(20, '0')
-                        }
-                    },
-            )
-    }
-
-    val selectionMode = selected.isNotEmpty()
-    val parentPath = parentDirectory(currentPath)
+    val active = panes[activePane]
+    val other = panes[1 - activePane]
+    val selectionMode = active.selected.isNotEmpty()
+    val paneEntries = listOf(visibleEntries(0), visibleEntries(1))
 
     val viewerBack = rememberNavigationEventState(NavigationEventInfo.None)
     NavigationBackHandler(
@@ -287,77 +335,67 @@ internal fun LinuxFilesScreen(
         onBackCompleted = {
             when {
                 viewerPath != null -> closeViewer()
-                selectionMode -> selected = emptySet()
+                selectionMode -> active.selected = emptySet()
                 else -> searchOpen = false
             }
         },
     )
 
+    val activeEntries = paneEntries[activePane]
+    val folderCount = activeEntries.count { it.isDir }
+    val fileCount = activeEntries.size - folderCount
     val headerTitle = when {
         viewerPath != null -> viewerPath.orEmpty().substringAfterLast('/').ifBlank { "/" }
-        selectionMode -> stringResource(R.string.file_manager_selected, selected.size)
-        else -> currentPath.substringAfterLast('/').ifBlank { "/" }
+        selectionMode -> stringResource(R.string.file_manager_selected, active.selected.size)
+        else -> active.path
     }
-    val scrollBehavior = top.yukonga.miuix.kmp.basic.MiuixScrollBehavior()
-    top.yukonga.miuix.kmp.basic.Scaffold(
+    val headerSubtitle = if (viewerPath == null && !selectionMode) {
+        stringResource(R.string.file_manager_stats, folderCount, fileCount)
+    } else {
+        null
+    }
+
+    Scaffold(
         topBar = {
-            top.yukonga.miuix.kmp.basic.SmallTopAppBar(
+            FileTopBar(
                 title = headerTitle,
-                color = MiuixTheme.colorScheme.surface,
-                scrollBehavior = scrollBehavior,
-                navigationIcon = {
-                    MiuixBackButton(
-                        onClick = {
-                            when {
-                                viewerPath != null -> closeViewer()
-                                selectionMode -> selected = emptySet()
-                                searchOpen -> searchOpen = false
-                                currentPath != "/" -> navigate(parentPath)
-                                else -> onBack()
-                            }
-                        },
-                    )
-                },
-                actions = {
-                    if (selectionMode) {
-                        IconButton(onClick = { selected = emptySet() }, modifier = Modifier.size(40.dp)) {
-                            Icon(
-                                imageVector = Icons.Rounded.Close,
-                                contentDescription = stringResource(R.string.file_manager_clear_selection),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                    } else if (viewerPath == null) {
-                        IconButton(onClick = { searchOpen = !searchOpen }, modifier = Modifier.size(40.dp)) {
-                            Icon(
-                                imageVector = if (searchOpen) Icons.Rounded.Close else Icons.Rounded.Search,
-                                contentDescription = stringResource(R.string.file_manager_search),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
-                        AddMenu(
-                            onNewFolder = {
-                                nameDialog = NameDialogState(NameDialogKind.FOLDER)
-                                nameInput = ""
-                            },
-                            onNewFile = {
-                                nameDialog = NameDialogState(NameDialogKind.FILE)
-                                nameInput = ""
-                            },
-                        )
-                        MoreMenu(
-                            sort = sort,
-                            showHidden = showHidden,
-                            onSort = { sort = it },
-                            onToggleHidden = { showHidden = !showHidden },
-                            onSelectAll = {
-                                selected = visibleEntries.map { it.name }.toSet()
-                            },
-                            onRefresh = ::refresh,
-                        )
+                subtitle = headerSubtitle,
+                onBack = {
+                    when {
+                        viewerPath != null -> closeViewer()
+                        selectionMode -> active.selected = emptySet()
+                        searchOpen -> searchOpen = false
+                        else -> onBack()
                     }
                 },
-            )
+                onTitleClick = {
+                    if (viewerPath == null) {
+                        pathDialogPane = activePane
+                        pathInput = active.path
+                    }
+                },
+            ) {
+                if (viewerPath == null) {
+                    IconButton(onClick = { searchOpen = !searchOpen }, modifier = Modifier.size(40.dp)) {
+                        Icon(
+                            imageVector = if (searchOpen) Icons.Rounded.Close else Icons.Rounded.Search,
+                            contentDescription = stringResource(R.string.file_manager_search),
+                            modifier = Modifier.size(20.dp),
+                        )
+                    }
+                    StorageMenu(onPick = { path -> navigate(activePane, path) })
+                    HeaderMoreMenu(
+                        showHidden = showHidden,
+                        onToggleHidden = { showHidden = !showHidden },
+                        onSort = { sort = it },
+                        onSelectAll = { active.selected = paneEntries[activePane].map { it.name }.toSet() },
+                        onRefresh = {
+                            refreshPane(0)
+                            refreshPane(1)
+                        },
+                    )
+                }
+            }
         },
     ) { padding ->
         Column(
@@ -404,6 +442,7 @@ internal fun LinuxFilesScreen(
                                     editorDirty = false
                                     editing = false
                                     fileResult = LinuxFileExplorer.ReadResult.Text(editorText, truncated = false)
+                                    refreshPane(activePane)
                                     toast(context.getString(R.string.file_manager_saved))
                                 } else {
                                     toast(context.getString(R.string.file_manager_error_operation))
@@ -414,15 +453,6 @@ internal fun LinuxFilesScreen(
                     )
                 }
                 else -> {
-                    PathBar(
-                        path = currentPath,
-                        onUp = { if (currentPath != "/") navigate(parentPath) },
-                        onPathClick = {
-                            pathInput = currentPath
-                            pathDialog = true
-                        },
-                        onRefresh = ::refresh,
-                    )
                     if (searchOpen) {
                         TextField(
                             value = searchQuery,
@@ -431,119 +461,128 @@ internal fun LinuxFilesScreen(
                             singleLine = true,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = 12.dp, vertical = 6.dp),
+                                .padding(horizontal = 12.dp, vertical = 4.dp),
                         )
                     }
-                    StorageChips(
-                        currentPath = currentPath,
-                        onNavigate = ::navigate,
-                    )
-                    LazyColumn(
+                    Row(
                         modifier = Modifier
                             .weight(1f)
                             .fillMaxWidth(),
-                        contentPadding = PaddingValues(bottom = 12.dp),
                     ) {
-                        val currentEntries = visibleEntries
-                        if (currentPath != "/") {
-                            item(key = "..") {
-                                FileRow(
-                                    context = appContext,
-                                    name = "../",
-                                    isDir = true,
-                                    summary = stringResource(R.string.file_manager_parent),
-                                    selected = false,
-                                    selectionMode = false,
-                                    onClick = { navigate(parentPath) },
-                                    onLongClick = {},
-                                )
-                            }
-                        }
-                        when {
-                            listError != null -> item(key = "error") {
-                                StateMessage(
-                                    stringResource(listError ?: R.string.linux_files_error_unreadable),
-                                    Icons.Rounded.ErrorOutline,
-                                )
-                            }
-                            entries == null -> item(key = "loading") {
-                                Box(Modifier.fillMaxWidth().padding(vertical = 36.dp), contentAlignment = Alignment.Center) {
-                                    InfiniteProgressIndicator(size = 24.dp)
+                        PaneView(
+                            pane = panes[0],
+                            entries = paneEntries[0],
+                            active = activePane == 0,
+                            selectionMode = activePane == 0 && selectionMode,
+                            modifier = Modifier.weight(1f),
+                            onActivate = { activate(0) },
+                            onUp = { navigate(0, parentDirectory(panes[0].path)) },
+                            onOpen = { entry ->
+                                activate(0)
+                                if (entry.isDir) {
+                                    navigate(0, joinPath(panes[0].path, entry.name))
+                                } else {
+                                    viewerPath = joinPath(panes[0].path, entry.name)
                                 }
-                            }
-                            currentEntries.isEmpty() -> item(key = "empty") {
-                                StateMessage(stringResource(R.string.linux_files_empty), Icons.Rounded.FolderOpen)
-                            }
-                            else -> itemsIndexed(currentEntries, key = { _, entry -> entry.name }) { index, entry ->
-                                val isSelected = entry.name in selected
-                                FileRow(
-                                    context = appContext,
-                                    name = entry.name,
-                                    isDir = entry.isDir,
-                                    summary = fileSummary(appContext, entry),
-                                    selected = isSelected,
-                                    selectionMode = selectionMode,
-                                    onClick = {
-                                        if (selectionMode) {
-                                            selected = selected.toggle(entry.name)
-                                        } else if (entry.isDir) {
-                                            navigate(joinPath(currentPath, entry.name))
-                                        } else {
-                                            viewerPath = joinPath(currentPath, entry.name)
-                                        }
-                                    },
-                                    onLongClick = {
-                                        selected = selected + entry.name
-                                    },
-                                )
-                            }
-                        }
+                            },
+                            onSelect = { name ->
+                                activate(0)
+                                panes[0].selected = panes[0].selected.toggle(name)
+                            },
+                            onLongSelect = { name ->
+                                activate(0)
+                                panes[0].selected = panes[0].selected + name
+                            },
+                        )
+                        Box(
+                            modifier = Modifier
+                                .width(0.5.dp)
+                                .fillMaxHeight()
+                                .background(MiuixTheme.colorScheme.onBackground.copy(alpha = 0.10f)),
+                        )
+                        PaneView(
+                            pane = panes[1],
+                            entries = paneEntries[1],
+                            active = activePane == 1,
+                            selectionMode = activePane == 1 && selectionMode,
+                            modifier = Modifier.weight(1f),
+                            onActivate = { activate(1) },
+                            onUp = { navigate(1, parentDirectory(panes[1].path)) },
+                            onOpen = { entry ->
+                                activate(1)
+                                if (entry.isDir) {
+                                    navigate(1, joinPath(panes[1].path, entry.name))
+                                } else {
+                                    viewerPath = joinPath(panes[1].path, entry.name)
+                                }
+                            },
+                            onSelect = { name ->
+                                activate(1)
+                                panes[1].selected = panes[1].selected.toggle(name)
+                            },
+                            onLongSelect = { name ->
+                                activate(1)
+                                panes[1].selected = panes[1].selected + name
+                            },
+                        )
                     }
                     if (selectionMode) {
                         SelectionBar(
-                            canRename = selected.size == 1,
+                            canRename = active.selected.size == 1,
                             onCopy = {
-                                clipboard = FileClipboard(selected.map { joinPath(currentPath, it) }, ClipboardMode.COPY)
-                                selected = emptySet()
+                                mutate(
+                                    operation = { supervisor, dir ->
+                                        LinuxFileExplorer.copyInto(
+                                            supervisor,
+                                            dir,
+                                            active.selected.map { joinPath(active.path, it) },
+                                            other.path,
+                                        )
+                                    },
+                                    onSuccess = {
+                                        active.selected = emptySet()
+                                        refreshPane(activePane)
+                                        refreshPane(1 - activePane)
+                                    },
+                                )
                             },
                             onMove = {
-                                clipboard = FileClipboard(selected.map { joinPath(currentPath, it) }, ClipboardMode.MOVE)
-                                selected = emptySet()
+                                mutate(
+                                    operation = { supervisor, dir ->
+                                        LinuxFileExplorer.moveInto(
+                                            supervisor,
+                                            dir,
+                                            active.selected.map { joinPath(active.path, it) },
+                                            other.path,
+                                        )
+                                    },
+                                    onSuccess = {
+                                        active.selected = emptySet()
+                                        refreshPane(activePane)
+                                        refreshPane(1 - activePane)
+                                    },
+                                )
                             },
                             onRename = {
-                                val name = selected.firstOrNull() ?: return@SelectionBar
+                                val name = active.selected.firstOrNull() ?: return@SelectionBar
                                 nameDialog = NameDialogState(NameDialogKind.RENAME, name)
                                 nameInput = name
                             },
-                            onDelete = { deleteTargets = selected.toList() },
                             onProperties = {
-                                val name = selected.firstOrNull() ?: return@SelectionBar
-                                propertiesTarget = joinPath(currentPath, name)
+                                val name = active.selected.firstOrNull() ?: return@SelectionBar
+                                propertiesTarget = joinPath(active.path, name)
                             },
+                            onDelete = { deleteTargets = active.selected.toList() },
                         )
                     } else {
-                        val clip = clipboard
-                        if (clip != null) {
-                            ClipboardBar(
-                            count = clip.paths.size,
-                            move = clip.mode == ClipboardMode.MOVE,
-                            onPaste = {
-                                mutate(
-                                    operation = { supervisor, dir ->
-                                        if (clip.mode == ClipboardMode.COPY) {
-                                            LinuxFileExplorer.copyInto(supervisor, dir, clip.paths, currentPath)
-                                        } else {
-                                            LinuxFileExplorer.moveInto(supervisor, dir, clip.paths, currentPath)
-                                        }
-                                    },
-                                    onSuccess = { clipboard = null },
-                                )
-                            },
-                                onCancel = { clipboard = null },
-                            )
-                        } else {
-                            QuickBar(
-                            showHidden = showHidden,
+                        BottomToolbar(
+                            canBack = active.historyIndex > 0,
+                            canForward = active.historyIndex < active.history.lastIndex,
+                            canUp = active.path != "/",
+                            onBack = { goBack(activePane) },
+                            onForward = { goForward(activePane) },
+                            onUp = { navigate(activePane, parentDirectory(active.path)) },
+                            onSync = { navigate(1 - activePane, active.path, activatePane = false) },
                             onNewFolder = {
                                 nameDialog = NameDialogState(NameDialogKind.FOLDER)
                                 nameInput = ""
@@ -552,14 +591,11 @@ internal fun LinuxFilesScreen(
                                 nameDialog = NameDialogState(NameDialogKind.FILE)
                                 nameInput = ""
                             },
-                            onToggleHidden = { showHidden = !showHidden },
-                            onRefresh = ::refresh,
                         )
                     }
                 }
             }
         }
-    }
     }
 
     NameDialog(
@@ -572,23 +608,33 @@ internal fun LinuxFilesScreen(
             val value = nameInput.trim()
             when (dialog.kind) {
                 NameDialogKind.FOLDER -> mutate(
-                    operation = { supervisor, dir -> LinuxFileExplorer.createDirectory(supervisor, dir, currentPath, value) },
-                    onSuccess = { nameDialog = null },
+                    operation = { supervisor, dir ->
+                        LinuxFileExplorer.createDirectory(supervisor, dir, active.path, value)
+                    },
+                    onSuccess = {
+                        nameDialog = null
+                        refreshPane(activePane)
+                    },
                 )
                 NameDialogKind.FILE -> mutate(
-                    operation = { supervisor, dir -> LinuxFileExplorer.createFile(supervisor, dir, currentPath, value) },
-                    onSuccess = { nameDialog = null },
+                    operation = { supervisor, dir ->
+                        LinuxFileExplorer.createFile(supervisor, dir, active.path, value)
+                    },
+                    onSuccess = {
+                        nameDialog = null
+                        refreshPane(activePane)
+                    },
                 )
                 NameDialogKind.RENAME -> {
                     val oldName = dialog.initial
                     mutate(
                         operation = { supervisor, dir ->
-                            LinuxFileExplorer.rename(supervisor, dir, joinPath(currentPath, oldName), value)
+                            LinuxFileExplorer.rename(supervisor, dir, joinPath(active.path, oldName), value)
                         },
                         onSuccess = {
                             nameDialog = null
-                            selected = emptySet()
-                            if (viewerPath == joinPath(currentPath, oldName)) closeViewer()
+                            active.selected = emptySet()
+                            refreshPane(activePane)
                         },
                     )
                 }
@@ -609,11 +655,12 @@ internal fun LinuxFilesScreen(
                 onConfirm = {
                     mutate(
                         operation = { supervisor, dir ->
-                            LinuxFileExplorer.delete(supervisor, dir, targets.map { joinPath(currentPath, it) })
+                            LinuxFileExplorer.delete(supervisor, dir, targets.map { joinPath(active.path, it) })
                         },
                         onSuccess = {
                             deleteTargets = null
-                            selected = emptySet()
+                            active.selected = emptySet()
+                            refreshPane(activePane)
                         },
                     )
                 },
@@ -622,11 +669,11 @@ internal fun LinuxFilesScreen(
         }
     }
 
-    if (pathDialog) {
+    pathDialogPane?.let { index ->
         EtaWindowDialog(
             show = true,
             title = stringResource(R.string.file_manager_path),
-            onDismissRequest = { pathDialog = false },
+            onDismissRequest = { pathDialogPane = null },
         ) {
             Column {
                 TextField(
@@ -639,10 +686,10 @@ internal fun LinuxFilesScreen(
                 Spacer(Modifier.height(12.dp))
                 MiuixDialogActions(
                     confirmText = stringResource(R.string.file_manager_confirm),
-                    onCancel = { pathDialog = false },
+                    onCancel = { pathDialogPane = null },
                     onConfirm = {
-                        pathDialog = false
-                        if (pathInput.trim().startsWith("/")) navigate(pathInput)
+                        pathDialogPane = null
+                        if (pathInput.trim().startsWith("/")) navigate(index, pathInput)
                     },
                 )
             }
@@ -683,147 +730,453 @@ internal fun LinuxFilesScreen(
 }
 
 @Composable
-private fun PathBar(
-    path: String,
-    onUp: () -> Unit,
-    onPathClick: () -> Unit,
-    onRefresh: () -> Unit,
+private fun FileTopBar(
+    title: String,
+    subtitle: String?,
+    onBack: () -> Unit,
+    onTitleClick: () -> Unit,
+    actions: @Composable RowScope.() -> Unit,
 ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
+            .background(MiuixTheme.colorScheme.surface)
+            .statusBarsPadding()
+            .height(56.dp)
+            .padding(horizontal = 4.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IconButton(onClick = onUp, modifier = Modifier.size(36.dp)) {
-            Icon(Icons.Rounded.ArrowUpward, stringResource(R.string.file_manager_parent), Modifier.size(18.dp))
-        }
-        Text(
-            text = path,
-            style = MiuixTheme.textStyles.footnote1.copy(fontFamily = EtaMonospace),
-            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
+        MiuixBackButton(onClick = onBack)
+        Column(
             modifier = Modifier
                 .weight(1f)
                 .clip(RoundedCornerShape(8.dp))
-                .combinedClickable(onClick = onPathClick, onLongClick = onPathClick)
-                .padding(horizontal = 6.dp, vertical = 6.dp),
-        )
-        IconButton(onClick = onRefresh, modifier = Modifier.size(36.dp)) {
-            Icon(Icons.Rounded.Refresh, stringResource(R.string.file_manager_refresh), Modifier.size(18.dp))
+                .clickable(onClick = onTitleClick)
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+        ) {
+            Text(
+                text = title,
+                style = MiuixTheme.textStyles.footnote1.copy(fontFamily = EtaMonospace, fontSize = 14.sp),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            if (subtitle != null) {
+                Text(
+                    text = subtitle,
+                    style = MiuixTheme.textStyles.footnote2.copy(fontSize = 10.sp),
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    maxLines = 1,
+                )
+            }
         }
+        actions()
     }
 }
 
 @Composable
-private fun StorageChips(currentPath: String, onNavigate: (String) -> Unit) {
-    val places = listOf(
-        "/" to stringResource(R.string.file_manager_root),
-        "/workspace" to stringResource(R.string.file_manager_workspace),
-        "/root" to stringResource(R.string.file_manager_home),
-        "/tmp" to stringResource(R.string.file_manager_tmp),
-        "/workspace/mounts" to stringResource(R.string.file_manager_mounts),
-    )
-    LazyRow(
-        contentPadding = PaddingValues(horizontal = 12.dp),
-        horizontalArrangement = Arrangement.spacedBy(6.dp),
-    ) {
-        items(places, key = { it.first }) { (path, label) ->
-            val selected = currentPath == path
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(
-                        if (selected) MiuixTheme.colorScheme.primary.copy(alpha = 0.14f)
-                        else MiuixTheme.colorScheme.surfaceContainer,
+private fun HeaderMoreMenu(
+    showHidden: Boolean,
+    onToggleHidden: () -> Unit,
+    onSort: (FileSort) -> Unit,
+    onSelectAll: () -> Unit,
+    onRefresh: () -> Unit,
+) {
+    var show by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { show = true }, modifier = Modifier.size(40.dp)) {
+            Icon(Icons.Rounded.MoreVert, stringResource(R.string.file_manager_more), Modifier.size(20.dp))
+        }
+        WindowListPopup(
+            show = show,
+            alignment = PopupPositionProvider.Align.End,
+            onDismissRequest = { show = false },
+        ) {
+            val items = listOf(
+                stringResource(R.string.file_manager_sort_name) to Icons.Rounded.Sort,
+                stringResource(R.string.file_manager_sort_size) to Icons.Rounded.Sort,
+                stringResource(R.string.file_manager_sort_date) to Icons.Rounded.Sort,
+                (if (showHidden) R.string.file_manager_hide_hidden else R.string.file_manager_show_hidden).let { stringResource(it) } to
+                    (if (showHidden) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility),
+                stringResource(R.string.file_manager_select_all) to Icons.Rounded.SelectAll,
+                stringResource(R.string.file_manager_refresh) to Icons.Rounded.Refresh,
+            )
+            ListPopupColumn {
+                items.forEachIndexed { index, (text, icon) ->
+                    DropdownImpl(
+                        item = DropdownItem(
+                            text = text,
+                            icon = { iconModifier -> Icon(icon, null, iconModifier.size(20.dp)) },
+                        ),
+                        optionSize = items.size,
+                        isSelected = false,
+                        index = index,
+                        onSelectedIndexChange = {
+                            show = false
+                            when (index) {
+                                0 -> onSort(FileSort.NAME)
+                                1 -> onSort(FileSort.SIZE)
+                                2 -> onSort(FileSort.DATE)
+                                3 -> onToggleHidden()
+                                4 -> onSelectAll()
+                                5 -> onRefresh()
+                            }
+                        },
                     )
-                    .combinedClickable(onClick = { onNavigate(path) }, onLongClick = { onNavigate(path) })
-                    .padding(horizontal = 12.dp, vertical = 6.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(5.dp),
-            ) {
-                if (selected) {
-                    Icon(Icons.Rounded.Check, null, Modifier.size(13.dp), tint = MiuixTheme.colorScheme.primary)
                 }
-                Text(
-                    text = label,
-                    style = MiuixTheme.textStyles.footnote2,
-                    color = if (selected) MiuixTheme.colorScheme.primary else MiuixTheme.colorScheme.onSurface,
-                )
             }
         }
     }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
 @Composable
-private fun FileRow(
+private fun PaneView(
+    pane: FilePaneState,
+    entries: List<LinuxFileExplorer.Entry>,
+    active: Boolean,
+    selectionMode: Boolean,
+    modifier: Modifier = Modifier,
+    onActivate: () -> Unit,
+    onUp: () -> Unit,
+    onOpen: (LinuxFileExplorer.Entry) -> Unit,
+    onSelect: (String) -> Unit,
+    onLongSelect: (String) -> Unit,
+) {
+    val context = LocalContext.current
+    val background = if (active) MiuixTheme.colorScheme.surface else MiuixTheme.colorScheme.surfaceContainer
+    Column(
+        modifier = modifier
+            .fillMaxHeight()
+            .zIndex(if (active) 1f else 0f)
+            .shadow(if (active) 8.dp else 0.dp)
+            .background(background)
+            .combinedClickable(onClick = onActivate, onLongClick = onActivate),
+    ) {
+        LazyColumn(Modifier.weight(1f).fillMaxWidth()) {
+            if (pane.path != "/") {
+                item(key = "..") {
+                    ParentRow(onClick = onUp)
+                }
+            }
+            when {
+                pane.error != null -> item(key = "error") {
+                    PaneMessage(
+                        text = stringResource(pane.error ?: R.string.linux_files_error_unreadable),
+                        icon = Icons.Rounded.ErrorOutline,
+                    )
+                }
+                pane.entries == null -> item(key = "loading") {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(vertical = 28.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        InfiniteProgressIndicator(size = 20.dp)
+                    }
+                }
+                entries.isEmpty() -> item(key = "empty") {
+                    PaneMessage(
+                        text = stringResource(R.string.linux_files_empty),
+                        icon = Icons.Rounded.FolderOpen,
+                    )
+                }
+                else -> itemsIndexed(entries, key = { _, entry -> entry.name }) { _, entry ->
+                    CompactFileRow(
+                        context = context,
+                        entry = entry,
+                        selected = entry.name in pane.selected,
+                        selectionMode = selectionMode,
+                        active = active,
+                        onClick = {
+                            if (selectionMode) onSelect(entry.name) else onOpen(entry)
+                        },
+                        onLongClick = { onLongSelect(entry.name) },
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun ParentRow(onClick: () -> Unit) {
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .combinedClickable(onClick = onClick, onLongClick = onClick)
+                .padding(horizontal = 7.dp, vertical = 7.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                imageVector = Icons.Rounded.FolderOpen,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = MiuixTheme.colorScheme.onSurface,
+            )
+            Spacer(Modifier.width(7.dp))
+            Text(
+                text = "..",
+                style = MiuixTheme.textStyles.footnote1.copy(fontSize = 14.sp),
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            )
+        }
+        HorizontalDivider(
+            thickness = 0.33.dp,
+            color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.06f),
+            modifier = Modifier.padding(start = 38.dp),
+        )
+    }
+}
+
+@Composable
+private fun CompactFileRow(
     context: Context,
-    name: String,
-    isDir: Boolean,
-    summary: String?,
+    entry: LinuxFileExplorer.Entry,
     selected: Boolean,
     selectionMode: Boolean,
+    active: Boolean,
     onClick: () -> Unit,
     onLongClick: () -> Unit,
-    onMore: (() -> Unit)? = null,
 ) {
-    val background = if (selected) MiuixTheme.colorScheme.primary.copy(alpha = 0.10f) else Color.Transparent
+    val background = if (selected) MiuixTheme.colorScheme.primary.copy(alpha = 0.12f) else Color.Transparent
     Column(Modifier.fillMaxWidth()) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(background)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
-            .padding(horizontal = 12.dp, vertical = 7.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        if (selectionMode) {
-            Checkbox(
-                state = if (selected) ToggleableState.On else ToggleableState.Off,
-                onClick = { onClick() },
-                modifier = Modifier.size(22.dp),
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(background)
+                .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+                .padding(horizontal = 7.dp, vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (selectionMode) {
+                Checkbox(
+                    state = if (selected) ToggleableState.On else ToggleableState.Off,
+                    onClick = onClick,
+                    modifier = Modifier.size(19.dp),
+                )
+                Spacer(Modifier.width(3.dp))
+            }
+            Icon(
+                imageVector = fileIcon(entry.name, entry.isDir),
+                contentDescription = null,
+                modifier = Modifier.size(26.dp),
+                tint = fileTint(entry.name, entry.isDir),
             )
-            Spacer(Modifier.width(4.dp))
-        }
-        Icon(
-            imageVector = fileIcon(name, isDir),
-            contentDescription = null,
-            modifier = Modifier.size(26.dp),
-            tint = fileTint(name, isDir),
-        )
-        Spacer(Modifier.width(12.dp))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = name,
-                style = MiuixTheme.textStyles.body2,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            if (!summary.isNullOrBlank()) {
+            Spacer(Modifier.width(7.dp))
+            Column(Modifier.weight(1f)) {
                 Text(
-                    text = summary,
-                    style = MiuixTheme.textStyles.footnote2,
+                    text = entry.name,
+                    style = MiuixTheme.textStyles.footnote1.copy(fontSize = 14.sp),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = compactSummary(context, entry),
+                    style = MiuixTheme.textStyles.footnote2.copy(fontSize = 10.sp),
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-        }
-        if (onMore != null) {
-            IconButton(onClick = onMore, modifier = Modifier.size(30.dp)) {
-                Icon(Icons.Rounded.Info, stringResource(R.string.file_manager_properties), Modifier.size(16.dp))
+            if (entry.isDir) {
+                Icon(
+                    imageVector = Icons.Rounded.ChevronRight,
+                    contentDescription = null,
+                    modifier = Modifier.size(14.dp),
+                    tint = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
             }
-        } else if (isDir) {
-            Icon(Icons.Rounded.ChevronRight, null, Modifier.size(17.dp), tint = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+        }
+        HorizontalDivider(
+            thickness = 0.33.dp,
+            color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.06f),
+            modifier = Modifier.padding(start = 32.dp),
+        )
+    }
+}
+
+@Composable
+private fun PaneMessage(text: String, icon: ImageVector) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 28.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(icon, null, Modifier.size(24.dp), tint = MiuixTheme.colorScheme.onSurfaceVariantSummary)
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = text,
+            style = MiuixTheme.textStyles.footnote2,
+            color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
+@Composable
+private fun BottomToolbar(
+    canBack: Boolean,
+    canForward: Boolean,
+    canUp: Boolean,
+    onBack: () -> Unit,
+    onForward: () -> Unit,
+    onUp: () -> Unit,
+    onSync: () -> Unit,
+    onNewFolder: () -> Unit,
+    onNewFile: () -> Unit,
+) {
+    BottomActionBar {
+        ToolItem(Icons.AutoMirrored.Rounded.ArrowBack, stringResource(R.string.file_manager_back), onBack, enabled = canBack, modifier = Modifier.weight(1f))
+        ToolItem(Icons.AutoMirrored.Rounded.ArrowForward, stringResource(R.string.file_manager_forward), onForward, enabled = canForward, modifier = Modifier.weight(1f))
+        ToolbarAddMenu(onNewFolder = onNewFolder, onNewFile = onNewFile, modifier = Modifier.weight(1f))
+        ToolItem(Icons.Rounded.Sync, stringResource(R.string.file_manager_sync), onSync, modifier = Modifier.weight(1f))
+        ToolItem(Icons.Rounded.ArrowUpward, stringResource(R.string.file_manager_up), onUp, enabled = canUp, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun ToolbarAddMenu(
+    onNewFolder: () -> Unit,
+    onNewFile: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var show by remember { mutableStateOf(false) }
+    Box(modifier = modifier) {
+        ToolItem(Icons.Rounded.Add, stringResource(R.string.file_manager_new), onClick = { show = true }, modifier = Modifier.fillMaxWidth())
+        WindowListPopup(
+            show = show,
+            alignment = PopupPositionProvider.Align.End,
+            onDismissRequest = { show = false },
+        ) {
+            val items = listOf(
+                stringResource(R.string.file_manager_new_folder) to Icons.Rounded.CreateNewFolder,
+                stringResource(R.string.file_manager_new_file) to Icons.Rounded.NoteAdd,
+            )
+            ListPopupColumn {
+                items.forEachIndexed { index, (text, icon) ->
+                    DropdownImpl(
+                        item = DropdownItem(
+                            text = text,
+                            icon = { iconModifier -> Icon(icon, null, iconModifier.size(20.dp)) },
+                        ),
+                        optionSize = items.size,
+                        isSelected = false,
+                        index = index,
+                        onSelectedIndexChange = {
+                            show = false
+                            when (index) {
+                                0 -> onNewFolder()
+                                1 -> onNewFile()
+                            }
+                        },
+                    )
+                }
+            }
         }
     }
-    HorizontalDivider(
-        thickness = 0.33.dp,
-        color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.08f),
-        modifier = Modifier.padding(start = 50.dp),
-    )
+}
+
+@Composable
+private fun SelectionBar(
+    canRename: Boolean,
+    onCopy: () -> Unit,
+    onMove: () -> Unit,
+    onRename: () -> Unit,
+    onProperties: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    BottomActionBar {
+        ToolItem(Icons.Rounded.ContentCopy, stringResource(R.string.file_manager_copy), onCopy, modifier = Modifier.weight(1f))
+        ToolItem(Icons.Rounded.DriveFileMove, stringResource(R.string.file_manager_move), onMove, modifier = Modifier.weight(1f))
+        ToolItem(Icons.Rounded.Edit, stringResource(R.string.file_manager_rename), onRename, enabled = canRename, modifier = Modifier.weight(1f))
+        ToolItem(Icons.Rounded.Info, stringResource(R.string.file_manager_properties), onProperties, modifier = Modifier.weight(1f))
+        ToolItem(Icons.Rounded.Delete, stringResource(R.string.file_manager_delete), onDelete, danger = true, modifier = Modifier.weight(1f))
+    }
+}
+
+@Composable
+private fun ToolItem(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+    danger: Boolean = false,
+    modifier: Modifier = Modifier,
+) {
+    val color = when {
+        !enabled -> MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.35f)
+        danger -> MiuixTheme.colorScheme.error
+        else -> MiuixTheme.colorScheme.onSurface
+    }
+    Column(
+        modifier = modifier
+            .clip(RoundedCornerShape(9.dp))
+            .combinedClickable(enabled = enabled, onClick = onClick, onLongClick = onClick)
+            .padding(vertical = 4.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Icon(icon, label, Modifier.size(28.dp), tint = color)
+    }
+}
+
+@Composable
+private fun BottomActionBar(content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MiuixTheme.colorScheme.surface)
+            .navigationBarsPadding(),
+    ) {
+        HorizontalDivider(
+            thickness = 0.33.dp,
+            color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.08f),
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 6.dp, vertical = 5.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            content = content,
+        )
+    }
+}
+
+@Composable
+private fun StorageMenu(onPick: (String) -> Unit) {
+    var show by remember { mutableStateOf(false) }
+    Box {
+        IconButton(onClick = { show = true }, modifier = Modifier.size(40.dp)) {
+            Icon(Icons.Rounded.FolderOpen, stringResource(R.string.file_manager_storage), Modifier.size(20.dp))
+        }
+        WindowListPopup(
+            show = show,
+            alignment = PopupPositionProvider.Align.End,
+            onDismissRequest = { show = false },
+        ) {
+            val places = listOf(
+                "/" to stringResource(R.string.file_manager_root),
+                "/workspace" to stringResource(R.string.file_manager_workspace),
+                "/root" to stringResource(R.string.file_manager_home),
+                "/tmp" to stringResource(R.string.file_manager_tmp),
+                "/workspace/mounts" to stringResource(R.string.file_manager_mounts),
+            )
+            ListPopupColumn {
+                places.forEachIndexed { index, (path, label) ->
+                    DropdownImpl(
+                        item = DropdownItem(
+                            text = label,
+                            icon = { iconModifier -> Icon(Icons.Rounded.Folder, null, iconModifier.size(20.dp)) },
+                        ),
+                        optionSize = places.size,
+                        isSelected = false,
+                        index = index,
+                        onSelectedIndexChange = {
+                            show = false
+                            onPick(path)
+                        },
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -930,225 +1283,6 @@ private fun ViewerPane(
 }
 
 @Composable
-private fun QuickBar(
-    showHidden: Boolean,
-    onNewFolder: () -> Unit,
-    onNewFile: () -> Unit,
-    onToggleHidden: () -> Unit,
-    onRefresh: () -> Unit,
-) {
-    BottomActionBar {
-        ActionItem(Icons.Rounded.CreateNewFolder, stringResource(R.string.file_manager_new_folder), onNewFolder, modifier = Modifier.weight(1f))
-        ActionItem(Icons.Rounded.NoteAdd, stringResource(R.string.file_manager_new_file), onNewFile, modifier = Modifier.weight(1f))
-        ActionItem(
-            if (showHidden) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility,
-            if (showHidden) stringResource(R.string.file_manager_hide_hidden) else stringResource(R.string.file_manager_show_hidden),
-            onToggleHidden,
-            modifier = Modifier.weight(1f),
-        )
-        ActionItem(Icons.Rounded.Refresh, stringResource(R.string.file_manager_refresh), onRefresh, modifier = Modifier.weight(1f))
-    }
-}
-
-@Composable
-private fun SelectionBar(
-    canRename: Boolean,
-    onCopy: () -> Unit,
-    onMove: () -> Unit,
-    onRename: () -> Unit,
-    onDelete: () -> Unit,
-    onProperties: () -> Unit,
-) {
-    BottomActionBar {
-        ActionItem(Icons.Rounded.ContentCopy, stringResource(R.string.file_manager_copy), onCopy, modifier = Modifier.weight(1f))
-        ActionItem(Icons.Rounded.DriveFileMove, stringResource(R.string.file_manager_move), onMove, modifier = Modifier.weight(1f))
-        ActionItem(Icons.Rounded.Edit, stringResource(R.string.file_manager_rename), onRename, enabled = canRename, modifier = Modifier.weight(1f))
-        ActionItem(Icons.Rounded.Info, stringResource(R.string.file_manager_properties), onProperties, modifier = Modifier.weight(1f))
-        ActionItem(Icons.Rounded.Delete, stringResource(R.string.file_manager_delete), onDelete, danger = true, modifier = Modifier.weight(1f))
-    }
-}
-
-@Composable
-private fun ClipboardBar(count: Int, move: Boolean, onPaste: () -> Unit, onCancel: () -> Unit) {
-    BottomActionBar {
-        Text(
-            text = stringResource(
-                if (move) R.string.file_manager_clipboard_move else R.string.file_manager_clipboard_copy,
-                count,
-            ),
-            style = MiuixTheme.textStyles.footnote1,
-            modifier = Modifier.weight(1f),
-        )
-        EtaTextButton(text = stringResource(R.string.action_cancel), onClick = onCancel)
-        EtaTextButton(text = stringResource(R.string.file_manager_paste), onClick = onPaste)
-    }
-}
-
-@Composable
-private fun BottomActionBar(content: @Composable androidx.compose.foundation.layout.RowScope.() -> Unit) {
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MiuixTheme.colorScheme.surface)
-            .navigationBarsPadding(),
-    ) {
-        HorizontalDivider(
-            thickness = 0.33.dp,
-            color = MiuixTheme.colorScheme.onBackground.copy(alpha = 0.08f),
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 8.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            content = content,
-        )
-    }
-}
-
-@Composable
-private fun ActionItem(
-    icon: ImageVector,
-    label: String,
-    onClick: () -> Unit,
-    enabled: Boolean = true,
-    danger: Boolean = false,
-    modifier: Modifier = Modifier,
-) {
-    Column(
-        modifier = modifier
-            .clip(RoundedCornerShape(10.dp))
-            .combinedClickable(enabled = enabled, onClick = onClick, onLongClick = onClick)
-            .padding(horizontal = 10.dp, vertical = 4.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            modifier = Modifier.size(20.dp),
-            tint = when {
-                !enabled -> MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.4f)
-                danger -> MiuixTheme.colorScheme.error
-                else -> MiuixTheme.colorScheme.onSurface
-            },
-        )
-        Text(
-            text = label,
-            style = MiuixTheme.textStyles.footnote2,
-            color = when {
-                !enabled -> MiuixTheme.colorScheme.onSurfaceVariantSummary.copy(alpha = 0.4f)
-                danger -> MiuixTheme.colorScheme.error
-                else -> MiuixTheme.colorScheme.onSurface
-            },
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
-private fun AddMenu(onNewFolder: () -> Unit, onNewFile: () -> Unit) {
-    var show by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { show = true }, modifier = Modifier.size(40.dp)) {
-            Icon(Icons.Rounded.Add, stringResource(R.string.file_manager_new), Modifier.size(21.dp))
-        }
-        WindowListPopup(
-            show = show,
-            alignment = PopupPositionProvider.Align.End,
-            onDismissRequest = { show = false },
-        ) {
-            val items = listOf(
-                stringResource(R.string.file_manager_new_folder) to Icons.Rounded.CreateNewFolder,
-                stringResource(R.string.file_manager_new_file) to Icons.Rounded.NoteAdd,
-            )
-            ListPopupColumn {
-                items.forEachIndexed { index, (text, icon) ->
-                    DropdownImpl(
-                        item = DropdownItem(
-                            text = text,
-                            icon = { modifier -> Icon(icon, null, modifier.size(20.dp)) },
-                        ),
-                        optionSize = items.size,
-                        isSelected = false,
-                        index = index,
-                        onSelectedIndexChange = {
-                            show = false
-                            when (index) {
-                                0 -> onNewFolder()
-                                1 -> onNewFile()
-                            }
-                        },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun MoreMenu(
-    sort: FileSort,
-    showHidden: Boolean,
-    onSort: (FileSort) -> Unit,
-    onToggleHidden: () -> Unit,
-    onSelectAll: () -> Unit,
-    onRefresh: () -> Unit,
-) {
-    var show by remember { mutableStateOf(false) }
-    Box {
-        IconButton(onClick = { show = true }, modifier = Modifier.size(40.dp)) {
-            Icon(Icons.Rounded.MoreVert, stringResource(R.string.file_manager_more), Modifier.size(20.dp))
-        }
-        WindowListPopup(
-            show = show,
-            alignment = PopupPositionProvider.Align.End,
-            onDismissRequest = { show = false },
-        ) {
-            val items = listOf(
-                stringResource(R.string.file_manager_sort_name) to Icons.Rounded.Sort,
-                stringResource(R.string.file_manager_sort_size) to Icons.Rounded.Sort,
-                stringResource(R.string.file_manager_sort_date) to Icons.Rounded.Sort,
-                (if (showHidden) R.string.file_manager_hide_hidden else R.string.file_manager_show_hidden).let { stringResource(it) } to
-                    (if (showHidden) Icons.Rounded.VisibilityOff else Icons.Rounded.Visibility),
-                stringResource(R.string.file_manager_select_all) to Icons.Rounded.SelectAll,
-                stringResource(R.string.file_manager_refresh) to Icons.Rounded.Refresh,
-            )
-            ListPopupColumn {
-                items.forEachIndexed { index, (text, icon) ->
-                    val selected = when (index) {
-                        0 -> sort == FileSort.NAME
-                        1 -> sort == FileSort.SIZE
-                        2 -> sort == FileSort.DATE
-                        else -> false
-                    }
-                    DropdownImpl(
-                        item = DropdownItem(
-                            text = text,
-                            icon = { modifier -> Icon(icon, null, modifier.size(20.dp)) },
-                        ),
-                        optionSize = items.size,
-                        isSelected = selected,
-                        index = index,
-                        onSelectedIndexChange = {
-                            show = false
-                            when (index) {
-                                0 -> onSort(FileSort.NAME)
-                                1 -> onSort(FileSort.SIZE)
-                                2 -> onSort(FileSort.DATE)
-                                3 -> onToggleHidden()
-                                4 -> onSelectAll()
-                                5 -> onRefresh()
-                            }
-                        },
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
 private fun NameDialog(
     state: NameDialogState?,
     input: String,
@@ -1246,15 +1380,14 @@ private fun parentDirectory(path: String): String {
 private fun joinPath(parent: String, name: String): String =
     if (parent == "/") "/$name" else "${parent.trimEnd('/')}/$name"
 
-private fun fileSummary(context: Context, entry: LinuxFileExplorer.Entry): String {
-    val size = if (entry.isDir) context.getString(R.string.file_manager_type_folder)
-    else Formatter.formatShortFileSize(context, entry.sizeBytes)
-    return "$size · ${formatTime(entry.mtimeEpochSeconds)}"
+private fun compactSummary(context: Context, entry: LinuxFileExplorer.Entry): String {
+    val time = formatTime(entry.mtimeEpochSeconds)
+    return if (entry.isDir) time else "$time  ${Formatter.formatShortFileSize(context, entry.sizeBytes)}"
 }
 
 private fun formatTime(epochSeconds: Long): String {
     if (epochSeconds <= 0) return "-"
-    val formatter = SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault())
+    val formatter = SimpleDateFormat("yy-MM-dd HH:mm", Locale.getDefault())
     return formatter.format(Date(epochSeconds * 1000))
 }
 
@@ -1276,7 +1409,7 @@ private fun fileIcon(name: String, isDir: Boolean): ImageVector {
 
 @Composable
 private fun fileTint(name: String, isDir: Boolean): Color {
-    if (isDir) return EtaPreferenceColors.Blue
+    if (isDir) return MiuixTheme.colorScheme.onSurface
     val ext = name.substringAfterLast('.', "").lowercase(Locale.getDefault())
     return when (ext) {
         "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico" -> Color(0xFF16A34A)

@@ -72,9 +72,9 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
   - 视觉向 Eta 靠拢：暖灰画布、白色卡片、16–24px 圆角、hairline 描边和克制的阴影；
     工作区/模式改为 chip，选中会话带 3px 强调条，代码块与行内代码有独立表面；
   - 主题切换时画布、卡片、边框做 0.3s 颜色过渡，`:focus-visible` 提供键盘焦点环；
-  - 动画只用 `transform` / `opacity`：抽屉 0.34s 缓出，新会话/面板入口分段入场，
-    设置 sheet 上滑、菜单缩放淡入、仅最后一条消息 6px 上浮；
-    `prefers-reduced-motion: reduce` 下全部关闭；
+  - 动画只用 `transform` / `opacity`：抽屉 0.42s 缓出并带轻微缩放/淡入，新会话/面板入口
+    分段入场，设置 sheet 44px 上滑 + 0.985 缩放，菜单 6px 下移/缩放淡入，仅最后一条消息
+    10px 上浮；`prefers-reduced-motion: reduce` 下全部关闭；
   - 性能：滚动容器 `overscroll-behavior: contain`；抽屉用 `translate3d` + `contain` 提升为
     合成层；消息项用 `contain: layout style` 隔离重排；不使用 `transition: all`，
     不对大子树做入场动画，也不在滚动区域叠加大面积 `backdrop-filter`；
@@ -137,9 +137,11 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
   首屏提供 OpenCode / DeepSeek Harness / Kimi Code / 文件管理器四个快速入口，下方保留
   自定义 loopback URL 输入。快捷入口复用 `ExtensionAgentLauncher`，并通过 `openUrl`
   回调在当前 WebView 内新开标签，不再叠一层 Activity。
-- `LinuxFileManagerActivity` + `LinuxFilesScreen`：MT 管理器风格的 Linux rootfs 文件管理器。
+- `LinuxFileManagerActivity` + `LinuxFilesScreen`：MT 管理器风格的双窗口 Linux rootfs 文件管理器。
+  - 左右窗口分别维护路径/历史/选择，当前窗口浮起；顶部单条路径栏显示当前窗口路径与文件夹/文件统计；
+  - 复制/移动直接从当前窗口到另一窗口，没有粘贴步骤；底部为后退/前进/新建/同步/上级五个图标动作；
   - 根目录/工作区/主目录/临时/共享快捷入口，支持路径输入、搜索当前目录、排序和隐藏文件；
-  - 长按或复选框多选，底部提供复制/移动/重命名/属性/删除；剪贴板可跨目录粘贴；
+  - 长按或复选框多选，选中后底部切换为复制/移动/重命名/属性/删除；
   - 文本文件可查看和编辑（`writeText` 原子写入），二进制文件提示不可预览；
   - 变更操作优先走 root shell / PRoot，保留 Linux 属主、权限、符号链接语义；
     shell 不可用时，列表/读取/属性/写入会回退到 App 进程直接访问 rootfs。

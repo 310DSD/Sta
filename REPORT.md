@@ -87,7 +87,7 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 - OpenCode 原生 titlebar 在 Android WebView 中会重复读取 safe-area inset，导致顶部约 60px 空白；已把移动端 titlebar 固定为 36px，连接页/首页/会话页统一从顶部开始。
 - 扩展 Agent 已运行时点击右上角启动/打开走快速路径：只查一次状态和日志 URL，直接打开 WebView，不再重复执行启动检查、日志轮询和配对。
 - WebView 新建页面弹窗改为 Miuix 样式，提供 OpenCode / DeepSeek Harness / Kimi Code / 文件管理器快速入口，并保留自定义 loopback 地址输入。
-- 新增 MT 管理器风格的 Linux 文件管理器：快捷入口、路径跳转、搜索、排序、隐藏文件、多选、复制/移动/重命名/属性/删除、跨目录剪贴板、文本查看与编辑；操作优先走 root shell / PRoot，shell 不可用时回退到 App 直接访问 rootfs。
+- 新增 MT 管理器风格的双窗口 Linux 文件管理器：左右窗口各自维护路径/历史/选择，当前窗口浮起；复制/移动直接从当前窗口到另一窗口（无粘贴步骤），底部后退/前进/新建/同步/上级五个动作，支持路径跳转、搜索、排序、隐藏文件、多选、重命名/属性/删除、文本查看与编辑；操作优先走 root shell / PRoot，shell 不可用时回退到 App 直接访问 rootfs。
 - 修复 DSH 顶部空白：不再在 CSS 中重复叠加 `env(safe-area-inset-top)`，且 `#root` 只在 `#eta-mobile-bar` 实际插入后才让出高度。
 - 更新中英文 README 与三语字符串。
 
