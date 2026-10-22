@@ -70,10 +70,14 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
   - 设置弹窗改为全屏 sheet：导航变成可横向滚动的 chip，内容区 100% 宽度，设置行改为
     “标题/说明 + 控件”的单行卡片，关闭按钮固定在标题行右侧；
   - 视觉向 Eta 靠拢：暖灰画布、白色卡片、16–24px 圆角、hairline 描边和克制的阴影；
-  - 动画只用 `transform` / `opacity`：抽屉 0.34s 缓出、设置 sheet 上滑、菜单缩放淡入、
-    消息 6px 上浮；`prefers-reduced-motion: reduce` 下全部关闭；
-  - 性能：滚动容器 `overscroll-behavior: contain`，抽屉用 `translate3d` 提升为合成层，
-    不使用 `transition: all`，也不在滚动区域叠加大面积 `backdrop-filter`；
+    工作区/模式改为 chip，选中会话带 3px 强调条，代码块与行内代码有独立表面；
+  - 主题切换时画布、卡片、边框做 0.3s 颜色过渡，`:focus-visible` 提供键盘焦点环；
+  - 动画只用 `transform` / `opacity`：抽屉 0.34s 缓出，新会话/面板入口分段入场，
+    设置 sheet 上滑、菜单缩放淡入、仅最后一条消息 6px 上浮；
+    `prefers-reduced-motion: reduce` 下全部关闭；
+  - 性能：滚动容器 `overscroll-behavior: contain`；抽屉用 `translate3d` + `contain` 提升为
+    合成层；消息项用 `contain: layout style` 隔离重排；不使用 `transition: all`，
+    不对大子树做入场动画，也不在滚动区域叠加大面积 `backdrop-filter`；
   - 深浅色都只引用 DSH 自己的 `--dsw-*` 变量再派生，不写死颜色。
   样式块以 `/* eta-mobile-start */ … /* eta-mobile-end */` 追加到 `dsh-web-frontend` 资源；
   安装脚本先删除 `/* eta-mobile` 到文件末尾的旧块再写入，可重复执行。WebView 侧在检测到
