@@ -83,6 +83,12 @@
             android:windowSoftInputMode="adjustResize" />
 
         <activity
+            android:name=".ui.screens.terminal.LinuxFileManagerActivity"
+            android:exported="false"
+            android:theme="@style/Theme.Eta"
+            android:windowSoftInputMode="adjustResize" />
+
+        <activity
             android:name=".agent.voice.EtaVoiceAssistActivity"
             android:excludeFromRecents="true"
             android:exported="true"

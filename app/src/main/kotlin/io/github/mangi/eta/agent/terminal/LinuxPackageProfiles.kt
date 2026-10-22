@@ -124,7 +124,7 @@ internal object LinuxPackageProfiles {
    Eta own mobile shell (#eta-mobile-bar / #eta-scrim). */
 
 :root {
-  --eta-topbar-h: calc(56px + env(safe-area-inset-top, 0px));
+  --eta-topbar-h: 56px;
   --eta-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --eta-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --eta-spring: cubic-bezier(0.34, 1.28, 0.64, 1);
@@ -173,6 +173,12 @@ internal object LinuxPackageProfiles {
   }
   body:has(.pI_x6G_frame) { overscroll-behavior: none; }
   #root:has(.pI_x6G_frame) {
+    height: 100dvh !important;
+    margin-top: 0 !important;
+  }
+  /* Only reserve the app bar once the shell script actually inserted it; otherwise a
+     failed injection would leave a blank strip at the top of DSH. */
+  body:has(#eta-mobile-bar) #root:has(.pI_x6G_frame) {
     height: calc(100dvh - var(--eta-topbar-h)) !important;
     margin-top: var(--eta-topbar-h) !important;
   }
@@ -189,7 +195,7 @@ internal object LinuxPackageProfiles {
     z-index: 90;
     inset: 0 0 auto;
     height: var(--eta-topbar-h);
-    padding: env(safe-area-inset-top, 0px) 8px 0;
+    padding: 0 8px;
     display: flex;
     align-items: center;
     gap: 2px;
@@ -273,7 +279,6 @@ internal object LinuxPackageProfiles {
     width: min(84vw, 320px) !important;
     min-width: 0 !important;
     max-width: none !important;
-    padding-top: env(safe-area-inset-top, 0px) !important;
     background: var(--eta-surface) !important;
     border-right: 0.5px solid var(--eta-hairline) !important;
     border-radius: 0 22px 22px 0 !important;
@@ -512,7 +517,6 @@ internal object LinuxPackageProfiles {
     max-width: none !important;
     height: 100dvh !important;
     max-height: none !important;
-    padding-top: env(safe-area-inset-top, 0px) !important;
     border-radius: 0 !important;
     display: flex !important;
     flex-direction: column !important;
@@ -588,7 +592,7 @@ internal object LinuxPackageProfiles {
   .VOzbGW_header {
     position: absolute !important;
     z-index: 3 !important;
-    top: calc(env(safe-area-inset-top, 0px) + 10px) !important;
+    top: 10px !important;
     right: 10px !important;
     width: auto !important;
     min-height: 0 !important;

@@ -23,8 +23,9 @@ internal object AlpineEnvironmentPaths {
     const val OPENCODE_TOOLS_REVISION = 1
     // revision 2：移动端样式 v3（Eta 风格、抽屉/设置过渡动画、布局与滚动性能）。
     // revision 3：样式 v4（主题过渡、层级与选中态、抽屉分段入场、消息渲染收敛）。
+    // revision 4：v4 修正顶栏重复 safe-area（DSH 上部空白）。
     // 已就绪环境需重跑安装脚本以替换注入的样式块。
-    const val DSH_TOOLS_REVISION = 3
+    const val DSH_TOOLS_REVISION = 4
     const val KIMI_TOOLS_REVISION = 1
 
     fun environmentDir(context: Context): File =

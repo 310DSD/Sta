@@ -24,6 +24,8 @@
   日志轮询和配对。
 - 扩展 Agent 输入框的 Enter 只换行、不发送：OpenCode 用 `insertLineBreak`，DSH Lexical 用
   `beforeinput(insertLineBreak)`，textarea 用 `setRangeText`。
+- WebView 右上角 `+` 改为 Miuix 新建页面弹窗，提供 OpenCode / DeepSeek Harness / Kimi Code /
+  文件管理器快速入口，并保留自定义 loopback 地址输入。
 
 ### DSH 移动壳
 
@@ -41,9 +43,21 @@ DSH Web 前端是桌面优先布局。Sta 在**不修改 DSH 逻辑和 DOM 锚�
   消息项 `contain: layout style`、不使用 `transition: all`，不对大子树做入场动画，
   不在滚动区域叠加大面积 `backdrop-filter`。
 - 深浅色全部从 DSH 的 `--dsw-*` 变量派生，不写死颜色。
+- 顶栏不重复叠加 `env(safe-area-inset-top)`，并只在 `#eta-mobile-bar` 真正插入后才为它让出
+  高度，避免 DSH 顶部出现空白条。
 
 样式块带 `/* eta-mobile-start */` / `/* eta-mobile-end */` 标记，安装脚本先删除旧块再追加，
 可重复执行；WebView 侧在检测到 `.pI_x6G_frame` 后才注入，避免影响 OpenCode。
+
+### Linux 文件管理器
+
+内置 MT 管理器风格的 rootfs 文件管理器，可从 WebView 新建页面弹窗或 Linux 工具页进入：
+
+- 根目录 / 工作区 / 主目录 / 临时 / 共享快捷入口，路径输入、当前目录搜索、排序、隐藏文件；
+- 长按或复选框多选，底部复制 / 移动 / 重命名 / 属性 / 删除，剪贴板跨目录粘贴；
+- 文本文件查看与编辑，二进制文件提示不可预览；
+- 操作优先走 root shell / PRoot，保留 Linux 权限与符号链接语义；shell 不可用时，
+  列表、读取、属性和写入回退到 App 进程直接访问 rootfs。
 
 ### OpenCode 提供商同步
 

@@ -5,11 +5,21 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
 
 class LinuxFileExplorerTest {
 
+    @get:Rule
+    val temporaryFolder = org.junit.rules.TemporaryFolder()
+
     private val rootfsDir = File("/data/user/0/io.github.mangi.eta/files/terminal/alpine/rootfs")
+
+    private fun readyRootfs(): File {
+        val dir = temporaryFolder.newFolder("rootfs")
+        File(dir, LinuxEnvironmentPaths.READY_MARKER).writeText("")
+        return dir
+    }
 
     @Test
     fun resolveHostPathNormalizesRootAndBlank() {
@@ -99,5 +109,55 @@ class LinuxFileExplorerTest {
             """.trimIndent(),
         )
         assertEquals(listOf("abc", "zzz", "aaa", "bbb"), entries.map { it.name })
+    }
+
+    @Test
+    fun parseMetadataReadsPermissionsOwnerAndPipeNames() {
+        val metadata = LinuxFileExplorer.parseMetadata(
+            "drwxr-xr-x|root|root|4096|1700000000|weird|folder",
+        )
+        requireNotNull(metadata)
+        assertEquals("drwxr-xr-x", metadata.permissions)
+        assertEquals("root", metadata.owner)
+        assertEquals("root", metadata.group)
+        assertEquals(4096L, metadata.sizeBytes)
+        assertEquals(1700000000L, metadata.mtimeEpochSeconds)
+        assertEquals("weird|folder", metadata.name)
+    }
+
+    @Test
+    fun deleteRejectsRootPathBeforeRunningShell() {
+        val supervisor = ShellProcessSupervisor()
+        try {
+            val root = readyRootfs()
+            assertEquals(
+                LinuxFileExplorer.MutateResult.InvalidPath,
+                LinuxFileExplorer.delete(supervisor, root, listOf("/")),
+            )
+        } finally {
+            supervisor.beginClosing()
+        }
+    }
+
+    @Test
+    fun renameAndCreateRejectInvalidNamesBeforeRunningShell() {
+        val supervisor = ShellProcessSupervisor()
+        try {
+            val root = readyRootfs()
+            assertEquals(
+                LinuxFileExplorer.MutateResult.InvalidPath,
+                LinuxFileExplorer.rename(supervisor, root, "/etc", "../escape"),
+            )
+            assertEquals(
+                LinuxFileExplorer.MutateResult.InvalidPath,
+                LinuxFileExplorer.rename(supervisor, root, "/", "new-name"),
+            )
+            assertEquals(
+                LinuxFileExplorer.MutateResult.InvalidPath,
+                LinuxFileExplorer.createDirectory(supervisor, root, "/", "a/b"),
+            )
+        } finally {
+            supervisor.beginClosing()
+        }
     }
 }

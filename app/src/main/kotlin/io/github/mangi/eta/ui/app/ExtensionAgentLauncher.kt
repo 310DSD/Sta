@@ -36,6 +36,8 @@ internal data class ExtensionAgentRuntimeStatus(
 internal class ExtensionAgentLauncher(
     private val context: Context,
     private val daemonSupervisor: DetachedTaskSupervisor,
+    /** 允许调用方接管打开动作（例如在同一个 WebView 里新开标签）。 */
+    private val openUrlOverride: ((String) -> Boolean)? = null,
 ) {
     private val lastUrls = ConcurrentHashMap<ExtensionAgent, String>()
     private val session = ExtensionAgentWebSession(
@@ -51,21 +53,22 @@ internal class ExtensionAgentLauncher(
             override fun logs(id: String) = daemonSupervisor.readLogs(id)
             override fun stop(id: String) { daemonSupervisor.stop(id) }
         },
-        openUrl = { url ->
-            try {
-                context.startActivity(
-                    Intent(context, ExtensionAgentWebActivity::class.java)
-                        .putExtra(ExtensionAgentWebActivity.EXTRA_URL, url)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                )
-                true
-            } catch (_: android.content.ActivityNotFoundException) {
-                false
-            } catch (_: SecurityException) {
-                false
-            }
-        },
+        openUrl = { url -> openUrlOverride?.invoke(url) ?: openInNewActivity(url) },
     )
+
+    private fun openInNewActivity(url: String): Boolean =
+        try {
+            context.startActivity(
+                Intent(context, ExtensionAgentWebActivity::class.java)
+                    .putExtra(ExtensionAgentWebActivity.EXTRA_URL, url)
+                    .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+            )
+            true
+        } catch (_: android.content.ActivityNotFoundException) {
+            false
+        } catch (_: SecurityException) {
+            false
+        }
 
     suspend fun launch(
         agent: ExtensionAgent,

@@ -131,6 +131,22 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
   baseURL、API key、headers/body 和模型自定义字段，只补充 Eta 的模型元数据。
   这是统一的 provider 合并规则，不按 127/localhost 做运行时特化。
 
+### 4.4 新建页面弹窗与 Linux 文件管理器
+
+- `NewPageDialog`：内置 WebView 右上角 `+` 不再直接弹系统 AlertDialog，而是 Miuix 弹窗；
+  首屏提供 OpenCode / DeepSeek Harness / Kimi Code / 文件管理器四个快速入口，下方保留
+  自定义 loopback URL 输入。快捷入口复用 `ExtensionAgentLauncher`，并通过 `openUrl`
+  回调在当前 WebView 内新开标签，不再叠一层 Activity。
+- `LinuxFileManagerActivity` + `LinuxFilesScreen`：MT 管理器风格的 Linux rootfs 文件管理器。
+  - 根目录/工作区/主目录/临时/共享快捷入口，支持路径输入、搜索当前目录、排序和隐藏文件；
+  - 长按或复选框多选，底部提供复制/移动/重命名/属性/删除；剪贴板可跨目录粘贴；
+  - 文本文件可查看和编辑（`writeText` 原子写入），二进制文件提示不可预览；
+  - 变更操作优先走 root shell / PRoot，保留 Linux 属主、权限、符号链接语义；
+    shell 不可用时，列表/读取/属性/写入会回退到 App 进程直接访问 rootfs。
+- DSH 顶栏不再叠加 `env(safe-area-inset-top)`：`ExtensionAgentWebActivity` 已经为状态栏
+  预留 inset，CSS 再加一次会在 DSH 顶部出现一条空白。同时 `#root` 只在检测到
+  `#eta-mobile-bar` 真正插入后才让出 56px，避免脚本注入失败时留下空白。
+
 ## 5. 验证
 
 - 单元测试 `ExtensionAgentWebSessionTest` 覆盖 URL 提取、复用已有任务、失败回收、

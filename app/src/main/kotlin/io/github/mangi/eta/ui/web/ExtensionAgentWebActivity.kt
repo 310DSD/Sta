@@ -1,12 +1,10 @@
 package io.github.mangi.eta.ui.web
 
 import android.app.Activity
-import android.app.AlertDialog
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.net.Uri
 import android.os.Bundle
-import android.text.InputType
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.ValueCallback
@@ -15,7 +13,6 @@ import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.EditText
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.Toast
@@ -31,10 +28,24 @@ import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
+import io.github.mangi.eta.agent.extension.ExtensionAgent
+import io.github.mangi.eta.agent.terminal.DetachedTaskSupervisor
+import io.github.mangi.eta.agent.terminal.LinuxEnvironmentPaths
 import io.github.mangi.eta.agent.terminal.LinuxPackageProfiles
+import io.github.mangi.eta.agent.terminal.SharedFolderMounts
+import io.github.mangi.eta.agent.terminal.terminalEnvironment
+import io.github.mangi.eta.core.AndroidAgentLogger
+import io.github.mangi.eta.R
 import io.github.mangi.eta.data.model.AppearanceSettings
 import io.github.mangi.eta.data.repository.AppearanceSettingsRepository
+import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
 import io.github.mangi.eta.ui.app.AgentAppTheme
+import io.github.mangi.eta.ui.app.ExtensionAgentLaunchResult
+import io.github.mangi.eta.ui.app.ExtensionAgentLauncher
+import io.github.mangi.eta.ui.app.message
+import io.github.mangi.eta.ui.screens.terminal.LinuxFileManagerActivity
+import kotlinx.coroutines.launch
 import org.json.JSONObject
 
 /**
@@ -52,6 +63,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     private val tabs = mutableListOf<Tab>()
     private val tabUi = mutableStateListOf<ExtensionAgentTabUi>()
     private var selectedTabId by mutableStateOf<Long?>(null)
+    private var newPageDialog by mutableStateOf(false)
     private var nextTabId = 1L
     private var current: Tab? = null
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
@@ -61,6 +73,28 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         val webView: WebView,
         var title: String = "",
     )
+
+    private val daemonSupervisor by lazy {
+        DetachedTaskSupervisor(
+            logger = AndroidAgentLogger,
+            recordsFile = DetachedTaskSupervisor.defaultRecordsFile(this),
+            linuxRootfsPathProvider = { environment ->
+                environment.linuxDistribution?.let { distribution ->
+                    LinuxEnvironmentPaths.rootfsDir(this, distribution).absolutePath
+                }
+            },
+            linuxSharedMountsProvider = { SharedFolderMounts.current() },
+        )
+    }
+
+    private val extensionAgentLauncher by lazy {
+        ExtensionAgentLauncher(this, daemonSupervisor) { url ->
+            runOnUiThread {
+                if (!isFinishing && !isDestroyed) openTab(url)
+            }
+            true
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -83,13 +117,37 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                         selectedId = selectedTabId,
                         onSelect = { id -> tabs.firstOrNull { it.id == id }?.let(::selectTab) },
                         onClose = { id -> tabs.firstOrNull { it.id == id }?.let(::closeTab) },
-                        onAdd = { promptForUrl() },
+                        onAdd = { newPageDialog = true },
                         onSyncProviders = {
                             OpenCodeProviderDialog.show(this@ExtensionAgentWebActivity) {
                                 current?.webView?.reload()
                             }
                         },
                         onReload = { current?.webView?.reload() },
+                    )
+                    NewPageDialog(
+                        show = newPageDialog,
+                        onDismiss = { newPageDialog = false },
+                        onOpenAgent = { agent ->
+                            newPageDialog = false
+                            launchAgent(agent)
+                        },
+                        onOpenFileManager = {
+                            newPageDialog = false
+                            openFileManager()
+                        },
+                        onOpenUrl = { url ->
+                            if (isLoopbackHttpUrl(url)) {
+                                newPageDialog = false
+                                openTab(url)
+                            } else {
+                                Toast.makeText(
+                                    this@ExtensionAgentWebActivity,
+                                    getString(R.string.webview_loopback_only),
+                                    Toast.LENGTH_SHORT,
+                                ).show()
+                            }
+                        },
                     )
                 }
             }
@@ -234,23 +292,28 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         if (tabs.isEmpty()) finish()
     }
 
-    private fun promptForUrl() {
-        val input = EditText(this).apply {
-            hint = "http://127.0.0.1:端口/"
-            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
-            setText("http://127.0.0.1:")
-        }
-        AlertDialog.Builder(this)
-            .setTitle("打开新页面")
-            .setView(input)
-            .setPositiveButton("打开") { _, _ ->
-                val url = input.text.toString().trim()
-                if (isLoopbackHttpUrl(url)) openTab(url) else {
-                    Toast.makeText(this, "只允许本机 loopback 地址", Toast.LENGTH_SHORT).show()
-                }
+    private fun launchAgent(agent: ExtensionAgent) {
+        Toast.makeText(this, getString(R.string.extension_agent_preparing), Toast.LENGTH_SHORT).show()
+        lifecycleScope.launch {
+            val distribution = LinuxEnvironmentSettingsRepository.current(this@ExtensionAgentWebActivity)
+            val backend = LinuxEnvironmentSettingsRepository.backend(this@ExtensionAgentWebActivity, distribution)
+            val result = extensionAgentLauncher.launch(agent, distribution.terminalEnvironment, backend)
+            if (result is ExtensionAgentLaunchResult.Failed) {
+                Toast.makeText(
+                    this@ExtensionAgentWebActivity,
+                    result.message(this@ExtensionAgentWebActivity),
+                    Toast.LENGTH_LONG,
+                ).show()
             }
-            .setNegativeButton("取消", null)
-            .show()
+        }
+    }
+
+    private fun openFileManager() {
+        val distribution = LinuxEnvironmentSettingsRepository.current(this)
+        startActivity(
+            Intent(this, LinuxFileManagerActivity::class.java)
+                .putExtra(LinuxFileManagerActivity.EXTRA_DISTRIBUTION, distribution.wireName),
+        )
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
