@@ -32,10 +32,13 @@ DSH Web 前端是桌面优先布局。Sta 在**不修改 DSH 逻辑和 DOM 锚�
 - 固定顶栏 + 左侧抽屉；桌面 rail 隐藏，抽屉仍由 DSH 自己的 sidebar 状态驱动。
 - 会话列占满视口，覆盖桌面端 `clamp(680px, …)` 的最小宽度。
 - 设置弹窗改为全屏 sheet：横向分类 chip、设置行单行卡片、关闭按钮固定在右上角。
-- 视觉向 Eta 靠拢：暖灰画布、白色卡片、16–24px 圆角、hairline 描边、克制阴影。
-- 动画只使用 `transform` / `opacity`：抽屉 0.34s 缓出、sheet 上滑、菜单缩放淡入、消息上浮；
-  `prefers-reduced-motion: reduce` 下全部关闭。
-- 性能：`overscroll-behavior: contain`、`translate3d` 合成层、不使用 `transition: all`，
+- 视觉向 Eta 靠拢：暖灰画布、白色卡片、16–24px 圆角、hairline 描边、克制阴影；
+  工作区/模式为 chip，选中会话带 3px 强调条，代码块与行内代码有独立表面。
+- 主题切换时画布、卡片、边框做 0.3s 颜色过渡，`:focus-visible` 提供键盘焦点环。
+- 动画只使用 `transform` / `opacity`：抽屉 0.34s 缓出、入口分段入场、sheet 上滑、
+  菜单缩放淡入、仅最后一条消息上浮；`prefers-reduced-motion: reduce` 下全部关闭。
+- 性能：`overscroll-behavior: contain`、`translate3d` + `contain` 合成层、
+  消息项 `contain: layout style`、不使用 `transition: all`，不对大子树做入场动画，
   不在滚动区域叠加大面积 `backdrop-filter`。
 - 深浅色全部从 DSH 的 `--dsw-*` 变量派生，不写死颜色。
 

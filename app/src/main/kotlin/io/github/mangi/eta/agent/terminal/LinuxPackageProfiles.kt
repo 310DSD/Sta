@@ -118,7 +118,7 @@ internal object LinuxPackageProfiles {
             "npm install -g --prefix /usr/local --include=optional @opencode/cli@2.1.2"
 
     internal val DSH_MOBILE_CSS = """
-/* Eta mobile shell v3 - DSH
+/* Eta mobile shell v4 - DSH
    Goals: match Eta quiet, card-based mobile look without touching DSH logic.
    Every selector below is either an existing DSH anchor or a hook created by
    Eta own mobile shell (#eta-mobile-bar / #eta-scrim). */
@@ -127,6 +127,7 @@ internal object LinuxPackageProfiles {
   --eta-topbar-h: calc(56px + env(safe-area-inset-top, 0px));
   --eta-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --eta-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --eta-spring: cubic-bezier(0.34, 1.28, 0.64, 1);
   --eta-dur: 0.24s;
 }
 
@@ -145,6 +146,22 @@ internal object LinuxPackageProfiles {
     --eta-on-accent: var(--dsw-alias-label-primary-foreground, #fff);
     --eta-card-shadow: 0 10px 30px rgb(0 0 0 / 7%), 0 1px 2px rgb(0 0 0 / 4%);
     -webkit-tap-highlight-color: transparent;
+  }
+  body:has(.pI_x6G_frame),
+  .pI_x6G_frame,
+  .pI_x6G_centerCol,
+  .wSkVaW_root,
+  .uV2eYG_card,
+  .VOzbGW_panel {
+    transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
+  }
+  body:has(.pI_x6G_frame) :focus-visible {
+    outline: 2px solid color-mix(in srgb, var(--eta-accent) 55%, transparent);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+  body:has(.pI_x6G_frame) ::selection {
+    background: color-mix(in srgb, var(--eta-accent) 22%, transparent);
   }
 
   html:has(.pI_x6G_frame),
@@ -180,6 +197,7 @@ internal object LinuxPackageProfiles {
     border-bottom: 0.5px solid var(--eta-hairline);
     color: var(--dsw-alias-label-primary, #0f1115);
     transition: background-color var(--eta-dur) ease, border-color var(--eta-dur) ease;
+    contain: layout paint style;
   }
 
   .eta-icon {
@@ -194,7 +212,7 @@ internal object LinuxPackageProfiles {
     border-radius: 14px;
     background: transparent;
     color: inherit;
-    transition: background-color 0.16s ease, transform 0.16s var(--eta-ease), opacity 0.16s ease;
+    transition: background-color 0.16s ease, transform 0.16s var(--eta-spring), opacity 0.16s ease;
   }
   .eta-icon:active {
     background: var(--eta-active);
@@ -259,10 +277,11 @@ internal object LinuxPackageProfiles {
     background: var(--eta-surface) !important;
     border-right: 0.5px solid var(--eta-hairline) !important;
     border-radius: 0 22px 22px 0 !important;
-    box-shadow: 0 24px 64px rgb(0 0 0 / 22%) !important;
+    box-shadow: 0 18px 48px rgb(0 0 0 / 20%) !important;
     transform: translate3d(-102%, 0, 0) !important;
     transition: transform 0.34s var(--eta-ease-out) !important;
     will-change: transform;
+    contain: layout paint style;
     overflow: hidden !important;
   }
   .pI_x6G_frame:not([data-sidebar-collapsed]) .pI_x6G_sidebarCol {
@@ -276,16 +295,23 @@ internal object LinuxPackageProfiles {
   .pI_x6G_sidebarCol .hHd-Xa_collapsed { width: 100% !important; }
 
   .hHd-Xa_logoRow {
-    height: 58px !important;
+    height: 56px !important;
+    margin-bottom: 8px !important;
     padding: 0 6px !important;
+    border-bottom: 0.5px solid var(--eta-hairline) !important;
   }
   .hHd-Xa_newSession {
     height: 44px !important;
+    justify-content: flex-start !important;
+    padding: 0 12px !important;
+    gap: 8px !important;
     border-radius: 14px !important;
     background: var(--eta-hover) !important;
+    border: 0.5px solid var(--eta-hairline) !important;
     transition: background-color 0.16s ease, transform 0.16s var(--eta-ease) !important;
   }
   .hHd-Xa_newSession:active { transform: scale(0.98); }
+  .hHd-Xa_newSessionContent { justify-content: flex-start !important; }
   .hHd-Xa_newSessionShortcut { opacity: 0.5; }
 
   .hHd-Xa_panelRow {
@@ -297,17 +323,30 @@ internal object LinuxPackageProfiles {
   .hHd-Xa_panelRow:hover { background: var(--eta-hover) !important; }
 
   .YDXeBa_sessionRow {
-    height: 40px !important;
+    position: relative !important;
+    height: 42px !important;
     margin: 1px 0 !important;
-    padding: 0 10px !important;
+    padding: 0 10px 0 14px !important;
     border-radius: 12px !important;
     transition: background-color 0.16s ease, transform 0.16s var(--eta-ease) !important;
+  }
+  .YDXeBa_selected::before {
+    content: "";
+    position: absolute;
+    left: 4px;
+    top: 11px;
+    bottom: 11px;
+    width: 3px;
+    border-radius: 2px;
+    background: var(--eta-accent);
   }
   .YDXeBa_sessionRow:active {
     transform: scale(0.985);
     background: var(--eta-active) !important;
   }
-  .YDXeBa_selected { background: var(--eta-active) !important; }
+  .YDXeBa_selected {
+    background: var(--eta-active) !important;
+  }
   .YDXeBa_title { font-size: 14px !important; }
   .YDXeBa_time { font-size: 11px !important; color: var(--eta-faint) !important; }
   .YDXeBa_projectRow { border-radius: 12px !important; }
@@ -335,17 +374,52 @@ internal object LinuxPackageProfiles {
     gap: 12px !important;
   }
   .wSkVaW_heroWorkspaceRow { padding: 0 14px !important; }
+  .pXSMma_workspace,
+  .cubgiG_seat {
+    height: 30px !important;
+    padding: 0 10px !important;
+    border-radius: 999px !important;
+    background: color-mix(in srgb, var(--eta-surface) 72%, transparent) !important;
+    border: 0.5px solid var(--eta-hairline) !important;
+    transition: background-color 0.16s ease, transform 0.16s var(--eta-spring) !important;
+  }
+  .pXSMma_workspace:active,
+  .cubgiG_seat:active { transform: scale(0.96); background: var(--eta-hover) !important; }
 
-  .EvIC1a_column { max-width: 100% !important; }
-  .EvIC1a_flowItem { animation: eta-rise 0.3s var(--eta-ease) both; }
+  .EvIC1a_column {
+    max-width: 100% !important;
+    font-size: 15px !important;
+    line-height: 1.7 !important;
+    letter-spacing: 0.004em;
+  }
+  .EvIC1a_flowItem {
+    contain: layout style;
+  }
+  .EvIC1a_flowItem:last-child {
+    animation: eta-rise 0.28s var(--eta-ease) both;
+  }
+  .EvIC1a_column pre {
+    border-radius: 14px !important;
+    border: 0.5px solid var(--eta-hairline) !important;
+  }
+  .EvIC1a_column :not(pre) > code {
+    border-radius: 6px !important;
+    padding: 1px 5px !important;
+    background: color-mix(in srgb, var(--dsw-alias-label-primary) 6%, transparent) !important;
+  }
+  .xzv4MW_action {
+    border-radius: 50% !important;
+    transition: background-color 0.16s ease, transform 0.16s var(--eta-ease) !important;
+  }
+  .xzv4MW_action:active { transform: scale(0.9); }
 
   /* User bubble: soft surface, generous radius, Eta-like rhythm. */
   .Sixlwa_userRow { justify-content: flex-end !important; }
   .Sixlwa_bubble {
     max-width: 84% !important;
     padding: 10px 14px !important;
-    border-radius: 20px 20px 6px 20px !important;
-    background: color-mix(in srgb, var(--eta-accent) 11%, var(--eta-surface)) !important;
+    border-radius: 20px 20px 7px 20px !important;
+    background: color-mix(in srgb, var(--dsw-alias-label-primary) 6%, var(--eta-surface)) !important;
     border: 0.5px solid var(--eta-hairline) !important;
     font-size: 15px !important;
     line-height: 1.6 !important;
@@ -369,11 +443,10 @@ internal object LinuxPackageProfiles {
     background: var(--eta-surface) !important;
     border: 0.5px solid var(--eta-hairline-strong) !important;
     box-shadow: var(--eta-card-shadow) !important;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease !important;
+    transition: border-color 0.18s ease !important;
   }
   .uV2eYG_card:focus-within {
-    border-color: var(--eta-hairline-strong) !important;
-    box-shadow: var(--eta-card-shadow) !important;
+    border-color: color-mix(in srgb, var(--dsw-alias-label-primary) 20%, var(--eta-hairline-strong)) !important;
   }
   .uV2eYG_input {
     min-height: 64px !important;
@@ -418,6 +491,9 @@ internal object LinuxPackageProfiles {
   ._item_4ub78_90 {
     border-radius: 10px !important;
     transition: background-color 0.14s ease !important;
+  }
+  ._item_4ub78_90:hover {
+    background: var(--eta-hover) !important;
   }
 
   /* ---------- Settings / dialogs -> full-screen sheet ---------- */
@@ -488,13 +564,14 @@ internal object LinuxPackageProfiles {
     scroll-snap-align: start;
     background: var(--eta-surface) !important;
     border: 0.5px solid var(--eta-hairline) !important;
-    transition: background-color 0.16s ease, color 0.16s ease, transform 0.16s var(--eta-ease) !important;
+    transition: background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease, transform 0.16s var(--eta-spring) !important;
   }
   .VOzbGW_navCell:active { transform: scale(0.96); }
   .VOzbGW_active {
     background: var(--dsw-alias-button-primary-fill, #0f1115) !important;
     color: var(--eta-on-accent) !important;
     border-color: transparent !important;
+    box-shadow: 0 3px 10px rgb(0 0 0 / 14%) !important;
   }
   .VOzbGW_navLabel { width: auto !important; font-size: 13.5px !important; white-space: nowrap !important; }
 
@@ -562,6 +639,8 @@ internal object LinuxPackageProfiles {
     border: 0.5px solid var(--eta-hairline) !important;
     border-radius: 16px !important;
     background: var(--eta-surface) !important;
+    box-shadow: 0 1px 2px rgb(0 0 0 / 3%) !important;
+    transition: border-color 0.16s ease, background-color 0.16s ease !important;
   }
   .VOzbGW_options [class*="_rowText"],
   .VOzbGW_options [class*="_settingText"],
@@ -614,6 +693,27 @@ internal object LinuxPackageProfiles {
   }
   .yIbyla_row { padding: 12px 4px !important; color: var(--eta-faint) !important; }
 
+  .wSkVaW_scrollBody::-webkit-scrollbar,
+  .VOzbGW_options::-webkit-scrollbar {
+    width: 4px;
+  }
+  .wSkVaW_scrollBody::-webkit-scrollbar-thumb,
+  .VOzbGW_options::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--dsw-alias-label-primary) 18%, transparent);
+  }
+
+  body.eta-drawer-open .hHd-Xa_newSession {
+    animation: eta-slide-in 0.34s var(--eta-ease-out) both;
+  }
+  body.eta-drawer-open .hHd-Xa_panelList {
+    animation: eta-slide-in 0.34s var(--eta-ease-out) 0.03s both;
+  }
+
+  @keyframes eta-slide-in {
+    from { opacity: 0; transform: translate3d(-10px, 0, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
   @keyframes eta-rise {
     from { opacity: 0; transform: translate3d(0, 6px, 0); }
     to { opacity: 1; transform: translate3d(0, 0, 0); }

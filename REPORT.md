@@ -79,7 +79,7 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
   支持文件选择、返回栈和外部链接转系统浏览器；顶栏溢出菜单同时提供 OpenCode / DSH 两个入口。
 - 原生对话的用户消息也走 Markdown；新增常见 LaTeX 希腊字母、运算/集合/箭头符号归一化。
 - Kimi Code 原 profile、Linux 工具行、顶栏入口和停止入口一并恢复/保留。
-- DSH 移动端改为独立壳层，并按 Eta 的视觉语言重做：暖灰画布 + 白色卡片、16–24px 圆角与 hairline 描边；桌面 rail 改为固定顶栏 + 左侧抽屉，聊天列占满视口，设置页改为全屏 sheet（横向分类 chip、设置行单卡化、说明文字不再被挤成竖排）。抽屉/设置 sheet/菜单分别使用 transform+opacity 过渡，消息轻量上浮，`prefers-reduced-motion` 下全部关闭；滚动容器加 `overscroll-behavior: contain`，不使用 `transition: all`。样式块带 `eta-mobile-start/end` 标记，安装脚本可重复清理并追加，旧版 CSS 不会残留。
+- DSH 移动端改为独立壳层，并按 Eta 的视觉语言重做：暖灰画布 + 白色卡片、16–24px 圆角与 hairline 描边；桌面 rail 改为固定顶栏 + 左侧抽屉，聊天列占满视口，设置页改为全屏 sheet（横向分类 chip、设置行单卡化、说明文字不再被挤成竖排）。工作区/模式改为 chip，选中会话带 3px 强调条，代码块与行内代码有独立表面，主题切换对画布/卡片/边框做 0.3s 颜色过渡，并补 `:focus-visible` 焦点环。动画只用 transform+opacity：抽屉 0.34s 缓出、入口分段入场、sheet 上滑、菜单缩放淡入、仅最后一条消息上浮；`prefers-reduced-motion` 下全部关闭。性能上滚动容器加 `overscroll-behavior: contain`，抽屉 `translate3d`+`contain`，消息项 `contain: layout style`，不使用 `transition: all`，也不对大子树做入场动画。样式块带 `eta-mobile-start/end` 标记，安装脚本可重复清理并追加，旧版 CSS 不会残留。
 - 原生 Markdown 分式改为“分子 / 横向分数线 / 分母”的居中布局，分数线按最宽文本测量，并修正 frac、dfrac、big、lim 等命令的归一化。
 - OpenCode 上游 2.1.2 的“自定义提供商”表单固定报 `provider.custom.unavailable`；Eta 改为从自身 provider/model 数据直接同步 `opencode.json`，映射上下文、视觉、工具、思考等级和自定义请求头/体，并执行 `opencode reload`。同步会先从 provider 的 `/models` 补全工具/视觉/上下文/输出上限，再写入 `limit.context`、`limit.output`、`capabilities.tools`、`capabilities.input` 和 `capabilities.reasoning`；同时保留已存在 provider 的手工 baseURL、API key、headers/body。
 - 修复 DSH 移动 CSS 的 `#root` 规则泄漏到 OpenCode 的问题：CSS 仅在检测到 DSH `.pI_x6G_frame` 后注入，并在选择器上用 `:has` 限定 DSH，OpenCode 不再多出 56px 顶部空白。
