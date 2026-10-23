@@ -17,6 +17,14 @@ sealed interface AppRoute : NavKey {
     @Serializable
     data object Tools : AppRoute
 
+    /** Codex / Claude Code 的账号与 provider 管理页。 */
+    @Serializable
+    data object CliAgents : AppRoute
+
+    /** 以 CLI 自带 TUI 启动 Codex / Claude Code 的终端页。 */
+    @Serializable
+    data class CliTerminal(val agentId: String) : AppRoute
+
     @Serializable
     data object WebToolsSettings : AppRoute
 

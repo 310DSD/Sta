@@ -112,6 +112,16 @@ internal object LinuxPackageProfiles {
             "@moonshot-ai/kimi-code@latest || " +
             "npm install -g --prefix /usr/local @moonshot-ai/kimi-code@latest"
 
+    private const val CODEX_INSTALL_SCRIPT =
+        "npm install -g --prefix /usr/local --include=optional --registry=https://registry.npmmirror.com " +
+            "@openai/codex@0.164.0 || " +
+            "npm install -g --prefix /usr/local --include=optional @openai/codex@0.164.0"
+
+    private const val CLAUDE_CODE_INSTALL_SCRIPT =
+        "npm install -g --prefix /usr/local --include=optional --registry=https://registry.npmmirror.com " +
+            "@anthropic-ai/claude-code@2.1.309 || " +
+            "npm install -g --prefix /usr/local --include=optional @anthropic-ai/claude-code@2.1.309"
+
     private const val OPENCODE_INSTALL_SCRIPT =
         "npm install -g --prefix /usr/local --include=optional --registry=https://registry.npmmirror.com " +
             "@opencode/cli@2.1.2 || " +
@@ -813,7 +823,43 @@ internal object LinuxPackageProfiles {
             ),
         ),
     )
-    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, DSH, KIMI)
+    val CODEX = LinuxPackageProfile(
+        id = "codex",
+        markerName = AlpineEnvironmentPaths.CODEX_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.CODEX_TOOLS_REVISION,
+        dependsOn = NODE,
+        installTimeoutSeconds = 3600L,
+        specs = mapOf(
+            LinuxDistribution.ALPINE to LinuxPackageSpec(
+                setupScript = CODEX_INSTALL_SCRIPT,
+                verifyCommand = "command -v codex >/dev/null && codex --version >/dev/null",
+            ),
+            LinuxDistribution.DEBIAN to LinuxPackageSpec(
+                setupScript = CODEX_INSTALL_SCRIPT,
+                verifyCommand = "command -v codex >/dev/null && codex --version >/dev/null",
+            ),
+        ),
+    )
+
+    val CLAUDE_CODE = LinuxPackageProfile(
+        id = "claude-code",
+        markerName = AlpineEnvironmentPaths.CLAUDE_CODE_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.CLAUDE_CODE_TOOLS_REVISION,
+        dependsOn = NODE,
+        installTimeoutSeconds = 3600L,
+        specs = mapOf(
+            LinuxDistribution.ALPINE to LinuxPackageSpec(
+                setupScript = CLAUDE_CODE_INSTALL_SCRIPT,
+                verifyCommand = "command -v claude >/dev/null && claude --version >/dev/null",
+            ),
+            LinuxDistribution.DEBIAN to LinuxPackageSpec(
+                setupScript = CLAUDE_CODE_INSTALL_SCRIPT,
+                verifyCommand = "command -v claude >/dev/null && claude --version >/dev/null",
+            ),
+        ),
+    )
+
+    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, DSH, KIMI, CODEX, CLAUDE_CODE)
 }
 
 internal fun linuxPackageProfileReady(rootfs: File, profile: LinuxPackageProfile): Boolean {

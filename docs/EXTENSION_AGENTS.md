@@ -204,3 +204,21 @@ Eta 3.3.1 原先在 Linux 工具环境里通过 npm 安装 **Kimi Code**，并�
 - Kimi Code 作为第三扩展 Agent 保留；Linux 工具环境页和顶栏都会显示它。
 - 多个扩展 Agent 可以同时运行；顶栏会为每个运行中的 Agent 分别显示停止项，Linux 环境页也有逐行停止按钮。
 - 内置 WebView 支持多标签页：`+` 可新建本机页面，点击标签切换，`×` 关闭；每个标签保留独立 WebView 状态。
+
+## 10. Codex / Claude Code（终端型 CLI）
+
+Codex 与 Claude Code 没有官方移动 Web UI，因此不接入 `ExtensionAgentWebActivity`，而是复用 Eta 的 PTY 终端：
+
+- `CliAgent` 固定两个 profile：Codex `@openai/codex@0.164.0`、Claude Code `@anthropic-ai/claude-code@2.1.309`，
+  安装依赖 Node.js，安装脚本可重复执行。
+- 账号按 Agent 分组，支持三类：
+  - **官方账号**：读取 CLI 已生成的登录文件并保存快照，切换时整份恢复；
+  - **官方 API Key**：写 Codex `auth.json` 的 `OPENAI_API_KEY` / Claude `settings.json` 的 `env.ANTHROPIC_API_KEY`；
+  - **第三方提供商**：Codex 写 `model_providers.eta`（baseURL + `OPENAI_API_KEY`），Claude 写
+    `ANTHROPIC_BASE_URL` + `ANTHROPIC_AUTH_TOKEN`，可选模型名。
+- 切换是手动操作，不监听、不刷新 token、不自动轮换；每次写入前保留一次 `*.eta-backup`。
+- 账号列表在 App 私有 `noBackupFilesDir/cli_accounts.json`，当前为明文，后续可接 Keystore。
+- 入口：首页溢出菜单 →“CLI 智能体”，账号页右上角打开终端；终端页收到 `initialCommand` 后
+  在 PTY 首次连接时执行 `codex` / `claude`，PTY 不可用时回退块式终端执行一次。
+- 已知边界：官方订阅账号在官方客户端之外使用可能违反服务条款；Codex 第三方模式会重写
+  `config.toml`，仅保留 `*.eta-backup` 作为回滚。

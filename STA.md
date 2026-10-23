@@ -1,7 +1,7 @@
 # Sta
 
 **Sta** 是 [Eta](https://github.com/Mangi-11/Eta) 的分支，保留上游全部系统级 AI 助手能力，并在其之上集中完善
-**扩展 Agent（OpenCode / DeepSeek Harness / Kimi Code）的移动端体验**。
+**扩展 Agent（OpenCode / DeepSeek Harness / Kimi Code）与 CLI 智能体（Codex / Claude Code）的移动端体验**。
 
 - 上游：<https://github.com/Mangi-11/Eta>
 - 分支：`Sta`
@@ -65,6 +65,20 @@ DSH Web 前端是桌面优先布局。Sta 在**不修改 DSH 逻辑和 DOM 锚�
 - 压缩生成 `tar.gz`，书签持久化；底部提供后退、前进、新建、同步、上级五个动作；
 - 目录列举优先直接读取宿主可访问路径（`/workspace` 映射到宿主工作区），不可读时才回退 root shell / PRoot，切换目录不再每次转圈；
 - 文本文件查看与编辑，二进制文件提示不可预览。
+
+### Codex / Claude Code 与 CLI 账号
+
+Codex 与 Claude Code 是终端 TUI 型 Agent，没有官方移动 Web UI，Sta 统一用内置 PTY 终端承载：
+
+- Linux 工具页新增 Codex（`@openai/codex@0.164.0`）与 Claude Code（`@anthropic-ai/claude-code@2.1.309`）
+  安装行，依赖 Node.js；安装脚本固定版本，可重复执行。
+- 首页溢出菜单新增“CLI 智能体”，按 Agent 管理账号；账号页右上角可直接打开该 Agent 的终端标签，
+  进入后自动执行 `codex` / `claude`。
+- 账号类型：官方账号（导入当前 CLI 登录快照）、官方 API Key、第三方兼容端点（baseURL + key + model）。
+- 切换为手动操作，不做自动轮换：Codex 写 `~/.codex/auth.json` 与 `config.toml`，Claude Code 写
+  `~/.claude/.credentials.json` 与 `settings.json`；改动前保留一次 `*.eta-backup`，Claude 只合并/清理
+  自己管理的 `env` 字段，不覆盖 hooks 等其它设置。
+- 账号列表保存在 App 私有 `noBackupFilesDir/cli_accounts.json`（明文，尚未接入 Keystore）。
 
 ### OpenCode 提供商同步
 
@@ -130,8 +144,10 @@ DSH 升级后需要重新核对 `pI_x6G_*`、`wSkVaW_*`、`VOzbGW_*`、`Sixlwa_*
 ```
 app/src/main/kotlin/io/github/mangi/eta/
   agent/extension/       扩展 Agent 定义、启动、URL 解析
+  agent/cli/             Codex / Claude Code 定义、账号存储与配置切换
   agent/terminal/        Linux 环境与 npm 工具 profile（含 DSH 移动 CSS）
   ui/web/                扩展 Agent WebView、OpenCode provider 同步
+  ui/screens/cli/        CLI 账号管理页
 docs/EXTENSION_AGENTS.md 扩展 Agent 设计与约束
 REPORT.md                本分支改动报告
 ```

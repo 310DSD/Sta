@@ -55,6 +55,7 @@ internal fun TerminalEntryScreen(
     terminalStore: UserTerminalStore,
     consoleStore: ConsoleStore,
     onOpenEnvironment: () -> Unit,
+    initialCommand: String? = null,
 ) {
     val consoleState by consoleStore.uiState.collectAsState()
     var consoleMode by rememberSaveable { mutableStateOf(true) }
@@ -75,6 +76,7 @@ internal fun TerminalEntryScreen(
             terminalStore = terminalStore,
             onExitConsole = { consoleMode = false },
             onOpenEnvironment = onOpenEnvironment,
+            initialCommand = initialCommand,
         )
         else -> UserTerminalScreen(
             store = terminalStore,
@@ -84,6 +86,8 @@ internal fun TerminalEntryScreen(
             } else {
                 null
             },
+            // 块式终端只在 PTY 不可用时作为兜底，避免从控制台切回时重复启动 CLI。
+            initialCommand = initialCommand.takeIf { consoleState.ptySupported == false },
         )
     }
 }
@@ -99,6 +103,7 @@ internal fun ConsoleScreen(
     terminalStore: UserTerminalStore,
     onExitConsole: () -> Unit,
     onOpenEnvironment: () -> Unit,
+    initialCommand: String? = null,
 ) {
     val state by store.uiState.collectAsState()
     val terminalState by terminalStore.uiState.collectAsState()
@@ -111,6 +116,16 @@ internal fun ConsoleScreen(
     val clipboard = LocalClipboard.current
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+
+    // CLI 账号页带命令进入时，等 PTY 首帧稳定后自动启动 TUI；只发送一次，退出后不再重放。
+    var pendingCommand by rememberSaveable { mutableStateOf(initialCommand) }
+    LaunchedEffect(state.connected) {
+        val command = pendingCommand ?: return@LaunchedEffect
+        if (!state.connected) return@LaunchedEffect
+        delay(600)
+        store.sendText(command + "\n")
+        pendingCommand = null
+    }
     val inputSink = remember(store, modifierKeys) {
         object : ConsoleInputSink {
             override fun onText(text: String, modifiers: TerminalModifiers) {

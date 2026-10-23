@@ -5,7 +5,7 @@
 | 文件 | 说明 |
 | --- | --- |
 | `dist/Eta-v3.3.3-sta-release.apk` | 已签名的 release APK（targetSdk 37，10 MB，ARM64） |
-| `dist/Eta-v3.3.3-sta-debug.apk` | 可调试的 debug APK（83 MB，ARM64） |
+| `dist/Eta-v3.3.3-sta-debug.apk` | 可调试的 debug APK（87 MB，ARM64） |
 | `docs/ANDROID_17_IME_FIX.md` | Android 17 输入法动画问题根因与修复说明 |
 | `docs/EXTENSION_AGENTS.md` | OpenCode 2 / ZCode / DeepSeek Harness 评估（ZCode 实现阶段落选） |
 | `docs/CODE_REVIEW.md` | 严格代码审查记录（含 chroot/root 调用链） |
@@ -115,6 +115,31 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
   详见 [docs/CODE_REVIEW.md](docs/CODE_REVIEW.md)。
 - Android 37 模拟器安装 release APK 可正常启动、打开键盘、切换页面，无崩溃。
 
+## 需求 4：Codex / Claude Code 与 CLI 账号（CC Switch 风格）
+
+### 实现
+
+- `CliAgent` 定义 Codex 与 Claude Code 的安装 profile、启动命令与登录/配置文件路径；
+  `LinuxPackageProfiles` 新增两个固定版本 profile（Codex 0.164.0、Claude Code 2.1.309），
+  Linux 工具页增加对应安装行。
+- 新增 `CliAccountStore` / `CliConfigManager`：按 Agent 保存官方快照、API Key、第三方端点三类账号，
+  手动切换；Codex 写 `auth.json` + `config.toml`，Claude Code 写 `.credentials.json` + `settings.json`，
+  改动前保留一次 `*.eta-backup`。Claude 只合并/清理自己管理的 `env` 键，Codex 第三方模式使用
+  `model_providers.eta`，API Key 模式尽量保留既有 TOML 字段。
+- 新增 `CliAccountsScreen`（Miuix 页面）：Agent 切换、添加/删除/切换账号、安装提示、直接打开终端；
+  账号文件位于 App 私有 `noBackupFilesDir/cli_accounts.json`。
+- 路由新增 `CliAgents` / `CliTerminal(agentId)`；首页溢出菜单新增“CLI 智能体”入口。
+- 终端页支持 `initialCommand`：PTY 控制台在首次连接后自动执行 `codex` / `claude`，
+  PTY 不可用时回退到块式终端执行一次，避免模式切换重复启动。
+
+### 验证
+
+- `compileDebugKotlin`、`assembleDebug`、`assembleRelease` 通过；release APK 使用 `CN=Sta Fork` 证书签名。
+- `AppRouteSerializationTest` 覆盖新增路由，`AlpineEnvironmentInstallerTest` 覆盖两个 CLI 安装脚本，
+  `EtaDatabaseMigrationTest` 覆盖 DB v24 迁移。
+- 受上游 ARM64-only 打包限制，x86_64 模拟器无法安装最终 APK；CLI 安装/登录需在 ARM64 设备或
+  root/chroot 环境中实机验证。
+
 ## 构建
 
 ```bash
@@ -143,3 +168,6 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 2. 扩展 Agent 的 Web UI 已统一由 Eta 内置 `ExtensionAgentWebActivity` 承载（多标签、状态栏/IME inset、Enter→换行）；DSH 额外使用移动壳层，OpenCode 的自定义提供商改为从 Eta 的 provider/model 数据同步（上游 2.1.2 Web 表单固定报 `provider.custom.unavailable`）。
 3. Android 17 的 IME 修复依赖 `imeAnimationTarget`（Compose 实验 API），
    已在 1.12.0 上验证；升级 Compose 后应保留 `SafeImeInsetsTest` 作为看门测试。
+4. CLI 账号文件目前是 App 私有目录下的明文 JSON，尚未接入 Android Keystore；官方订阅账号通过
+   CLI 在官方客户端之外使用可能违反服务条款，建议优先使用 API Key 或第三方端点。
+   Codex 第三方模式会重写 `config.toml`（已有 `*.eta-backup` 备份），切换前应确认没有手工配置需要保留。

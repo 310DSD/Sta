@@ -131,6 +131,13 @@ class AlpineEnvironmentInstallerTest {
             assertTrue(opencodeScript.contains("--include=optional"))
             assertTrue(opencodeScript.contains("registry.npmmirror.com"))
 
+            val codexScript = LinuxPackageProfiles.CODEX.spec(distribution).setupScript.orEmpty()
+            assertTrue(codexScript.contains("@openai/codex@0.164.0"))
+            assertTrue(codexScript.contains("--include=optional"))
+            val claudeScript = LinuxPackageProfiles.CLAUDE_CODE.spec(distribution).setupScript.orEmpty()
+            assertTrue(claudeScript.contains("@anthropic-ai/claude-code@2.1.309"))
+            assertTrue(claudeScript.contains("--include=optional"))
+
             val dshScript = dsh.spec(distribution).setupScript.orEmpty()
             assertTrue(dshScript.contains("npm install -g"))
             assertTrue(dshScript.contains("@deepseek-ai/dsh@0.2.1-rc.2"))

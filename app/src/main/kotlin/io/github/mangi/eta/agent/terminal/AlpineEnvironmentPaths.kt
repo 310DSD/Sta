@@ -14,6 +14,8 @@ internal object AlpineEnvironmentPaths {
     const val OPENCODE_TOOLS_MARKER = ".eta-opencode-tools-ready"
     const val DSH_TOOLS_MARKER = ".eta-dsh-tools-ready"
     const val KIMI_TOOLS_MARKER = ".eta-kimi-tools-ready"
+    const val CODEX_TOOLS_MARKER = ".eta-codex-tools-ready"
+    const val CLAUDE_CODE_TOOLS_MARKER = ".eta-claude-code-tools-ready"
     const val TOOLSET_REVISION = 1
     const val APK_ANALYSIS_REVISION = 1
     const val PYTHON_TOOLS_REVISION = 1
@@ -28,6 +30,8 @@ internal object AlpineEnvironmentPaths {
     // 已就绪环境需重跑安装脚本以替换注入的样式块。
     const val DSH_TOOLS_REVISION = 5
     const val KIMI_TOOLS_REVISION = 1
+    const val CODEX_TOOLS_REVISION = 1
+    const val CLAUDE_CODE_TOOLS_REVISION = 1
 
     fun environmentDir(context: Context): File =
         LinuxEnvironmentPaths.environmentDir(context, LinuxDistribution.ALPINE)

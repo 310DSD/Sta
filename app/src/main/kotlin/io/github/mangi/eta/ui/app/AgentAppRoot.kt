@@ -43,6 +43,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.mangi.eta.EtaApp
 import io.github.mangi.eta.R
+import io.github.mangi.eta.agent.cli.CliAgent
 import io.github.mangi.eta.agent.device.BoundedRootCommandExecutor
 import io.github.mangi.eta.agent.device.DeviceLocationProvider
 import io.github.mangi.eta.agent.device.RootAccess
@@ -71,6 +72,7 @@ import io.github.mangi.eta.ui.screens.backup.DataBackupScreen
 import io.github.mangi.eta.ui.screens.browser.AgentBrowserScreen
 import io.github.mangi.eta.ui.screens.characters.CharacterDetailScreen
 import io.github.mangi.eta.ui.screens.characters.CharacterEditorScreen
+import io.github.mangi.eta.ui.screens.cli.CliAccountsScreen
 import io.github.mangi.eta.ui.screens.characters.CharacterLibraryScreen
 import io.github.mangi.eta.ui.screens.characters.CharacterMemoryScreen
 import io.github.mangi.eta.ui.screens.characters.CharacterPersonaScreen
@@ -317,6 +319,7 @@ fun AgentAppRoot(
             onStopExtensionAgent = { agent -> appViewModel.stopExtensionAgent(agent) },
             onRefreshExtensionAgent = appViewModel::refreshExtensionAgent,
             onOpenBrowser = { pushRoute(AppRoute.Browser) },
+            onOpenCliAgents = { pushRoute(AppRoute.CliAgents) },
             onSelectConversation = { conversationId -> selectConversation(conversationId) },
             onConversationRename = { conversation ->
                 conversationRenameTarget = conversation
@@ -442,6 +445,24 @@ fun AgentAppRoot(
                         terminalStore = appViewModel.terminalStore,
                         consoleStore = appViewModel.consoleStore,
                         onOpenEnvironment = { pushRoute(AppRoute.LinuxEnvironment) },
+                    )
+                }
+            }
+            entry<AppRoute.CliAgents>(swipeDismiss = swipeDismiss) {
+                CliAccountsScreen(
+                    context = context,
+                    onBack = ::popRoute,
+                    onOpenTerminal = { agent -> pushRoute(AppRoute.CliTerminal(agent.id)) },
+                )
+            }
+            entry<AppRoute.CliTerminal>(swipeDismiss = swipeDismiss) { route ->
+                LaunchedEffect(Unit) { requestExecutionNotifications() }
+                RoutedShell(route = route) {
+                    TerminalEntryScreen(
+                        terminalStore = appViewModel.terminalStore,
+                        consoleStore = appViewModel.consoleStore,
+                        onOpenEnvironment = { pushRoute(AppRoute.LinuxEnvironment) },
+                        initialCommand = CliAgent.fromId(route.agentId)?.command,
                     )
                 }
             }

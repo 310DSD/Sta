@@ -1724,7 +1724,7 @@ private fun fileIcon(name: String, isDir: Boolean): ImageVector {
 @Composable
 private fun fileTint(name: String, isDir: Boolean): Color {
     if (isDir) return MiuixTheme.colorScheme.onSurface
-    val ext = name.substringAfterLast('.', "").lowercase(Locale.getDefault())
+    val ext = name.substringAfterLast('.', "").lowercase(Locale.ROOT)
     return when (ext) {
         "png", "jpg", "jpeg", "gif", "webp", "bmp", "svg", "ico" -> Color(0xFF16A34A)
         "mp4", "mkv", "webm", "avi", "mov", "3gp" -> Color(0xFFDB2777)

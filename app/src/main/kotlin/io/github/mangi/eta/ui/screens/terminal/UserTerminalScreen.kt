@@ -86,11 +86,13 @@ internal fun UserTerminalScreen(
     store: UserTerminalStore,
     onOpenEnvironment: () -> Unit,
     onOpenConsole: (() -> Unit)? = null,
+    initialCommand: String? = null,
 ) {
     val state by store.uiState.collectAsState()
     var input by remember { mutableStateOf("") }
     var showTasks by remember { mutableStateOf(false) }
     var showSessions by remember { mutableStateOf(false) }
+    var pendingCommand by remember { mutableStateOf(initialCommand) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     // 从安装页返回后刷新 Linux 就绪态，引导页才会自动让位给终端；守护任务状态一并刷新。
@@ -106,6 +108,14 @@ internal fun UserTerminalScreen(
     }
 
     val showLinuxGuide = state.environment.isLinux && !state.linuxReady
+
+    // 块式终端兜底：环境就绪且没有前台任务时执行一次 CLI 启动命令。
+    LaunchedEffect(state.linuxReady, state.running, pendingCommand) {
+        val command = pendingCommand ?: return@LaunchedEffect
+        if (!state.linuxReady || state.running) return@LaunchedEffect
+        pendingCommand = null
+        store.send(command)
+    }
 
     fun submit() {
         val command = input.trim()

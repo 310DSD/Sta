@@ -84,6 +84,8 @@ private enum class InstallTarget {
     OPENCODE,
     DSH,
     KIMI,
+    CODEX,
+    CLAUDE_CODE,
 }
 
 private fun InstallTarget.extensionAgent(): ExtensionAgent? = when (this) {
@@ -147,6 +149,20 @@ private val packageProfileUis = listOf(
         titleRes = R.string.linux_kimi_tools,
         summaryRes = R.string.linux_kimi_tools_summary,
         readyRes = R.string.linux_kimi_tools_ready,
+    ),
+    PackageProfileUi(
+        target = InstallTarget.CODEX,
+        profile = LinuxPackageProfiles.CODEX,
+        titleRes = R.string.linux_codex_tools,
+        summaryRes = R.string.linux_codex_tools_summary,
+        readyRes = R.string.linux_codex_tools_ready,
+    ),
+    PackageProfileUi(
+        target = InstallTarget.CLAUDE_CODE,
+        profile = LinuxPackageProfiles.CLAUDE_CODE,
+        titleRes = R.string.linux_claude_code_tools,
+        summaryRes = R.string.linux_claude_code_tools_summary,
+        readyRes = R.string.linux_claude_code_tools_ready,
     ),
 )
 
