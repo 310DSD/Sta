@@ -146,8 +146,14 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
   菜单只保留“智能体”总入口；页面内按字母排序列出 5 个 Agent 与“CLI 账号管理器”。WebView 的
   `+` 新建页弹窗也改为同一个总入口。
 - 新增 **ACP Workspace**：自研 Web GUI，使用 Claude/Codex 的 ACP adapter，bridge 监听
-  127.0.0.1:3210；支持会话、流式消息、工具卡、权限审批、计划/改动侧栏，页面按官方 desktop
-  风格实现。Codex App 入口已移除，CloudCLI 保留为兜底。
+  127.0.0.1:3210。Claude 与 Codex 分别采用暖白/陶土色与深色/白色品牌视觉，布局、字体、
+  工具卡、内联审批和 composer 按各自 remote / desktop 风格重做；模型、思考强度、Fast mode、
+  权限模式全部从 `configOptions` 读取并通过 `session/set_config_option` 切换。新增会话列表与恢复、
+  历史回放、图片附件、slash commands、计划、diff、usage、认证状态、诊断日志。
+- ACP bridge 改为每个 Agent 常驻 CLI 子进程：WebView 关闭/重载不会杀掉运行中的任务，重连后重放
+  认证状态与未完成审批。`AcpGuiInstaller` 通过实际 chroot/PRoot shell 写入 `server.mjs`、UI、
+  Geist/DM Sans/Instrument Serif 字体和品牌 SVG，避免 Android 侧直写 rootfs 路径。Codex App
+  入口已移除，CloudCLI 保留为兜底。
 - 终端页支持 `initialCommand`、`sessionTag` 与停止按钮：PTY 控制台按 Agent 标签隔离会话，首次
   连接后自动执行 `codex` / `claude`，返回页面不重复发送；停止后显示“CLI 已停止”并可重连。
   智能体页的 CLI 行新增后台启动/停止/打开，启动不强制跳转终端。PTY 不可用时显示“需要 PTY”占位，

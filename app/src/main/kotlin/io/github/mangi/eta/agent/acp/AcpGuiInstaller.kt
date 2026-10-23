@@ -17,12 +17,17 @@ import java.io.ByteArrayOutputStream
  * 保证终端里看到的 `/opt/eta/acp` 与 App 启动的 bridge 是同一份文件。
  */
 internal object AcpGuiInstaller {
-    private const val VERSION = "2"
+    private const val VERSION = "4"
     private val FILES = listOf(
         "acp/server.mjs" to "/opt/eta/acp/server.mjs",
         "acp/ui/index.html" to "/opt/eta/acp/ui/index.html",
         "acp/ui/app.js" to "/opt/eta/acp/ui/app.js",
         "acp/ui/style.css" to "/opt/eta/acp/ui/style.css",
+        "acp/ui/favicon.svg" to "/opt/eta/acp/ui/favicon.svg",
+        "acp/ui/fonts/geist-latin-wght-normal.woff2" to "/opt/eta/acp/ui/fonts/geist-latin-wght-normal.woff2",
+        "acp/ui/fonts/dm-sans-latin-wght-normal.woff2" to "/opt/eta/acp/ui/fonts/dm-sans-latin-wght-normal.woff2",
+        "acp/ui/fonts/instrument-serif-latin-400-normal.woff2" to "/opt/eta/acp/ui/fonts/instrument-serif-latin-400-normal.woff2",
+        "acp/ui/fonts/instrument-serif-latin-400-italic.woff2" to "/opt/eta/acp/ui/fonts/instrument-serif-latin-400-italic.woff2",
     )
 
     suspend fun install(
@@ -52,7 +57,7 @@ internal object AcpGuiInstaller {
     private fun buildCommand(context: Context): String {
         val command = StringBuilder()
         command.append("umask 077\n")
-        command.append("mkdir -p /opt/eta/acp/ui\n")
+        command.append("mkdir -p /opt/eta/acp/ui/fonts\n")
         FILES.forEach { (asset, target) ->
             val bytes = ByteArrayOutputStream().use { output ->
                 context.assets.open(asset).use { input -> input.copyTo(output) }

@@ -235,8 +235,15 @@ Codex 与 Claude Code 没有官方移动 Web UI，因此不接入 `ExtensionAgen
   不使用 T3 式编排提示；AGPL-3.0，包体和原生依赖较重。智能体页的 CLI 行支持后台启动、停止和打开。
 - **ACP Workspace**：自研 Web GUI，使用
   `@agentclientprotocol/claude-agent-acp` / `@agentclientprotocol/codex-acp`，bridge 监听
-  `127.0.0.1:3210`；前端提供会话、流式消息、工具卡、审批、计划/改动栏，按官方 desktop 风格
-  实现，不注入编排提示。Codex App 入口已移除，CloudCLI 保留。
+  `127.0.0.1:3210`。Claude 与 Codex 分别使用暖白/陶土色和深色/白色视觉，按各自 remote / desktop
+  的侧栏、会话流、工具卡、内联审批和 composer 重做；响应式适配手机与桌面。
+- 模型、思考强度、Fast mode、协作模式、权限模式都从 `session/new` / `config_option_update`
+  的 `configOptions` 读取，修改通过 `session/set_config_option` 回写；审批卡直接展示 adapter
+  返回的选项文本。支持会话列表/恢复、历史回放、图片输入、slash commands、计划、diff、usage、
+  认证状态与诊断日志，不注入编排提示。
+- bridge 为每个 Agent 维护常驻 CLI 子进程；WebView 断开只移除 socket，不杀 CLI。重连时重放
+  `_auth/status_update` 与未完成审批。ACP 资源由 `AcpGuiInstaller` 通过 chroot/PRoot shell 写入，
+  与终端看到的 `/opt/eta/acp` 一致。Codex App 入口已移除，CloudCLI 保留。
 - 终端页收到 `initialCommand` 后在 PTY 首次连接时执行 `codex` / `claude`；工具栏提供停止按钮，
   停止后显示“CLI 已停止”并可重连。PTY 不可用时显示“需要 PTY”占位，不把 TUI 命令丢进块式终端。
 - 已知边界：官方订阅账号在官方客户端之外使用可能违反服务条款；Codex 第三方模式按 Responses

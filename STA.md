@@ -82,9 +82,16 @@ Codex 与 Claude Code 是终端 TUI 型 Agent；Sta 同时提供内置 PTY 终�
   WebView 内完成 CloudCLI 本地账号初始化。CloudCLI 复用官方 Claude Code / Codex 会话与配置，
   不使用 T3 那种自己的编排提示；AGPL-3.0，包体和原生依赖较重（需 build-essential/python3）。
 - 新增 **ACP Workspace**：自研本地 Web GUI，通过 `@agentclientprotocol/claude-agent-acp`
-  和 `@agentclientprotocol/codex-acp` 连接官方 Claude Code / Codex；前端采用接近官方
-  desktop 的侧栏 + 会话流 + 工具卡 + 审批 + 计划/改动栏布局。ACP bridge 监听
-  `127.0.0.1:3210`，不注入编排提示，保留原生 system prompt、工具与会话。
+  和 `@agentclientprotocol/codex-acp` 连接官方 Claude Code / Codex。Claude 侧采用暖白/陶土色、
+  Codex 侧采用深色/白色终端标记，分别还原各自 remote / desktop 的侧栏、会话流、工具卡、内联审批
+  和底部 composer；移动端与桌面端共用同一套响应式布局。
+- 模型、思考强度、Fast mode、协作模式和权限模式全部从 ACP `configOptions` 实时读取，切换走
+  `session/set_config_option`；不再硬编码模型或权限。审批卡直接使用 adapter 返回的选项（Yes /
+  Allow for this session / Always allow / No），并在当前工具卡内完成。支持会话列表、恢复、历史回放、
+  图片附件、slash commands、计划、diff、usage、认证状态和诊断日志。
+- ACP bridge 监听 `127.0.0.1:3210`，每个 Agent 维护一个常驻 CLI 子进程；WebView 断开不会终止
+  正在运行的 CLI，重新连接会重放认证状态和未完成的审批请求。不注入编排提示，保留原生 system
+  prompt、工具与会话。
 - 账号页沿用 Eta 的 preference group / choice chip / arrow preference 语言；账号行可打开
   “模型设置”：在线拉取 `/models`、选择模型、设置上下文/最大输出/思考等级，也支持从 Eta
   当前 provider/model 同步。
