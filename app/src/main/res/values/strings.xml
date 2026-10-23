@@ -1626,4 +1626,11 @@
   <string name="cli_account_install_action">Open Linux tools</string>
   <string name="cli_terminal_requires_pty">Codex/Claude Code need a PTY terminal, which this device does not support.</string>
   <string name="cli_error_profile_override">The active Codex profile overrides the provider route; clear it before switching.</string>
+  <string name="cli_account_empty_summary">Add an account to switch between Codex / Claude Code logins.</string>
+  <string name="cli_account_add_section">Add account</string>
+  <string name="cli_account_add_summary">Add an official login, API key, or third-party provider for %1$s</string>
+  <string name="cli_account_install_section">Runtime</string>
+  <string name="webview_cli_agents">CLI agents</string>
+  <string name="webview_cli_agents_summary">Manage Codex / Claude Code accounts and terminals</string>
+  <string name="cli_account_list_section">Accounts</string>
 </resources>

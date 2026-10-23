@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Code
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -46,6 +47,7 @@ internal fun NewPageDialog(
     show: Boolean,
     onDismiss: () -> Unit,
     onOpenAgent: (ExtensionAgent) -> Unit,
+    onOpenCliAccounts: () -> Unit,
     onOpenFileManager: () -> Unit,
     onOpenUrl: (String) -> Unit,
 ) {
@@ -77,6 +79,19 @@ internal fun NewPageDialog(
                 title = ExtensionAgent.KIMI.displayName,
                 summary = stringResource(R.string.webview_agent_summary),
                 onClick = { onOpenAgent(ExtensionAgent.KIMI) },
+            )
+            QuickEntry(
+                icon = {
+                    Icon(
+                        imageVector = Icons.Rounded.Code,
+                        contentDescription = null,
+                        modifier = Modifier.size(22.dp),
+                        tint = MiuixTheme.colorScheme.primary,
+                    )
+                },
+                title = stringResource(R.string.webview_cli_agents),
+                summary = stringResource(R.string.webview_cli_agents_summary),
+                onClick = onOpenCliAccounts,
             )
             QuickEntry(
                 icon = {

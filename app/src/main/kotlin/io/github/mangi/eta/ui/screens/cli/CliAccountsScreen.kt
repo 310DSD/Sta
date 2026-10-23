@@ -4,17 +4,19 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.Download
+import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -25,7 +27,6 @@ import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
@@ -46,9 +47,19 @@ import io.github.mangi.eta.agent.terminal.LinuxEnvironmentPaths
 import io.github.mangi.eta.agent.terminal.LinuxPackageProfiles
 import io.github.mangi.eta.agent.terminal.linuxPackageProfileReady
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
-import io.github.mangi.eta.ui.components.EtaCard
+import io.github.mangi.eta.ui.components.EtaArrowPreference
+import io.github.mangi.eta.ui.components.EtaChoiceChip
+import io.github.mangi.eta.ui.components.EtaOverlayDialog
+import io.github.mangi.eta.ui.components.EtaPreference
+import io.github.mangi.eta.ui.components.EtaPreferenceColors
+import io.github.mangi.eta.ui.components.EtaPreferenceDefaults
+import io.github.mangi.eta.ui.components.EtaPreferenceDivider
+import io.github.mangi.eta.ui.components.EtaPreferenceGroup
+import io.github.mangi.eta.ui.components.EtaPreferenceGroupTitle
+import io.github.mangi.eta.ui.components.EtaPreferenceIcon
 import io.github.mangi.eta.ui.components.EtaTextButton
 import io.github.mangi.eta.ui.components.EtaWindowDialog
+import io.github.mangi.eta.ui.components.ListEmptyState
 import io.github.mangi.eta.ui.components.MiuixDialogActions
 import io.github.mangi.eta.ui.components.MiuixScaffoldPage
 import kotlinx.coroutines.CancellationException
@@ -151,12 +162,9 @@ internal fun CliAccountsScreen(
     }
 
     MiuixScaffoldPage(
-        title = stringResource(R.string.cli_agents_title),
+        title = stringResource(R.string.cli_accounts_title),
         onBack = onBack,
         actions = {
-            IconButton(onClick = { showAdd = true }, enabled = !busy) {
-                Icon(Icons.Rounded.Add, stringResource(R.string.cli_account_add), Modifier.size(22.dp))
-            }
             IconButton(
                 onClick = {
                     if (installed) onOpenTerminal(selectedAgent) else toast(installHintText)
@@ -169,111 +177,96 @@ internal fun CliAccountsScreen(
     ) {
         item(key = "agents") {
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = EtaPreferenceDefaults.SidePadding)
+                    .padding(top = 8.dp, bottom = 4.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 CliAgent.entries.forEach { agent ->
-                    EtaTextButton(
+                    EtaChoiceChip(
                         text = agent.displayName,
+                        selected = selectedAgent == agent,
                         onClick = { selectedAgent = agent },
                         enabled = !busy,
-                        modifier = Modifier.weight(1f),
                     )
                 }
             }
         }
+
         if (!installed) {
-            item(key = "install-hint") {
-                Text(
-                    text = installHintText,
-                    style = MiuixTheme.textStyles.footnote2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-                )
-            }
-            item(key = "install-action") {
-                EtaTextButton(
-                    text = stringResource(R.string.cli_account_install_action),
-                    onClick = onOpenLinuxEnvironment,
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
-                )
+            item(key = "install") {
+                EtaPreferenceGroupTitle(stringResource(R.string.cli_account_install_section))
+                EtaPreferenceGroup {
+                    EtaArrowPreference(
+                        title = stringResource(R.string.cli_account_install_action),
+                        summary = installHintText,
+                        startAction = {
+                            EtaPreferenceIcon(Icons.Rounded.Download, tint = EtaPreferenceColors.Blue)
+                        },
+                        onClick = onOpenLinuxEnvironment,
+                    )
+                }
             }
         }
-        if (accounts.isEmpty()) {
-            item(key = "empty") {
-                Text(
-                    text = stringResource(R.string.cli_account_empty),
-                    style = MiuixTheme.textStyles.footnote1,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 24.dp),
-                )
-            }
-        }
-        items(accounts, key = { it.id }) { account ->
-            EtaCard(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
-                insideMargin = PaddingValues(0.dp),
-            ) {
-                Column(Modifier.padding(14.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Column(Modifier.weight(1f)) {
-                            Text(text = account.name, style = MiuixTheme.textStyles.body2)
-                            Text(
-                                text = account.kind.label(),
-                                style = MiuixTheme.textStyles.footnote2,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                            )
-                        }
-                        if (account.id == activeId) {
-                            Text(
-                                text = stringResource(R.string.cli_account_active),
-                                style = MiuixTheme.textStyles.footnote2,
-                                color = MiuixTheme.colorScheme.primary,
-                            )
-                        }
-                    }
-                    if (account.kind != CliAccountKind.OFFICIAL) {
-                        val detail = listOf(account.baseUrl, account.model).filter(String::isNotBlank).joinToString(" · ")
-                        if (detail.isNotBlank()) {
-                            Text(
-                                text = detail,
-                                style = MiuixTheme.textStyles.footnote2,
-                                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                                maxLines = 1,
-                            )
-                        }
-                    }
-                    Spacer(Modifier.height(6.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        EtaTextButton(
-                            text = stringResource(R.string.cli_account_switch),
-                            onClick = { switchTo(account) },
-                            enabled = !busy && account.id != activeId,
-                        )
-                        EtaTextButton(
-                            text = stringResource(R.string.cli_account_delete),
-                            onClick = { deleteTarget = account },
-                            enabled = !busy,
+
+        item(key = "accounts") {
+            EtaPreferenceGroupTitle(stringResource(R.string.cli_account_list_section))
+            EtaPreferenceGroup {
+                if (accounts.isEmpty()) {
+                    ListEmptyState(
+                        title = stringResource(R.string.cli_account_empty),
+                        summary = stringResource(R.string.cli_account_empty_summary),
+                        icon = Icons.Rounded.Terminal,
+                    )
+                } else {
+                    accounts.forEachIndexed { index, account ->
+                        if (index > 0) EtaPreferenceDivider()
+                        AccountPreference(
+                            account = account,
+                            active = account.id == activeId,
+                            busy = busy,
+                            onSwitch = { switchTo(account) },
+                            onDelete = { deleteTarget = account },
                         )
                     }
                 }
             }
         }
-        item(key = "official-hint") {
-            Text(
-                text = stringResource(R.string.cli_account_official_hint),
-                style = MiuixTheme.textStyles.footnote2,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
-            )
+
+        item(key = "add") {
+            EtaPreferenceGroupTitle(stringResource(R.string.cli_account_add_section))
+            EtaPreferenceGroup {
+                EtaArrowPreference(
+                    title = stringResource(R.string.cli_account_add),
+                    summary = stringResource(R.string.cli_account_add_summary, selectedAgent.displayName),
+                    startAction = {
+                        EtaPreferenceIcon(Icons.Rounded.Add, tint = EtaPreferenceColors.Blue)
+                    },
+                    onClick = { showAdd = true },
+                )
+            }
         }
-        item(key = "security-hint") {
-            Text(
-                text = stringResource(R.string.cli_account_security_hint),
-                style = MiuixTheme.textStyles.footnote2,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
-            )
+
+        item(key = "hints") {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 32.dp)
+                    .padding(top = 2.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.cli_account_official_hint),
+                    style = MiuixTheme.textStyles.footnote2,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = stringResource(R.string.cli_account_security_hint),
+                    style = MiuixTheme.textStyles.footnote2,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                )
+            }
         }
     }
 
@@ -298,7 +291,7 @@ internal fun CliAccountsScreen(
     }
 
     deleteTarget?.let { account ->
-        EtaWindowDialog(
+        EtaOverlayDialog(
             show = true,
             title = stringResource(R.string.cli_account_delete),
             summary = account.name,
@@ -316,6 +309,62 @@ internal fun CliAccountsScreen(
             )
         }
     }
+}
+
+@Composable
+private fun AccountPreference(
+    account: CliAccount,
+    active: Boolean,
+    busy: Boolean,
+    onSwitch: () -> Unit,
+    onDelete: () -> Unit,
+) {
+    val icon = when (account.kind) {
+        CliAccountKind.OFFICIAL -> Icons.Rounded.AccountCircle
+        CliAccountKind.API_KEY -> Icons.Rounded.Key
+        CliAccountKind.THIRD_PARTY -> Icons.Rounded.Cloud
+    }
+    val detail = buildString {
+        append(account.kind.label())
+        val extra = listOf(account.baseUrl, account.model)
+            .filter(String::isNotBlank)
+            .joinToString(" · ")
+        if (extra.isNotBlank()) append(" · ").append(extra)
+    }
+    EtaPreference(
+        title = account.name,
+        summary = detail,
+        startAction = { EtaPreferenceIcon(icon, tint = EtaPreferenceColors.Blue) },
+        endActions = {
+            if (active) {
+                Text(
+                    text = stringResource(R.string.cli_account_active),
+                    style = MiuixTheme.textStyles.footnote1,
+                    color = MiuixTheme.colorScheme.primary,
+                )
+            }
+        },
+        bottomAction = {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                EtaTextButton(
+                    text = stringResource(R.string.cli_account_switch),
+                    onClick = onSwitch,
+                    enabled = !busy && !active,
+                    modifier = Modifier.weight(1f),
+                )
+                EtaTextButton(
+                    text = stringResource(R.string.cli_account_delete),
+                    onClick = onDelete,
+                    enabled = !busy,
+                    modifier = Modifier.weight(1f),
+                )
+            }
+        },
+        onClick = if (!busy && !active) onSwitch else null,
+    )
 }
 
 @Composable
@@ -350,17 +399,17 @@ private fun AddCliAccountDialog(
         onDismissRequest = onDismiss,
     ) {
         Column {
-            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CliAccountKind.entries.forEach { option ->
-                    EtaTextButton(
+                    EtaChoiceChip(
                         text = option.shortLabel(),
+                        selected = kind == option,
                         onClick = { kind = option },
                         enabled = !importing,
-                        modifier = Modifier.weight(1f),
                     )
                 }
             }
-            Spacer(Modifier.height(8.dp))
+            Spacer(Modifier.height(10.dp))
             TextField(
                 value = name,
                 onValueChange = { name = it },

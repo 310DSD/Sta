@@ -72,9 +72,11 @@ Codex 与 Claude Code 是终端 TUI 型 Agent，没有官方移动 Web UI，Sta 
 
 - Linux 工具页新增 Codex（`@openai/codex@0.164.0`）与 Claude Code（`@anthropic-ai/claude-code@2.1.309`）
   安装行，依赖 Node.js；安装脚本固定版本，可重复执行。
-- 首页溢出菜单新增“CLI 智能体”，按 Agent 管理账号；账号页右上角可直接打开该 Agent 的终端标签，
+- 首页溢出菜单新增“CLI 智能体”，账号页右上角可直接打开该 Agent 的终端标签，
   进入后自动执行 `codex` / `claude`。终端会话按 Agent 标签隔离，Codex 与 Claude Code 各自保留
   自己的 PTY，可在终端会话列表切换。
+- 账号页沿用 Eta 的 preference group / choice chip / arrow preference 语言；内置 WebView 的
+  `+` 新建页面弹窗也提供“CLI 智能体”快速入口。
 - 账号类型：官方账号（只导入 CLI 自己生成的登录文件）、官方 API Key、第三方兼容端点
   （baseURL + key + model）。
 - 切换语义参考 CC Switch：只改连接信息与 Sta 自己的 provider 表，保留 hooks、MCP、profiles、

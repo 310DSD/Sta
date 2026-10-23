@@ -40,6 +40,7 @@ import io.github.mangi.eta.R
 import io.github.mangi.eta.data.model.AppearanceSettings
 import io.github.mangi.eta.data.repository.AppearanceSettingsRepository
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
+import io.github.mangi.eta.ui.MainActivity
 import io.github.mangi.eta.ui.app.AgentAppTheme
 import io.github.mangi.eta.ui.app.ExtensionAgentLaunchResult
 import io.github.mangi.eta.ui.app.ExtensionAgentLauncher
@@ -131,6 +132,10 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                         onOpenAgent = { agent ->
                             newPageDialog = false
                             launchAgent(agent)
+                        },
+                        onOpenCliAccounts = {
+                            newPageDialog = false
+                            openCliAccounts()
                         },
                         onOpenFileManager = {
                             newPageDialog = false
@@ -313,6 +318,13 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         startActivity(
             Intent(this, LinuxFileManagerActivity::class.java)
                 .putExtra(LinuxFileManagerActivity.EXTRA_DISTRIBUTION, distribution.wireName),
+        )
+    }
+
+    private fun openCliAccounts() {
+        startActivity(
+            Intent(this, MainActivity::class.java)
+                .setAction(MainActivity.ACTION_OPEN_CLI_AGENTS),
         )
     }
 

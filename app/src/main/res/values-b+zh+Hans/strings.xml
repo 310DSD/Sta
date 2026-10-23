@@ -1604,4 +1604,11 @@
   <string name="cli_account_install_action">打开 Linux 工具页</string>
   <string name="cli_terminal_requires_pty">Codex/Claude Code 需要 PTY 终端，当前设备不支持。</string>
   <string name="cli_error_profile_override">当前 Codex profile 覆盖了 provider 选路，请先清除该 profile 再切换。</string>
+  <string name="cli_account_empty_summary">添加账号后即可在 Codex / Claude Code 登录之间切换。</string>
+  <string name="cli_account_add_section">添加账号</string>
+  <string name="cli_account_add_summary">为 %1$s 添加官方登录、API Key 或第三方提供商</string>
+  <string name="cli_account_install_section">运行环境</string>
+  <string name="webview_cli_agents">CLI 智能体</string>
+  <string name="webview_cli_agents_summary">管理 Codex / Claude Code 账号与终端</string>
+  <string name="cli_account_list_section">账号</string>
 </resources>
