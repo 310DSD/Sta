@@ -462,13 +462,13 @@ fun AgentAppRoot(
                     onOpenWebAgent = ::launchExtensionAgent,
                     onOpenCliAgent = { agent -> pushRoute(AppRoute.CliTerminal(agent.id)) },
                     onOpenCliAccounts = { pushRoute(AppRoute.CliAgents) },
-                    onOpenT3Code = { launchExtensionAgent(ExtensionAgent.T3_CODE) },
+                    onOpenCloudCli = { launchExtensionAgent(ExtensionAgent.CLOUDCLI) },
                     onOpenLinuxEnvironment = { pushRoute(AppRoute.LinuxEnvironment) },
                     runningCliTags = runningCliTags,
                     runningExtensionAgents = appViewModel.runningExtensionAgents,
                     onStartCliAgent = { agent -> appViewModel.consoleStore.startTaggedSession(agent.id, agent.command) },
                     onStopCliAgent = { agent -> appViewModel.consoleStore.closeSessionsByTag(agent.id) },
-                    onStopT3Code = { appViewModel.stopExtensionAgent(ExtensionAgent.T3_CODE) },
+                    onStopCloudCli = { appViewModel.stopExtensionAgent(ExtensionAgent.CLOUDCLI) },
                 )
             }
             entry<AppRoute.Browser>(swipeDismiss = swipeDismiss) {

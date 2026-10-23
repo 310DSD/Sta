@@ -117,25 +117,10 @@ internal object LinuxPackageProfiles {
             "@openai/codex@0.164.0 || " +
             "npm install -g --prefix /usr/local --include=optional @openai/codex@0.164.0"
 
-    private val T3_CODE_INSTALL_SCRIPT = """
-        set -eu
-        VERSION=0.1.2
-        FILE="t3-${'$'}{VERSION}-linux-arm64.tar.gz"
-        URL="https://github.com/pingdotgg/t3code/releases/download/v${'$'}{VERSION}/${'$'}{FILE}"
-        MIRROR="https://gh-proxy.com/${'$'}{URL}"
-        TMP="/tmp/${'$'}{FILE}"
-        curl -fL --retry 2 "${'$'}{MIRROR}" -o "${'$'}{TMP}" || curl -fL --retry 2 "${'$'}{URL}" -o "${'$'}{TMP}"
-        if ! echo "df112e1f19772b4055a28c97b032eb6d038d5d7182015f1cafd3254ad6fabd0f  ${'$'}{TMP}" | sha256sum -c -; then
-            curl -fL --retry 2 "${'$'}{URL}" -o "${'$'}{TMP}"
-            echo "df112e1f19772b4055a28c97b032eb6d038d5d7182015f1cafd3254ad6fabd0f  ${'$'}{TMP}" | sha256sum -c -
-        fi
-        rm -rf /opt/eta/t3
-        mkdir -p /opt/eta/t3
-        tar -xzf "${'$'}{TMP}" -C /opt/eta/t3 --strip-components=1
-        ln -sf /opt/eta/t3/t3 /usr/local/bin/t3
-        rm -f "${'$'}{TMP}"
-        t3 --version
-    """.trimIndent()
+    private const val CLOUDCLI_INSTALL_SCRIPT =
+        "npm install -g --prefix /usr/local --include=optional " +
+            "--registry=https://registry.npmmirror.com @cloudcli-ai/cloudcli@1.37.5 || " +
+            "npm install -g --prefix /usr/local --include=optional @cloudcli-ai/cloudcli@1.37.5"
 
     private const val CLAUDE_CODE_INSTALL_SCRIPT =
         "npm install -g --prefix /usr/local --include=optional --registry=https://registry.npmmirror.com " +
@@ -879,25 +864,32 @@ internal object LinuxPackageProfiles {
         ),
     )
 
-    val T3_CODE = LinuxPackageProfile(
-        id = "t3code",
-        markerName = AlpineEnvironmentPaths.T3_CODE_TOOLS_MARKER,
-        revision = AlpineEnvironmentPaths.T3_CODE_TOOLS_REVISION,
+    val CLOUDCLI = LinuxPackageProfile(
+        id = "cloudcli",
+        markerName = AlpineEnvironmentPaths.CLOUDCLI_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.CLOUDCLI_TOOLS_REVISION,
+        dependsOn = NODE,
         installTimeoutSeconds = 3600L,
         specs = mapOf(
-            // T3 Code 的官方 Linux 二进制是 glibc 构建，Alpine/musl 不支持。
             LinuxDistribution.ALPINE to LinuxPackageSpec(
-                setupScript = "echo 'T3 Code requires Debian (glibc); Alpine is not supported.' >&2; exit 1",
+                packages = listOf("build-base", "python3", "linux-headers", "sqlite-dev", "pkgconf"),
+                setupScript = CLOUDCLI_INSTALL_SCRIPT,
+                verifyCommand = "command -v cloudcli >/dev/null && cloudcli --version >/dev/null",
             ),
             LinuxDistribution.DEBIAN to LinuxPackageSpec(
-                packages = listOf("curl", "ca-certificates", "tar", "gzip", "coreutils", "libatomic1", "libstdc++6", "libsecret-1-0"),
-                setupScript = T3_CODE_INSTALL_SCRIPT,
-                verifyCommand = "command -v t3 >/dev/null && t3 --version >/dev/null",
+                packages = listOf(
+                    "build-essential",
+                    "python3",
+                    "libsqlite3-dev",
+                    "pkg-config",
+                ),
+                setupScript = CLOUDCLI_INSTALL_SCRIPT,
+                verifyCommand = "command -v cloudcli >/dev/null && cloudcli --version >/dev/null",
             ),
         ),
     )
 
-    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, DSH, KIMI, CODEX, CLAUDE_CODE, T3_CODE)
+    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, DSH, KIMI, CODEX, CLAUDE_CODE, CLOUDCLI)
 }
 
 internal fun linuxPackageProfileReady(rootfs: File, profile: LinuxPackageProfile): Boolean {

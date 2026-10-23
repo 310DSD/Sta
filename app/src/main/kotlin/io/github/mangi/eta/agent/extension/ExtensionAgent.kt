@@ -80,15 +80,18 @@ internal enum class ExtensionAgent(
         webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):\d+(?:/[A-Za-z0-9/?:=&._~%+#-]*)?"""),
         terminalCommand = "dsh",
     ),
-    T3_CODE(
-        id = "t3code",
-        displayName = "T3 Code",
-        packageProfileId = "t3code",
-        // `t3 serve` 是 headless 模式，会打印带 token 的 pairing URL 并保持前台运行。
-        webCommand = "t3 serve --host 127.0.0.1 --port 3773",
-        acceptedCommands = setOf("t3 serve --host 127.0.0.1 --port 3773", "t3 serve"),
-        webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):3773/pair#token=[A-Za-z0-9._~%+\-]+"""),
-        terminalCommand = "t3",
+    CLOUDCLI(
+        id = "cloudcli",
+        displayName = "CloudCLI",
+        packageProfileId = "cloudcli",
+        // 绑定 loopback，避免 CloudCLI 默认监听 0.0.0.0；首次启动在 WebView 内完成本地账号初始化。
+        webCommand = "HOST=127.0.0.1 SERVER_PORT=3001 cloudcli --port 3001",
+        acceptedCommands = setOf(
+            "HOST=127.0.0.1 SERVER_PORT=3001 cloudcli --port 3001",
+            "cloudcli --port 3001",
+        ),
+        webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):3001(?:/[A-Za-z0-9/?:=&._~%+#-]*)?"""),
+        terminalCommand = "cloudcli",
     ),
     ;
 

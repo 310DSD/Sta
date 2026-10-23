@@ -4,7 +4,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -24,8 +23,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import top.yukonga.miuix.kmp.basic.Text
-import top.yukonga.miuix.kmp.theme.MiuixTheme
 import io.github.mangi.eta.R
 import io.github.mangi.eta.agent.cli.CliAgent
 import io.github.mangi.eta.agent.extension.ExtensionAgent
@@ -51,17 +48,17 @@ internal fun AgentsScreen(
     onOpenWebAgent: (ExtensionAgent) -> Unit,
     onOpenCliAgent: (CliAgent) -> Unit,
     onOpenCliAccounts: () -> Unit,
-    onOpenT3Code: () -> Unit,
+    onOpenCloudCli: () -> Unit,
     onOpenLinuxEnvironment: () -> Unit,
     runningCliTags: Set<String>,
     runningExtensionAgents: Set<ExtensionAgent>,
     onStartCliAgent: (CliAgent) -> Unit,
     onStopCliAgent: (CliAgent) -> Unit,
-    onStopT3Code: () -> Unit,
+    onStopCloudCli: () -> Unit,
 ) {
     val context = LocalContext.current
     val webAgents = remember {
-        ExtensionAgent.entries.filter { it != ExtensionAgent.T3_CODE }.sortedBy { it.displayName.lowercase() }
+        ExtensionAgent.entries.filter { it != ExtensionAgent.CLOUDCLI }.sortedBy { it.displayName.lowercase() }
     }
     val cliAgents = remember { CliAgent.entries.sortedBy { it.displayName.lowercase() } }
     val distribution = LinuxEnvironmentSettingsRepository.current(context)
@@ -77,9 +74,9 @@ internal fun AgentsScreen(
             }
         }
     }
-    val t3Installed by produceState(false, distribution, backend) {
+    val cloudCliInstalled by produceState(false, distribution, backend) {
         value = withContext(Dispatchers.IO) {
-            linuxPackageProfileReady(rootfs, LinuxPackageProfiles.T3_CODE)
+            linuxPackageProfileReady(rootfs, LinuxPackageProfiles.CLOUDCLI)
         }
     }
 
@@ -153,13 +150,13 @@ internal fun AgentsScreen(
                     )
                 }
                 EtaPreferenceDivider()
-                val t3Running = ExtensionAgent.T3_CODE in runningExtensionAgents
-                val t3Summary = when {
-                    !t3Installed -> stringResource(R.string.cli_account_install_hint)
-                    t3Running -> stringResource(R.string.cli_agent_running)
-                    else -> stringResource(R.string.agents_t3_code_summary)
+                val cloudCliRunning = ExtensionAgent.CLOUDCLI in runningExtensionAgents
+                val cloudCliSummary = when {
+                    !cloudCliInstalled -> stringResource(R.string.cli_account_install_hint)
+                    cloudCliRunning -> stringResource(R.string.cli_agent_running)
+                    else -> stringResource(R.string.agents_cloudcli_summary)
                 }
-                val t3Actions: (@Composable () -> Unit)? = if (t3Installed) {
+                val cloudCliActions: (@Composable () -> Unit)? = if (cloudCliInstalled) {
                     {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -167,14 +164,14 @@ internal fun AgentsScreen(
                         ) {
                             EtaTextButton(
                                 text = stringResource(
-                                    if (t3Running) R.string.cli_stop_running else R.string.cli_start_running,
+                                    if (cloudCliRunning) R.string.cli_stop_running else R.string.cli_start_running,
                                 ),
-                                onClick = if (t3Running) onStopT3Code else onOpenT3Code,
+                                onClick = if (cloudCliRunning) onStopCloudCli else onOpenCloudCli,
                                 modifier = Modifier.weight(1f),
                             )
                             EtaTextButton(
                                 text = stringResource(R.string.cli_account_open),
-                                onClick = onOpenT3Code,
+                                onClick = onOpenCloudCli,
                                 modifier = Modifier.weight(1f),
                             )
                         }
@@ -183,24 +180,18 @@ internal fun AgentsScreen(
                     null
                 }
                 EtaArrowPreference(
-                    title = stringResource(R.string.agents_t3_code),
-                    summary = t3Summary,
+                    title = stringResource(R.string.agents_cloudcli),
+                    summary = cloudCliSummary,
                     startAction = {
                         EtaPreferenceIcon(
-                            icon = if (t3Running) Icons.Rounded.Stop else Icons.Rounded.Web,
-                            tint = if (t3Running) EtaPreferenceColors.Red else EtaPreferenceColors.Blue,
+                            icon = if (cloudCliRunning) Icons.Rounded.Stop else Icons.Rounded.Web,
+                            tint = if (cloudCliRunning) EtaPreferenceColors.Red else EtaPreferenceColors.Blue,
                         )
                     },
-                    bottomAction = t3Actions,
+                    bottomAction = cloudCliActions,
                     onClick = {
-                        if (t3Installed) onOpenT3Code() else onOpenLinuxEnvironment()
+                        if (cloudCliInstalled) onOpenCloudCli() else onOpenLinuxEnvironment()
                     },
-                )
-                Text(
-                    text = stringResource(R.string.agents_t3_code_injection_note),
-                    style = MiuixTheme.textStyles.footnote2,
-                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
-                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                 )
             }
         }
@@ -226,7 +217,7 @@ private fun WebAgentIcon(agent: ExtensionAgent) {
         ExtensionAgent.OPENCODE -> R.drawable.ic_opencode
         ExtensionAgent.DSH -> R.drawable.provider_logo_deepseek
         ExtensionAgent.KIMI -> R.drawable.provider_logo_kimi
-        ExtensionAgent.T3_CODE -> R.drawable.ic_opencode
+        ExtensionAgent.CLOUDCLI -> R.drawable.ic_opencode
     }
     Image(
         painter = painterResource(res),

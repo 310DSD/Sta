@@ -134,12 +134,10 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 - 新增 `CliAccountsScreen`（Miuix 页面）：使用 Eta 的 preference group、choice chip、arrow
   preference 与 overlay dialog 语言；支持 Agent 切换、添加/删除/切换账号、安装提示与跳转、
   直接打开终端；API Key 输入做密码遮罩；账号文件位于 App 私有 `noBackupFilesDir/cli_accounts.json`。
-- 新增 **T3 Code GUI**：安装 T3 Code v0.1.2 的 Linux arm64 自包含 CLI，启动
-  `t3 serve --host 127.0.0.1 --port 3773`，从日志提取带 token 的 pairing URL 交给
-  `ExtensionAgentWebActivity`；入口在“智能体 → CLI”分组，Linux 工具页有安装行。
-  T3 Code 目前是 very early；官方 Linux 二进制为 glibc 构建，Alpine/musl 不支持。
-  对 T3 WebView 注入移动 CSS，降低动画/backdrop 开销；T3 自身仍会追加系统提示与 MCP 工具，
-  上游 0.1.2 暂无关閉项。
+- 新增 **CloudCLI GUI**：npm 全局安装 `@cloudcli-ai/cloudcli@1.37.5`，以
+  `HOST=127.0.0.1 SERVER_PORT=3001 cloudcli --port 3001` 启动本地 Web UI，入口在
+  “智能体 → CLI”分组，Linux 工具页有安装行。CloudCLI 复用官方 Claude Code / Codex
+  会话与配置，不使用 T3 式编排提示；AGPL-3.0，包体和原生依赖较重。
 - 账号行新增“模型设置”：在线拉取 `/models`、选择模型、设置上下文/最大输出/思考等级；
   “从 Eta 同步”可从当前 provider/model 填充连接信息与模型参数。Codex 写
   `model_context_window` / `model_reasoning_effort`，Claude 写
@@ -159,7 +157,7 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 - `compileDebugKotlin`、`assembleDebug`、`assembleRelease`、`lintDebug` 通过；release APK 使用
   `CN=Sta Fork` 证书签名。
 - `CliConfigEditorsTest`（12 个用例）覆盖 Codex 官方/API Key/第三方切换、上下文/思考等级、profile 覆盖拒绝、Claude 合并与非法 JSON、官方登录格式校验；`AppRouteSerializationTest` 覆盖新增路由，
-  `ExtensionAgentTest` 覆盖 T3 Code headless 命令与 pairing URL，`AlpineEnvironmentInstallerTest` 覆盖两个 CLI 与 T3 Code 安装脚本，`EtaDatabaseMigrationTest` 覆盖 DB v24 迁移。
+  `ExtensionAgentTest` 覆盖 CloudCLI 启动命令与 loopback URL，`AlpineEnvironmentInstallerTest` 覆盖两个 CLI 与 CloudCLI 安装脚本，`EtaDatabaseMigrationTest` 覆盖 DB v24 迁移。
 - 受上游 ARM64-only 打包限制，x86_64 模拟器无法安装最终 APK；CLI 安装/登录需在 ARM64 设备或
   root/chroot 环境中实机验证。
 

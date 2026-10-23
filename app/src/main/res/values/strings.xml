@@ -1659,13 +1659,12 @@
   <string name="webview_agents">Agents</string>
   <string name="webview_agents_summary">Web and CLI agents, plus the CLI account manager</string>
   <string name="cli_stopped">CLI stopped</string>
-  <string name="agents_t3_code">T3 Code GUI</string>
-  <string name="agents_t3_code_summary">Claude Code / Codex GUI (Debian)</string>
-  <string name="linux_t3_code_tools">T3 Code GUI</string>
-  <string name="linux_t3_code_tools_summary">Install T3 Code self-hosted GUI for Claude Code / Codex; Debian only</string>
-  <string name="linux_t3_code_tools_ready">T3 Code GUI is ready</string>
+  <string name="agents_cloudcli">CloudCLI</string>
+  <string name="agents_cloudcli_summary">Claude Code / Codex GUI</string>
+  <string name="linux_cloudcli_tools">CloudCLI</string>
+  <string name="linux_cloudcli_tools_summary">Install CloudCLI self-hosted GUI for Claude Code / Codex</string>
+  <string name="linux_cloudcli_tools_ready">CloudCLI GUI is ready</string>
   <string name="cli_start_running">Start</string>
   <string name="cli_agent_running">Running</string>
   <string name="cli_account_open">Open</string>
-  <string name="agents_t3_code_injection_note">T3 Code injects its own system prompt and MCP tools; upstream has no opt-out yet.</string>
 </resources>
