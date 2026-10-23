@@ -6,6 +6,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.mangi.eta.agent.acp.AcpGuiInstaller
 import io.github.mangi.eta.agent.extension.ExtensionAgent
 import io.github.mangi.eta.agent.extension.OpenCodeProviderConfig
 import io.github.mangi.eta.agent.terminal.DetachedTaskSupervisor
@@ -154,6 +155,20 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
         extensionAgentJob = viewModelScope.launch {
             val distribution = LinuxEnvironmentSettingsRepository.current(getApplication())
             val backend = LinuxEnvironmentSettingsRepository.backend(getApplication(), distribution)
+            if (agent == ExtensionAgent.ACP) {
+                val assetsReady = withContext(Dispatchers.IO) {
+                    AcpGuiInstaller.install(getApplication(), distribution, backend)
+                }
+                if (!assetsReady) {
+                    val failure = ExtensionAgentLaunchResult.Failed(
+                        "LINUX_ENVIRONMENT_NOT_READY",
+                        "ACP assets could not be installed",
+                    )
+                    extensionAgentState = ExtensionAgentUiState(agent, ExtensionAgentPhase.FAILED, failure.code)
+                    onFinished(failure)
+                    return@launch
+                }
+            }
             val runningUrl = withContext(Dispatchers.IO) {
                 extensionAgentLauncher.openRunning(agent, distribution.terminalEnvironment, backend)
             }

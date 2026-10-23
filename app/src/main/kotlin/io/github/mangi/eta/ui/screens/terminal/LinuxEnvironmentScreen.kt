@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.mangi.eta.EtaApp
 import io.github.mangi.eta.R
+import io.github.mangi.eta.agent.acp.AcpGuiInstaller
 import io.github.mangi.eta.agent.cli.CliAgent
 import io.github.mangi.eta.agent.extension.ExtensionAgent
 import io.github.mangi.eta.agent.terminal.AlpineEnvironmentInstaller
@@ -362,15 +363,24 @@ internal fun LinuxEnvironmentScreen(
         launchingAgent = agent
         resultMessage = null
         val operation: suspend () -> Unit = {
-            val result = extensionAgentLauncher.launch(agent, selectedDistribution.terminalEnvironment, backend)
-            withContext(Dispatchers.Main.immediate) {
-                launchingAgent = null
-                if (result is ExtensionAgentLaunchResult.Failed) {
-                    resultMessage = result.message(context)
-                } else {
-                    runningAgents = runningAgents + agent
-                    // 最近一次成功启动的 Agent 作为首页顶栏默认入口。
-                    ExtensionAgentSettingsRepository.select(agent)
+            val assetsReady = agent != ExtensionAgent.ACP ||
+                AcpGuiInstaller.install(appContext, selectedDistribution, backend)
+            if (!assetsReady) {
+                withContext(Dispatchers.Main.immediate) {
+                    launchingAgent = null
+                    resultMessage = context.getString(R.string.capability_background_failed)
+                }
+            } else {
+                val result = extensionAgentLauncher.launch(agent, selectedDistribution.terminalEnvironment, backend)
+                withContext(Dispatchers.Main.immediate) {
+                    launchingAgent = null
+                    if (result is ExtensionAgentLaunchResult.Failed) {
+                        resultMessage = result.message(context)
+                    } else {
+                        runningAgents = runningAgents + agent
+                        // 最近一次成功启动的 Agent 作为首页顶栏默认入口。
+                        ExtensionAgentSettingsRepository.select(agent)
+                    }
                 }
             }
         }
