@@ -1575,4 +1575,9 @@
   <string name="cli_start_running">啟動</string>
   <string name="cli_agent_running">執行中</string>
   <string name="cli_account_open">開啟</string>
+  <string name="agents_codexapp">Codex App</string>
+  <string name="agents_codexapp_summary">原生 Codex app-server 圖形介面</string>
+  <string name="linux_codexapp_tools">Codex App</string>
+  <string name="linux_codexapp_tools_summary">安裝基於 Codex app-server 的 Codex App 瀏覽器 GUI</string>
+  <string name="linux_codexapp_tools_ready">Codex App 圖形介面已就緒</string>
 </resources>

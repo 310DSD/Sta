@@ -17,6 +17,7 @@ internal object AlpineEnvironmentPaths {
     const val CODEX_TOOLS_MARKER = ".eta-codex-tools-ready"
     const val CLAUDE_CODE_TOOLS_MARKER = ".eta-claude-code-tools-ready"
     const val CLOUDCLI_TOOLS_MARKER = ".eta-cloudcli-tools-ready"
+    const val CODEXAPP_TOOLS_MARKER = ".eta-codexapp-tools-ready"
     const val TOOLSET_REVISION = 1
     const val APK_ANALYSIS_REVISION = 1
     const val PYTHON_TOOLS_REVISION = 1
@@ -34,6 +35,7 @@ internal object AlpineEnvironmentPaths {
     const val CODEX_TOOLS_REVISION = 1
     const val CLAUDE_CODE_TOOLS_REVISION = 1
     const val CLOUDCLI_TOOLS_REVISION = 1
+    const val CODEXAPP_TOOLS_REVISION = 1
 
     fun environmentDir(context: Context): File =
         LinuxEnvironmentPaths.environmentDir(context, LinuxDistribution.ALPINE)

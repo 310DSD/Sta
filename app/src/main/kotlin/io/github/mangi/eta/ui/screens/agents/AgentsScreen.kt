@@ -49,16 +49,19 @@ internal fun AgentsScreen(
     onOpenCliAgent: (CliAgent) -> Unit,
     onOpenCliAccounts: () -> Unit,
     onOpenCloudCli: () -> Unit,
+    onOpenCodexApp: () -> Unit,
     onOpenLinuxEnvironment: () -> Unit,
     runningCliTags: Set<String>,
     runningExtensionAgents: Set<ExtensionAgent>,
     onStartCliAgent: (CliAgent) -> Unit,
     onStopCliAgent: (CliAgent) -> Unit,
     onStopCloudCli: () -> Unit,
+    onStopCodexApp: () -> Unit,
 ) {
     val context = LocalContext.current
     val webAgents = remember {
-        ExtensionAgent.entries.filter { it != ExtensionAgent.CLOUDCLI }.sortedBy { it.displayName.lowercase() }
+        ExtensionAgent.entries.filter { it != ExtensionAgent.CLOUDCLI && it != ExtensionAgent.CODEXAPP }
+            .sortedBy { it.displayName.lowercase() }
     }
     val cliAgents = remember { CliAgent.entries.sortedBy { it.displayName.lowercase() } }
     val distribution = LinuxEnvironmentSettingsRepository.current(context)
@@ -77,6 +80,11 @@ internal fun AgentsScreen(
     val cloudCliInstalled by produceState(false, distribution, backend) {
         value = withContext(Dispatchers.IO) {
             linuxPackageProfileReady(rootfs, LinuxPackageProfiles.CLOUDCLI)
+        }
+    }
+    val codexAppInstalled by produceState(false, distribution, backend) {
+        value = withContext(Dispatchers.IO) {
+            linuxPackageProfileReady(rootfs, LinuxPackageProfiles.CODEXAPP)
         }
     }
 
@@ -193,6 +201,50 @@ internal fun AgentsScreen(
                         if (cloudCliInstalled) onOpenCloudCli() else onOpenLinuxEnvironment()
                     },
                 )
+                EtaPreferenceDivider()
+                val codexAppRunning = ExtensionAgent.CODEXAPP in runningExtensionAgents
+                val codexAppSummary = when {
+                    !codexAppInstalled -> stringResource(R.string.cli_account_install_hint)
+                    codexAppRunning -> stringResource(R.string.cli_agent_running)
+                    else -> stringResource(R.string.agents_codexapp_summary)
+                }
+                val codexAppActions: (@Composable () -> Unit)? = if (codexAppInstalled) {
+                    {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            EtaTextButton(
+                                text = stringResource(
+                                    if (codexAppRunning) R.string.cli_stop_running else R.string.cli_start_running,
+                                ),
+                                onClick = if (codexAppRunning) onStopCodexApp else onOpenCodexApp,
+                                modifier = Modifier.weight(1f),
+                            )
+                            EtaTextButton(
+                                text = stringResource(R.string.cli_account_open),
+                                onClick = onOpenCodexApp,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                } else {
+                    null
+                }
+                EtaArrowPreference(
+                    title = stringResource(R.string.agents_codexapp),
+                    summary = codexAppSummary,
+                    startAction = {
+                        EtaPreferenceIcon(
+                            icon = if (codexAppRunning) Icons.Rounded.Stop else Icons.Rounded.Web,
+                            tint = if (codexAppRunning) EtaPreferenceColors.Red else EtaPreferenceColors.Blue,
+                        )
+                    },
+                    bottomAction = codexAppActions,
+                    onClick = {
+                        if (codexAppInstalled) onOpenCodexApp() else onOpenLinuxEnvironment()
+                    },
+                )
             }
         }
         item(key = "accounts") {
@@ -218,6 +270,7 @@ private fun WebAgentIcon(agent: ExtensionAgent) {
         ExtensionAgent.DSH -> R.drawable.provider_logo_deepseek
         ExtensionAgent.KIMI -> R.drawable.provider_logo_kimi
         ExtensionAgent.CLOUDCLI -> R.drawable.ic_opencode
+        ExtensionAgent.CODEXAPP -> R.drawable.ic_opencode
     }
     Image(
         painter = painterResource(res),

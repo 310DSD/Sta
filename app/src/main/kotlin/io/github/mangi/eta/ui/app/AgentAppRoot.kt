@@ -463,12 +463,14 @@ fun AgentAppRoot(
                     onOpenCliAgent = { agent -> pushRoute(AppRoute.CliTerminal(agent.id)) },
                     onOpenCliAccounts = { pushRoute(AppRoute.CliAgents) },
                     onOpenCloudCli = { launchExtensionAgent(ExtensionAgent.CLOUDCLI) },
+                    onOpenCodexApp = { launchExtensionAgent(ExtensionAgent.CODEXAPP) },
                     onOpenLinuxEnvironment = { pushRoute(AppRoute.LinuxEnvironment) },
                     runningCliTags = runningCliTags,
                     runningExtensionAgents = appViewModel.runningExtensionAgents,
                     onStartCliAgent = { agent -> appViewModel.consoleStore.startTaggedSession(agent.id, agent.command) },
                     onStopCliAgent = { agent -> appViewModel.consoleStore.closeSessionsByTag(agent.id) },
                     onStopCloudCli = { appViewModel.stopExtensionAgent(ExtensionAgent.CLOUDCLI) },
+                    onStopCodexApp = { appViewModel.stopExtensionAgent(ExtensionAgent.CODEXAPP) },
                 )
             }
             entry<AppRoute.Browser>(swipeDismiss = swipeDismiss) {

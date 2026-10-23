@@ -93,6 +93,19 @@ internal enum class ExtensionAgent(
         webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):3001(?:/[A-Za-z0-9/?:=&._~%+#-]*)?"""),
         terminalCommand = "cloudcli",
     ),
+    CODEXAPP(
+        id = "codexapp",
+        displayName = "Codex App",
+        packageProfileId = "codexapp",
+        // codexapp 绑定 0.0.0.0，但 loopback 请求自动免密；隧道必须关闭，避免暴露到公网。
+        webCommand = "codexapp --no-tunnel --no-open --no-login --port 18923",
+        acceptedCommands = setOf(
+            "codexapp --no-tunnel --no-open --no-login --port 18923",
+            "codexapp --port 18923",
+        ),
+        webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):18923(?:/[A-Za-z0-9/?:=&._~%+#-]*)?"""),
+        terminalCommand = "codexapp",
+    ),
     ;
 
     companion object {

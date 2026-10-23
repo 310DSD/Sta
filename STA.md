@@ -86,6 +86,10 @@ Codex 与 Claude Code 是终端 TUI 型 Agent，没有官方移动 Web UI，Sta 
   当前 provider/model 同步。
 - 智能体页的 CLI 行提供“启动/停止/打开”：启动在后台创建带标签 PTY，不强制跳转；停止直接
   关闭该标签会话；打开进入终端查看。终端工具栏同样保留停止按钮。
+- 另有 **Codex App GUI**（@brutalstrikedevs/codexapp 0.1.91，MIT）：启动
+  `codexapp --no-tunnel --no-open --no-login --port 18923`，WebView 打开
+  `http://127.0.0.1:18923`；它直接桥接 Codex app-server，界面更接近 Codex 桌面 App。
+  codexapp 默认监听 0.0.0.0，但 loopback 请求自动免密；非 loopback 访问需要其密码。
 - 终端会话按 Agent 标签隔离，Codex 与 Claude Code 各自保留自己的 PTY。
 - CLI 终端与账号页使用 `imePaddingSafe`，弹窗改为 Compose overlay，避免输入法动画与
   WindowDialog 的 inset 不同步。

@@ -145,6 +145,9 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 - 路由新增 `Agents`（Web / CLI 分组的总入口）、`CliAgents`、`CliTerminal(agentId)`。首页右上角
   菜单只保留“智能体”总入口；页面内按字母排序列出 5 个 Agent 与“CLI 账号管理器”。WebView 的
   `+` 新建页弹窗也改为同一个总入口。
+- 新增 **Codex App GUI**：npm 安装 `@brutalstrikedevs/codexapp@0.1.91`，以
+  `codexapp --no-tunnel --no-open --no-login --port 18923` 启动，WebView 打开
+  `http://127.0.0.1:18923`；它直接桥接 Codex app-server，作为 Codex 专用 GUI。
 - 终端页支持 `initialCommand`、`sessionTag` 与停止按钮：PTY 控制台按 Agent 标签隔离会话，首次
   连接后自动执行 `codex` / `claude`，返回页面不重复发送；停止后显示“CLI 已停止”并可重连。
   智能体页的 CLI 行新增后台启动/停止/打开，启动不强制跳转终端。PTY 不可用时显示“需要 PTY”占位，

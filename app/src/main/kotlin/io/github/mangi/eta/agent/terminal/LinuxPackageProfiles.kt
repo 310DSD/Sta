@@ -117,6 +117,11 @@ internal object LinuxPackageProfiles {
             "@openai/codex@0.164.0 || " +
             "npm install -g --prefix /usr/local --include=optional @openai/codex@0.164.0"
 
+    private const val CODEXAPP_INSTALL_SCRIPT =
+        "npm install -g --prefix /usr/local --include=optional " +
+            "--registry=https://registry.npmmirror.com @brutalstrikedevs/codexapp@0.1.91 || " +
+            "npm install -g --prefix /usr/local --include=optional @brutalstrikedevs/codexapp@0.1.91"
+
     private const val CLOUDCLI_INSTALL_SCRIPT =
         "npm install -g --prefix /usr/local --include=optional " +
             "--registry=https://registry.npmmirror.com @cloudcli-ai/cloudcli@1.37.5 || " +
@@ -889,7 +894,27 @@ internal object LinuxPackageProfiles {
         ),
     )
 
-    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, DSH, KIMI, CODEX, CLAUDE_CODE, CLOUDCLI)
+    val CODEXAPP = LinuxPackageProfile(
+        id = "codexapp",
+        markerName = AlpineEnvironmentPaths.CODEXAPP_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.CODEXAPP_TOOLS_REVISION,
+        dependsOn = CODEX,
+        installTimeoutSeconds = 3600L,
+        specs = mapOf(
+            LinuxDistribution.ALPINE to LinuxPackageSpec(
+                packages = listOf("build-base", "python3", "linux-headers"),
+                setupScript = CODEXAPP_INSTALL_SCRIPT,
+                verifyCommand = "command -v codexapp >/dev/null",
+            ),
+            LinuxDistribution.DEBIAN to LinuxPackageSpec(
+                packages = listOf("build-essential", "python3"),
+                setupScript = CODEXAPP_INSTALL_SCRIPT,
+                verifyCommand = "command -v codexapp >/dev/null",
+            ),
+        ),
+    )
+
+    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, DSH, KIMI, CODEX, CLAUDE_CODE, CLOUDCLI, CODEXAPP)
 }
 
 internal fun linuxPackageProfileReady(rootfs: File, profile: LinuxPackageProfile): Boolean {

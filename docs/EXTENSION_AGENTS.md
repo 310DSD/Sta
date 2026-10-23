@@ -233,6 +233,10 @@ Codex 与 Claude Code 没有官方移动 Web UI，因此不接入 `ExtensionAgen
   `http://127.0.0.1:3001`。入口位于“智能体 → CLI”分组，Linux 工具页也有安装行；首次启动在
   WebView 内完成 CloudCLI 本地账号初始化。CloudCLI 复用官方 Claude Code / Codex 会话与配置，
   不使用 T3 式编排提示；AGPL-3.0，包体和原生依赖较重。智能体页的 CLI 行支持后台启动、停止和打开。
+- 另有 **Codex App GUI**：npm 安装 `@brutalstrikedevs/codexapp@0.1.91`，以
+  `codexapp --no-tunnel --no-open --no-login --port 18923` 启动，WebView 打开
+  `http://127.0.0.1:18923`。它直接桥接 Codex app-server，界面更接近 Codex 桌面 App；
+  loopback 请求自动免密，关闭 tunnel 避免公网暴露。
 - 终端页收到 `initialCommand` 后在 PTY 首次连接时执行 `codex` / `claude`；工具栏提供停止按钮，
   停止后显示“CLI 已停止”并可重连。PTY 不可用时显示“需要 PTY”占位，不把 TUI 命令丢进块式终端。
 - 已知边界：官方订阅账号在官方客户端之外使用可能违反服务条款；Codex 第三方模式按 Responses

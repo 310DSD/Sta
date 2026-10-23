@@ -175,6 +175,19 @@ class AlpineEnvironmentInstallerTest {
     }
 
     @Test
+    fun codexAppProfilePinsNpmPackageAndInstallsNativeBuildTools() {
+        val debian = LinuxPackageProfiles.CODEXAPP.spec(LinuxDistribution.DEBIAN)
+        assertTrue(debian.setupScript.orEmpty().contains("@brutalstrikedevs/codexapp@0.1.91"))
+        assertTrue(debian.setupScript.orEmpty().contains("npm install -g"))
+        assertTrue(debian.packages.containsAll(listOf("build-essential", "python3")))
+        assertTrue(debian.verifyCommand.orEmpty().contains("codexapp"))
+
+        val alpine = LinuxPackageProfiles.CODEXAPP.spec(LinuxDistribution.ALPINE)
+        assertTrue(alpine.setupScript.orEmpty().contains("@brutalstrikedevs/codexapp@0.1.91"))
+        assertTrue(alpine.packages.containsAll(listOf("build-base", "python3")))
+    }
+
+    @Test
     fun dshMobileCssKeepsShellAnchorsAndMotionFallbacks() {
         val css = LinuxPackageProfiles.DSH_MOBILE_CSS
         assertTrue(css.contains("#eta-mobile-bar"))
