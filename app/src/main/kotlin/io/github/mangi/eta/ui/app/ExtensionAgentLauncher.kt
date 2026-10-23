@@ -2,6 +2,7 @@ package io.github.mangi.eta.ui.app
 
 import android.content.Context
 import android.content.Intent
+import io.github.mangi.eta.agent.acp.AcpGuiInstaller
 import io.github.mangi.eta.agent.extension.ExtensionAgent
 import io.github.mangi.eta.ui.web.ExtensionAgentWebActivity
 import io.github.mangi.eta.agent.runtime.AgentExecutionService
@@ -85,6 +86,9 @@ internal class ExtensionAgentLauncher(
             val profile = LinuxPackageProfiles.ALL.firstOrNull { it.id == agent.packageProfileId }
             if (profile == null || !linuxPackageProfileReady(rootfs, profile)) {
                 return@withContext ExtensionAgentLaunchResult.Failed("PROFILE_NOT_INSTALLED")
+            }
+            if (agent == ExtensionAgent.ACP && !AcpGuiInstaller.install(context, distribution, backend)) {
+                return@withContext ExtensionAgentLaunchResult.Failed("ACP_ASSETS_NOT_INSTALLED")
             }
             val identity = TerminalRuntime.defaultIdentity(environment, rootfs.absolutePath)
             // Stop old launcher forms before starting the current wrapper; otherwise an old
