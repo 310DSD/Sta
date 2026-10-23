@@ -56,6 +56,7 @@ internal fun TerminalEntryScreen(
     consoleStore: ConsoleStore,
     onOpenEnvironment: () -> Unit,
     initialCommand: String? = null,
+    sessionTag: String? = null,
 ) {
     val consoleState by consoleStore.uiState.collectAsState()
     var consoleMode by rememberSaveable { mutableStateOf(true) }
@@ -77,6 +78,7 @@ internal fun TerminalEntryScreen(
             onExitConsole = { consoleMode = false },
             onOpenEnvironment = onOpenEnvironment,
             initialCommand = initialCommand,
+            sessionTag = sessionTag,
         )
         else -> UserTerminalScreen(
             store = terminalStore,
@@ -104,6 +106,7 @@ internal fun ConsoleScreen(
     onExitConsole: () -> Unit,
     onOpenEnvironment: () -> Unit,
     initialCommand: String? = null,
+    sessionTag: String? = null,
 ) {
     val state by store.uiState.collectAsState()
     val terminalState by terminalStore.uiState.collectAsState()
@@ -117,13 +120,16 @@ internal fun ConsoleScreen(
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // CLI 账号页带命令进入时，等 PTY 首帧稳定后自动启动 TUI；只发送一次，退出后不再重放。
+    // CLI 账号页带命令进入时，等 PTY 首帧稳定后自动启动 TUI；每个会话只消费一次。
     var pendingCommand by rememberSaveable { mutableStateOf(initialCommand) }
-    LaunchedEffect(state.connected) {
+    LaunchedEffect(state.connected, state.activeSessionId) {
         val command = pendingCommand ?: return@LaunchedEffect
         if (!state.connected) return@LaunchedEffect
+        val sessionId = state.activeSessionId ?: return@LaunchedEffect
         delay(600)
-        store.sendText(command + "\n")
+        if (store.consumeInitialCommand(sessionId)) {
+            store.sendText(command + "\n")
+        }
         pendingCommand = null
     }
     val inputSink = remember(store, modifierKeys) {
@@ -172,7 +178,7 @@ internal fun ConsoleScreen(
         ConsoleGrid(
             state = state,
             composing = composing,
-            onGridSize = { cols, rows -> store.open(state.environment, cols, rows) },
+            onGridSize = { cols, rows -> store.open(state.environment, cols, rows, sessionTag) },
             onReconnect = store::reconnect,
             onOpenEnvironment = onOpenEnvironment,
             modifier = Modifier

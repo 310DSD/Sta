@@ -129,8 +129,8 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 - 新增 `CliAccountsScreen`（Miuix 页面）：Agent 切换、添加/删除/切换账号、安装提示、直接打开终端；
   账号文件位于 App 私有 `noBackupFilesDir/cli_accounts.json`。
 - 路由新增 `CliAgents` / `CliTerminal(agentId)`；首页溢出菜单新增“CLI 智能体”入口。
-- 终端页支持 `initialCommand`：PTY 控制台在首次连接后自动执行 `codex` / `claude`，
-  PTY 不可用时回退到块式终端执行一次，避免模式切换重复启动。
+- 终端页支持 `initialCommand` 与 `sessionTag`：PTY 控制台按 Agent 标签隔离会话，首次连接后
+  自动执行 `codex` / `claude`，返回页面不重复发送；PTY 不可用时回退到块式终端执行一次。
 
 ### 验证
 

@@ -463,6 +463,7 @@ fun AgentAppRoot(
                         consoleStore = appViewModel.consoleStore,
                         onOpenEnvironment = { pushRoute(AppRoute.LinuxEnvironment) },
                         initialCommand = CliAgent.fromId(route.agentId)?.command,
+                        sessionTag = route.agentId,
                     )
                 }
             }

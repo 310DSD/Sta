@@ -44,6 +44,10 @@ internal data class ConsoleSessionUi(
     val id: String,
     val environment: TerminalEnvironment,
     val exited: Boolean = false,
+    /** CLI 智能体标签：同一标签复用会话，不同标签各开一个 PTY。 */
+    val tag: String? = null,
+    /** 该会话是否已经执行过进入时的初始命令，避免返回页面时重复启动 TUI。 */
+    val commandConsumed: Boolean = false,
 )
 
 @Immutable
@@ -147,27 +151,43 @@ internal class ConsoleStore(
 
     /**
      * 确保当前有存活会话；网格尺寸变化重入时只同步尺寸，不重建会话。
-     * [environment] 仅用于没有可复用会话时的新建。
+     * [environment] 仅用于没有可复用会话时的新建；[tag] 非空时按标签隔离会话，
+     * 使 Codex / Claude Code 各自保留自己的终端。
      */
-    fun open(environment: TerminalEnvironment, cols: Int, rows: Int) {
+    fun open(environment: TerminalEnvironment, cols: Int, rows: Int, tag: String? = null) {
         if (cols <= 0 || rows <= 0) return
         lastCols = cols
         lastRows = rows
         val state = _uiState.value
-        val activeId = state.activeSessionId
-        if (activeId != null && controller.sessionAlive(activeId)) {
-            resizeSession(activeId, cols, rows)
+        val active = state.sessions.find { it.id == state.activeSessionId }
+        if (active != null && controller.sessionAlive(active.id) && (tag == null || active.tag == tag)) {
+            resizeSession(active.id, cols, rows)
             return
         }
         if (creatingSession) return
-        if (activeId == null) {
-            val reusable = state.sessions.lastOrNull { !it.exited && it.environment == environment }
-            if (reusable != null && controller.sessionAlive(reusable.id)) {
-                switchSession(reusable.id)
-                return
-            }
+        val reusable = state.sessions.lastOrNull {
+            !it.exited && it.environment == environment && it.tag == tag && controller.sessionAlive(it.id)
         }
-        createSession(environment, cols, rows)
+        if (reusable != null) {
+            switchSession(reusable.id)
+            resizeSession(reusable.id, cols, rows)
+            return
+        }
+        createSession(environment, cols, rows, tag)
+    }
+
+    /** 标记某会话的进入命令已执行；返回 true 表示本次应当发送。 */
+    fun consumeInitialCommand(sessionId: String): Boolean {
+        val session = _uiState.value.sessions.find { it.id == sessionId } ?: return false
+        if (session.commandConsumed) return false
+        _uiState.update { state ->
+            state.copy(
+                sessions = state.sessions.map {
+                    if (it.id == sessionId) it.copy(commandConsumed = true) else it
+                },
+            )
+        }
+        return true
     }
 
     /** 以当前环境与最近一次网格尺寸新建会话。 */
@@ -318,7 +338,12 @@ internal class ConsoleStore(
         sessionLeases.clear()
     }
 
-    private fun createSession(environment: TerminalEnvironment, cols: Int, rows: Int) {
+    private fun createSession(
+        environment: TerminalEnvironment,
+        cols: Int,
+        rows: Int,
+        tag: String? = null,
+    ) {
         if (cols <= 0 || rows <= 0 || creatingSession) return
         lastCols = cols
         lastRows = rows
@@ -326,7 +351,7 @@ internal class ConsoleStore(
         _uiState.update { it.copy(connected = false, exited = false, failMessage = null) }
         scope.launch(Dispatchers.IO) {
             try {
-                startSession(environment, cols, rows)
+                startSession(environment, cols, rows, tag)
             } finally {
                 withContext(NonCancellable + Dispatchers.Main) { creatingSession = false }
             }
@@ -337,7 +362,12 @@ internal class ConsoleStore(
         }
     }
 
-    private fun startSession(environment: TerminalEnvironment, cols: Int, rows: Int) {
+    private fun startSession(
+        environment: TerminalEnvironment,
+        cols: Int,
+        rows: Int,
+        tag: String? = null,
+    ) {
         val rootfs = environment.linuxDistribution?.let { LinuxEnvironmentPaths.rootfsDir(appContext, it).absolutePath }
         val identity = TerminalRuntime.defaultIdentity(environment, rootfs)
         val lease = if (identity == "user") {
@@ -379,7 +409,7 @@ internal class ConsoleStore(
                 sessionSizes[result.sessionId] = cols to rows
                 _uiState.update { state ->
                     state.copy(
-                        sessions = state.sessions + ConsoleSessionUi(result.sessionId, environment),
+                        sessions = state.sessions + ConsoleSessionUi(result.sessionId, environment, tag = tag),
                         activeSessionId = result.sessionId,
                         environment = environment,
                         connected = true,
