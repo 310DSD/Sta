@@ -1567,4 +1567,9 @@
   <string name="webview_agents">智慧體</string>
   <string name="webview_agents_summary">Web / CLI 智慧體與 CLI 帳號管理器</string>
   <string name="cli_stopped">CLI 已停止</string>
+  <string name="agents_t3_code">T3 Code 圖形介面</string>
+  <string name="agents_t3_code_summary">Claude Code / Codex 圖形介面（Debian）</string>
+  <string name="linux_t3_code_tools">T3 Code 圖形介面</string>
+  <string name="linux_t3_code_tools_summary">安裝 T3 Code 自架 GUI，用於 Claude Code / Codex；僅支援 Debian</string>
+  <string name="linux_t3_code_tools_ready">T3 Code 圖形介面已就緒</string>
 </resources>

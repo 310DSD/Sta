@@ -162,6 +162,19 @@ class AlpineEnvironmentInstallerTest {
     }
 
     @Test
+    fun t3CodeProfileIsPinnedToArm64AndFailsCleanlyOnAlpine() {
+        val debian = LinuxPackageProfiles.T3_CODE.spec(LinuxDistribution.DEBIAN)
+        assertTrue(debian.setupScript.orEmpty().contains("VERSION=0.1.2"))
+        assertTrue(debian.setupScript.orEmpty().contains("t3-\${VERSION}-linux-arm64.tar.gz"))
+        assertTrue(debian.setupScript.orEmpty().contains("df112e1f19772b4055a28c97b032eb6d038d5d7182015f1cafd3254ad6fabd0f"))
+        assertTrue(debian.verifyCommand.orEmpty().contains("t3 --version"))
+
+        val alpine = LinuxPackageProfiles.T3_CODE.spec(LinuxDistribution.ALPINE)
+        assertTrue(alpine.packages.isEmpty())
+        assertTrue(alpine.setupScript.orEmpty().contains("Debian"))
+    }
+
+    @Test
     fun dshMobileCssKeepsShellAnchorsAndMotionFallbacks() {
         val css = LinuxPackageProfiles.DSH_MOBILE_CSS
         assertTrue(css.contains("#eta-mobile-bar"))

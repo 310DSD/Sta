@@ -6,6 +6,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Terminal
+import androidx.compose.material.icons.rounded.Web
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.produceState
@@ -41,10 +42,13 @@ internal fun AgentsScreen(
     onOpenWebAgent: (ExtensionAgent) -> Unit,
     onOpenCliAgent: (CliAgent) -> Unit,
     onOpenCliAccounts: () -> Unit,
+    onOpenT3Code: () -> Unit,
     onOpenLinuxEnvironment: () -> Unit,
 ) {
     val context = LocalContext.current
-    val webAgents = remember { ExtensionAgent.entries.sortedBy { it.displayName.lowercase() } }
+    val webAgents = remember {
+        ExtensionAgent.entries.filter { it != ExtensionAgent.T3_CODE }.sortedBy { it.displayName.lowercase() }
+    }
     val cliAgents = remember { CliAgent.entries.sortedBy { it.displayName.lowercase() } }
     val distribution = LinuxEnvironmentSettingsRepository.current(context)
     val backend = LinuxEnvironmentSettingsRepository.backend(context, distribution)
@@ -57,6 +61,11 @@ internal fun AgentsScreen(
                 val profile = LinuxPackageProfiles.ALL.firstOrNull { it.id == agent.packageProfileId }
                 profile != null && linuxPackageProfileReady(rootfs, profile)
             }
+        }
+    }
+    val t3Installed by produceState(false, distribution, backend) {
+        value = withContext(Dispatchers.IO) {
+            linuxPackageProfileReady(rootfs, LinuxPackageProfiles.T3_CODE)
         }
     }
 
@@ -94,6 +103,19 @@ internal fun AgentsScreen(
                         },
                     )
                 }
+                EtaPreferenceDivider()
+                EtaArrowPreference(
+                    title = stringResource(R.string.agents_t3_code),
+                    summary = stringResource(
+                        if (t3Installed) R.string.agents_t3_code_summary else R.string.cli_account_install_hint,
+                    ),
+                    startAction = {
+                        EtaPreferenceIcon(Icons.Rounded.Web, tint = EtaPreferenceColors.Blue)
+                    },
+                    onClick = {
+                        if (t3Installed) onOpenT3Code() else onOpenLinuxEnvironment()
+                    },
+                )
             }
         }
         item(key = "accounts") {
@@ -118,6 +140,7 @@ private fun WebAgentIcon(agent: ExtensionAgent) {
         ExtensionAgent.OPENCODE -> R.drawable.ic_opencode
         ExtensionAgent.DSH -> R.drawable.provider_logo_deepseek
         ExtensionAgent.KIMI -> R.drawable.provider_logo_kimi
+        ExtensionAgent.T3_CODE -> R.drawable.ic_opencode
     }
     Image(
         painter = painterResource(res),

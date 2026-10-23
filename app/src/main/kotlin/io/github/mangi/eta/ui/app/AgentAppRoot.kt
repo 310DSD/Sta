@@ -457,6 +457,7 @@ fun AgentAppRoot(
                     onOpenWebAgent = ::launchExtensionAgent,
                     onOpenCliAgent = { agent -> pushRoute(AppRoute.CliTerminal(agent.id)) },
                     onOpenCliAccounts = { pushRoute(AppRoute.CliAgents) },
+                    onOpenT3Code = { launchExtensionAgent(ExtensionAgent.T3_CODE) },
                     onOpenLinuxEnvironment = { pushRoute(AppRoute.LinuxEnvironment) },
                 )
             }

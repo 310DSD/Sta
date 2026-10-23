@@ -1659,4 +1659,9 @@
   <string name="webview_agents">Agents</string>
   <string name="webview_agents_summary">Web and CLI agents, plus the CLI account manager</string>
   <string name="cli_stopped">CLI stopped</string>
+  <string name="agents_t3_code">T3 Code GUI</string>
+  <string name="agents_t3_code_summary">Claude Code / Codex GUI (Debian)</string>
+  <string name="linux_t3_code_tools">T3 Code GUI</string>
+  <string name="linux_t3_code_tools_summary">Install T3 Code self-hosted GUI for Claude Code / Codex; Debian only</string>
+  <string name="linux_t3_code_tools_ready">T3 Code GUI is ready</string>
 </resources>

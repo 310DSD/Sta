@@ -80,6 +80,16 @@ internal enum class ExtensionAgent(
         webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):\d+(?:/[A-Za-z0-9/?:=&._~%+#-]*)?"""),
         terminalCommand = "dsh",
     ),
+    T3_CODE(
+        id = "t3code",
+        displayName = "T3 Code",
+        packageProfileId = "t3code",
+        // `t3 serve` 是 headless 模式，会打印带 token 的 pairing URL 并保持前台运行。
+        webCommand = "t3 serve --host 127.0.0.1 --port 3773",
+        acceptedCommands = setOf("t3 serve --host 127.0.0.1 --port 3773", "t3 serve"),
+        webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):3773/pair#token=[A-Za-z0-9._~%+\-]+"""),
+        terminalCommand = "t3",
+    ),
     ;
 
     companion object {

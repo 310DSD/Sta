@@ -87,12 +87,14 @@ private enum class InstallTarget {
     KIMI,
     CODEX,
     CLAUDE_CODE,
+    T3_CODE,
 }
 
 private fun InstallTarget.extensionAgent(): ExtensionAgent? = when (this) {
     InstallTarget.OPENCODE -> ExtensionAgent.OPENCODE
     InstallTarget.DSH -> ExtensionAgent.DSH
     InstallTarget.KIMI -> ExtensionAgent.KIMI
+    InstallTarget.T3_CODE -> ExtensionAgent.T3_CODE
     else -> null
 }
 
@@ -170,6 +172,13 @@ private val packageProfileUis = listOf(
         titleRes = R.string.linux_claude_code_tools,
         summaryRes = R.string.linux_claude_code_tools_summary,
         readyRes = R.string.linux_claude_code_tools_ready,
+    ),
+    PackageProfileUi(
+        target = InstallTarget.T3_CODE,
+        profile = LinuxPackageProfiles.T3_CODE,
+        titleRes = R.string.linux_t3_code_tools,
+        summaryRes = R.string.linux_t3_code_tools_summary,
+        readyRes = R.string.linux_t3_code_tools_ready,
     ),
 )
 

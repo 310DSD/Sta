@@ -76,6 +76,10 @@ Codex 与 Claude Code 是终端 TUI 型 Agent，没有官方移动 Web UI，Sta 
   包含 OpenCode、DeepSeek Harness、Kimi Code、Claude Code、Codex 五个 Agent 与
   “CLI 账号管理器”。两个 CLI 在总入口内各有快速入口；内置 WebView 的 `+` 新建页弹窗
   也提供同一个总入口。
+- 新增 **T3 Code GUI**（T3 Code v0.1.2，Debian/glibc arm64）：安装自包含 `t3` CLI，
+  `t3 serve --host 127.0.0.1 --port 3773` 启动本地 Web UI；Eta 从启动日志提取带 token 的
+  pairing URL 并直接用 WebView 打开。入口在“智能体 → CLI”分组，未安装时跳到 Linux 工具页。
+  T3 Code 仍处于 very early；Alpine/musl 不支持，仅 Debian 环境可用。
 - 账号页沿用 Eta 的 preference group / choice chip / arrow preference 语言；账号行可打开
   “模型设置”：在线拉取 `/models`、选择模型、设置上下文/最大输出/思考等级，也支持从 Eta
   当前 provider/model 同步。

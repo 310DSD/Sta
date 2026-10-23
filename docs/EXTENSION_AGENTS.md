@@ -228,6 +228,10 @@ Codex 与 Claude Code 没有官方移动 Web UI，因此不接入 `ExtensionAgen
 - 账号页“模型设置”可在线拉取 `/models`、选择模型、设置上下文/最大输出/思考等级，也可从 Eta
   当前 provider/model 同步。Codex 写 `model_context_window` / `model_reasoning_effort`，
   Claude 写 `CLAUDE_CODE_MAX_CONTEXT_TOKENS` / `CLAUDE_CODE_EFFORT_LEVEL`。
+- 新增 **T3 Code GUI**：T3 Code v0.1.2 的 Linux arm64 自包含 CLI 安装到 `/opt/eta/t3`，
+  以 `t3 serve --host 127.0.0.1 --port 3773` 启动；Eta 从日志中提取
+  `http://127.0.0.1:3773/pair#token=...` 并在 WebView 打开。入口位于“智能体 → CLI”分组，
+  Linux 工具页也有安装行。T3 Code 仍为 very early；仅支持 Debian/glibc，Alpine/musl 不支持。
 - 终端页收到 `initialCommand` 后在 PTY 首次连接时执行 `codex` / `claude`；工具栏提供停止按钮，
   停止后显示“CLI 已停止”并可重连。PTY 不可用时显示“需要 PTY”占位，不把 TUI 命令丢进块式终端。
 - 已知边界：官方订阅账号在官方客户端之外使用可能违反服务条款；Codex 第三方模式按 Responses
