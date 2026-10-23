@@ -1,33 +1,44 @@
 package io.github.mangi.eta.agent.cli
 
 import android.content.Context
+import androidx.annotation.StringRes
+import io.github.mangi.eta.R
 import io.github.mangi.eta.agent.terminal.LinuxEnvironmentPaths
 import io.github.mangi.eta.agent.terminal.LinuxFileExplorer
 import io.github.mangi.eta.agent.terminal.ShellProcessSupervisor
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
 import java.io.File
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
+import org.json.JSONException
 
+/** 官方账号只需要登录文件快照；provider 配置不再整份保存，避免污染官方登录。 */
 internal data class CliFiles(
     val authJson: String? = null,
-    val configToml: String? = null,
     val credentialsJson: String? = null,
-    val settingsJson: String? = null,
 )
+
+internal sealed interface CliCaptureResult {
+    data class Success(val files: CliFiles) : CliCaptureResult
+    data object NotReady : CliCaptureResult
+    data object NoLogin : CliCaptureResult
+    data class Failed(@StringRes val messageRes: Int) : CliCaptureResult
+}
 
 internal sealed interface CliApplyResult {
     data object Success : CliApplyResult
     data object NotReady : CliApplyResult
-    data class Failed(val message: String) : CliApplyResult
+    data class Failed(@StringRes val messageRes: Int) : CliApplyResult
 }
 
 /**
- * 读取/写入 Codex、Claude Code 的登录文件与 provider 配置。
+ * Codex / Claude Code 的登录文件与 provider 配置读写。
  *
- * 官方账号只做文件快照/恢复，不解析、不刷新 token；API Key/第三方账号只改 provider 相关字段，
- * 尽量保留用户已有的 hooks、MCP 与主题设置。
+ * 参考 CC Switch 的切换语义：
+ * - 只改连接信息（端点、Key、模型）和 Sta 自己的 provider 表，其余配置原样保留；
+ * - 第一次改写前备份，备份失败就中止，不做半套写入；
+ * - 官方账号只快照登录文件，不再保存整份 provider 配置。
  */
 internal class CliConfigManager(private val context: Context) {
     private val supervisor = ShellProcessSupervisor()
@@ -42,149 +53,208 @@ internal class CliConfigManager(private val context: Context) {
             .takeIf { LinuxEnvironmentPaths.rootfsReady(it.absolutePath) }
     }
 
-    suspend fun capture(agent: CliAgent): CliFiles? = withContext(Dispatchers.IO) {
-        val rootfs = rootfs() ?: return@withContext null
-        CliFiles(
-            authJson = read(rootfs, agent.authFile),
-            configToml = read(rootfs, agent.configFile),
-            credentialsJson = read(rootfs, agent.credentialsFile),
-            settingsJson = read(rootfs, agent.settingsFile),
-        )
+    suspend fun capture(agent: CliAgent): CliCaptureResult = withContext(Dispatchers.IO) {
+        try {
+            val rootfs = rootfs() ?: return@withContext CliCaptureResult.NotReady
+            val json = when (agent) {
+                CliAgent.CODEX -> read(rootfs, agent.authFile)
+                CliAgent.CLAUDE_CODE -> read(rootfs, agent.credentialsFile)
+            } ?: return@withContext CliCaptureResult.NoLogin
+            val official = when (agent) {
+                CliAgent.CODEX -> CliAuthEditor.isOfficialCodexAuth(json)
+                CliAgent.CLAUDE_CODE -> CliAuthEditor.isOfficialClaudeCredentials(json)
+            }
+            if (!official) return@withContext CliCaptureResult.Failed(R.string.cli_error_invalid_auth)
+            CliCaptureResult.Success(
+                CliFiles(
+                    authJson = json.takeIf { agent == CliAgent.CODEX },
+                    credentialsJson = json.takeIf { agent == CliAgent.CLAUDE_CODE },
+                ),
+            )
+        } catch (cancel: CancellationException) {
+            throw cancel
+        } catch (_: Throwable) {
+            CliCaptureResult.Failed(R.string.cli_error_unexpected)
+        }
     }
 
     suspend fun apply(account: CliAccount): CliApplyResult = withContext(Dispatchers.IO) {
-        val agent = CliAgent.fromId(account.agentId) ?: return@withContext CliApplyResult.Failed("未知的 CLI")
-        val rootfs = rootfs() ?: return@withContext CliApplyResult.NotReady
-        when (agent) {
-            CliAgent.CODEX -> applyCodex(rootfs, account)
-            CliAgent.CLAUDE_CODE -> applyClaude(rootfs, account)
+        try {
+            val agent = CliAgent.fromId(account.agentId)
+                ?: return@withContext CliApplyResult.Failed(R.string.cli_error_unknown_agent)
+            val rootfs = rootfs() ?: return@withContext CliApplyResult.NotReady
+            when (agent) {
+                CliAgent.CODEX -> applyCodex(rootfs, account)
+                CliAgent.CLAUDE_CODE -> applyClaude(rootfs, account)
+            }
+        } catch (cancel: CancellationException) {
+            throw cancel
+        } catch (_: Throwable) {
+            CliApplyResult.Failed(R.string.cli_error_unexpected)
         }
     }
 
     private fun applyCodex(rootfs: File, account: CliAccount): CliApplyResult {
+        val authPath = CliAgent.CODEX.authFile
+        val configPath = CliAgent.CODEX.configFile
+
         if (account.kind == CliAccountKind.OFFICIAL) {
-            val auth = account.authJson ?: return CliApplyResult.Failed("没有可恢复的官方登录快照，请先在终端登录并导入")
-            backupOnce(rootfs, CliAgent.CODEX.authFile)
-            backupOnce(rootfs, CliAgent.CODEX.configFile)
-            if (!write(rootfs, CliAgent.CODEX.authFile, auth)) return CliApplyResult.Failed("写入 Codex 登录文件失败")
-            account.configToml?.let {
-                if (!write(rootfs, CliAgent.CODEX.configFile, it)) return CliApplyResult.Failed("写入 Codex 配置失败")
+            val auth = account.authJson ?: return CliApplyResult.Failed(R.string.cli_error_missing_snapshot)
+            if (!CliAuthEditor.isOfficialCodexAuth(auth)) {
+                return CliApplyResult.Failed(R.string.cli_error_invalid_auth)
             }
-            return CliApplyResult.Success
+        } else if (account.apiKey.isBlank()) {
+            return CliApplyResult.Failed(R.string.cli_error_api_key_empty)
         }
-        if (account.apiKey.isBlank()) return CliApplyResult.Failed("API Key 不能为空")
-        backupOnce(rootfs, CliAgent.CODEX.authFile)
-        backupOnce(rootfs, CliAgent.CODEX.configFile)
-        val auth = JSONObject().put("OPENAI_API_KEY", account.apiKey).toString(2)
-        if (!write(rootfs, CliAgent.CODEX.authFile, auth)) return CliApplyResult.Failed("写入 Codex 登录文件失败")
-        if (account.kind == CliAccountKind.API_KEY) {
-            if (account.model.isBlank()) return CliApplyResult.Success
-            val existing = read(rootfs, CliAgent.CODEX.configFile).orEmpty()
-            if (!write(rootfs, CliAgent.CODEX.configFile, updateTomlModel(existing, account.model))) {
-                return CliApplyResult.Failed("写入 Codex 配置失败")
+        if (account.kind == CliAccountKind.THIRD_PARTY && account.baseUrl.isBlank()) {
+            return CliApplyResult.Failed(R.string.cli_error_base_url_required)
+        }
+
+        val existing = readRequired(rootfs, configPath)
+            ?: return CliApplyResult.Failed(R.string.cli_error_read_config)
+        val route = when (account.kind) {
+            CliAccountKind.OFFICIAL -> CodexRoute.Official
+            CliAccountKind.API_KEY -> CodexRoute.ApiKey(account.model)
+            CliAccountKind.THIRD_PARTY -> CodexRoute.ThirdParty(
+                baseUrl = account.baseUrl,
+                apiKey = account.apiKey,
+                model = account.model,
+            )
+        }
+        val updated = try {
+            CodexConfigEditor.apply(existing, route)
+        } catch (_: CodexProfileOverrideException) {
+            return CliApplyResult.Failed(R.string.cli_error_profile_override)
+        }
+
+        if (!backupOnce(rootfs, configPath)) {
+            return CliApplyResult.Failed(R.string.cli_error_backup_failed)
+        }
+        if (account.kind != CliAccountKind.THIRD_PARTY && !backupOnce(rootfs, authPath)) {
+            return CliApplyResult.Failed(R.string.cli_error_backup_failed)
+        }
+        if (!write(rootfs, configPath, updated)) {
+            return CliApplyResult.Failed(R.string.cli_error_write_config)
+        }
+        if (account.kind != CliAccountKind.THIRD_PARTY) {
+            val auth = when (account.kind) {
+                CliAccountKind.OFFICIAL -> account.authJson
+                    ?: return CliApplyResult.Failed(R.string.cli_error_missing_snapshot)
+                CliAccountKind.API_KEY -> CliAuthEditor.codexApiKey(account.apiKey)
+                CliAccountKind.THIRD_PARTY -> error("unreachable")
             }
-            return CliApplyResult.Success
+            if (!write(rootfs, authPath, auth)) {
+                return CliApplyResult.Failed(R.string.cli_error_write_auth)
+            }
         }
-        if (account.baseUrl.isBlank()) return CliApplyResult.Failed("第三方提供商需要 baseURL")
-        val config = buildString {
-            if (account.model.isNotBlank()) appendLine("model = ${tomlQuote(account.model)}")
-            appendLine("model_provider = \"eta\"")
-            appendLine("[model_providers.eta]")
-            appendLine("name = \"Eta\"")
-            appendLine("base_url = ${tomlQuote(account.baseUrl.trimEnd('/'))}")
-            appendLine("env_key = \"OPENAI_API_KEY\"")
-            appendLine("wire_api = \"responses\"")
-        }
-        if (!write(rootfs, CliAgent.CODEX.configFile, config)) return CliApplyResult.Failed("写入 Codex 配置失败")
         return CliApplyResult.Success
     }
 
     private fun applyClaude(rootfs: File, account: CliAccount): CliApplyResult {
+        val settingsPath = CliAgent.CLAUDE_CODE.settingsFile
+        val credentialsPath = CliAgent.CLAUDE_CODE.credentialsFile
+
         if (account.kind == CliAccountKind.OFFICIAL) {
             val credentials = account.credentialsJson
-                ?: return CliApplyResult.Failed("没有可恢复的官方登录快照，请先在终端登录并导入")
-            backupOnce(rootfs, CliAgent.CLAUDE_CODE.credentialsFile)
-            backupOnce(rootfs, CliAgent.CLAUDE_CODE.settingsFile)
-            if (!write(rootfs, CliAgent.CLAUDE_CODE.credentialsFile, credentials)) {
-                return CliApplyResult.Failed("写入 Claude Code 登录文件失败")
+                ?: return CliApplyResult.Failed(R.string.cli_error_missing_snapshot)
+            if (!CliAuthEditor.isOfficialClaudeCredentials(credentials)) {
+                return CliApplyResult.Failed(R.string.cli_error_invalid_auth)
             }
-            if (account.settingsJson != null) {
-                if (!write(rootfs, CliAgent.CLAUDE_CODE.settingsFile, account.settingsJson)) {
-                    return CliApplyResult.Failed("写入 Claude Code 配置失败")
-                }
-            } else {
-                val settings = read(rootfs, CliAgent.CLAUDE_CODE.settingsFile)
-                if (!write(rootfs, CliAgent.CLAUDE_CODE.settingsFile, removeClaudeManagedEnv(settings))) {
-                    return CliApplyResult.Failed("写入 Claude Code 配置失败")
-                }
-            }
-            return CliApplyResult.Success
+        } else if (account.apiKey.isBlank()) {
+            return CliApplyResult.Failed(R.string.cli_error_api_key_empty)
         }
-        if (account.apiKey.isBlank()) return CliApplyResult.Failed("API Key 不能为空")
         if (account.kind == CliAccountKind.THIRD_PARTY && account.baseUrl.isBlank()) {
-            return CliApplyResult.Failed("第三方提供商需要 baseURL")
+            return CliApplyResult.Failed(R.string.cli_error_base_url_required)
         }
-        val existing = read(rootfs, CliAgent.CLAUDE_CODE.settingsFile)
-        val merged = mergeClaudeSettings(existing, account)
-        if (!write(rootfs, CliAgent.CLAUDE_CODE.settingsFile, merged)) {
-            return CliApplyResult.Failed("写入 Claude Code 配置失败")
+
+        val existing = readRequired(rootfs, settingsPath)
+            ?: return CliApplyResult.Failed(R.string.cli_error_read_config)
+        val updated = try {
+            when (account.kind) {
+                CliAccountKind.OFFICIAL -> ClaudeSettingsEditor.stripManaged(existing)
+                CliAccountKind.API_KEY -> ClaudeSettingsEditor.merge(
+                    existing, account.kind, account.apiKey, account.baseUrl, account.model,
+                )
+                CliAccountKind.THIRD_PARTY -> ClaudeSettingsEditor.merge(
+                    existing, account.kind, account.apiKey, account.baseUrl, account.model,
+                )
+            }
+        } catch (_: JSONException) {
+            return CliApplyResult.Failed(R.string.cli_error_invalid_settings)
+        }
+
+        if (!backupOnce(rootfs, settingsPath)) {
+            return CliApplyResult.Failed(R.string.cli_error_backup_failed)
+        }
+        if (account.kind == CliAccountKind.OFFICIAL && !backupOnce(rootfs, credentialsPath)) {
+            return CliApplyResult.Failed(R.string.cli_error_backup_failed)
+        }
+        if (!write(rootfs, settingsPath, updated)) {
+            return CliApplyResult.Failed(R.string.cli_error_write_config)
+        }
+        if (account.kind == CliAccountKind.OFFICIAL) {
+            val credentials = account.credentialsJson
+                ?: return CliApplyResult.Failed(R.string.cli_error_missing_snapshot)
+            if (!write(rootfs, credentialsPath, credentials)) {
+                return CliApplyResult.Failed(R.string.cli_error_write_auth)
+            }
         }
         return CliApplyResult.Success
     }
 
-    private fun mergeClaudeSettings(existing: String?, account: CliAccount): String {
-        val root = runCatching { JSONObject(existing ?: "{}") }.getOrElse { JSONObject() }
-        val env = root.optJSONObject("env") ?: JSONObject()
-        listOf("ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL").forEach(env::remove)
-        when (account.kind) {
-            CliAccountKind.API_KEY -> env.put("ANTHROPIC_API_KEY", account.apiKey)
-            CliAccountKind.THIRD_PARTY -> {
-                env.put("ANTHROPIC_BASE_URL", account.baseUrl.trimEnd('/'))
-                env.put("ANTHROPIC_AUTH_TOKEN", account.apiKey)
-            }
-            CliAccountKind.OFFICIAL -> Unit
+    /** 读取可能不存在的配置文件；文件存在但读不出来时返回 null，由调用方失败关闭。 */
+    private fun readRequired(rootfs: File, path: String): String? {
+        if (path.isBlank()) return ""
+        return when (exists(rootfs, path)) {
+            false -> ""
+            null -> null
+            true -> read(rootfs, path)
         }
-        if (account.model.isNotBlank()) env.put("ANTHROPIC_MODEL", account.model)
-        root.put("env", env)
-        return root.toString(2)
-    }
-
-    private fun removeClaudeManagedEnv(existing: String?): String {
-        val root = runCatching { JSONObject(existing ?: "{}") }.getOrElse { JSONObject() }
-        val env = root.optJSONObject("env") ?: return root.toString(2)
-        listOf("ANTHROPIC_BASE_URL", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_API_KEY", "ANTHROPIC_MODEL").forEach(env::remove)
-        root.put("env", env)
-        return root.toString(2)
     }
 
     private fun read(rootfs: File, path: String): String? {
         if (path.isBlank()) return null
         return when (val result = LinuxFileExplorer.readText(supervisor, rootfs, path)) {
-            is LinuxFileExplorer.ReadResult.Text -> result.content
+            is LinuxFileExplorer.ReadResult.Text ->
+                if (result.truncated) null else result.content
             else -> null
         }
     }
 
     private fun write(rootfs: File, path: String, content: String): Boolean {
         if (path.isBlank()) return false
-        return LinuxFileExplorer.writeText(supervisor, rootfs, path, content) == LinuxFileExplorer.WriteResult.Success
+        return LinuxFileExplorer.writeText(
+            supervisor = supervisor,
+            rootfsDir = rootfs,
+            linuxPath = path,
+            content = content,
+            privateMode = true,
+        ) == LinuxFileExplorer.WriteResult.Success
     }
 
-    private fun backupOnce(rootfs: File, path: String) {
-        if (path.isBlank()) return
+    /** 首次改写前备份；备份失败或已有备份但读不出来时返回 false，调用方不得继续写。 */
+    private fun backupOnce(rootfs: File, path: String): Boolean {
+        if (path.isBlank()) return true
         val backup = "$path.eta-backup"
-        if (read(rootfs, backup) != null) return
-        read(rootfs, path)?.let { write(rootfs, backup, it) }
+        when (exists(rootfs, backup)) {
+            true -> return true
+            null -> return false
+            false -> Unit
+        }
+        return when (exists(rootfs, path)) {
+            false -> true
+            null -> false
+            true -> read(rootfs, path)?.let { write(rootfs, backup, it) } ?: false
+        }
     }
 
-    private fun updateTomlModel(existing: String, model: String): String {
-        val line = "model = ${tomlQuote(model)}"
-        val lines = existing.lines().toMutableList()
-        val index = lines.indexOfFirst { it.trimStart().startsWith("model =") || it.trimStart().startsWith("model=") }
-        if (index >= 0) lines[index] = line else lines.add(0, line)
-        return lines.joinToString("\n")
+    /** true = 存在；false = 不存在；null = 无法判断。 */
+    private fun exists(rootfs: File, path: String): Boolean? {
+        if (path.isBlank()) return false
+        return when (LinuxFileExplorer.stat(supervisor, rootfs, path)) {
+            is LinuxFileExplorer.StatResult.Success -> true
+            LinuxFileExplorer.StatResult.NotFound -> false
+            else -> null
+        }
     }
-
-    private fun tomlQuote(value: String): String =
-        "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 }

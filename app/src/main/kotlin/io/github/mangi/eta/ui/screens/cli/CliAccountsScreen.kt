@@ -4,6 +4,7 @@ import android.content.Context
 import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -11,26 +12,35 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.mangi.eta.R
 import io.github.mangi.eta.agent.cli.CliAccount
 import io.github.mangi.eta.agent.cli.CliAccountKind
 import io.github.mangi.eta.agent.cli.CliAccountStore
 import io.github.mangi.eta.agent.cli.CliAgent
 import io.github.mangi.eta.agent.cli.CliApplyResult
+import io.github.mangi.eta.agent.cli.CliCaptureResult
 import io.github.mangi.eta.agent.cli.CliConfigManager
 import io.github.mangi.eta.agent.terminal.LinuxEnvironmentPaths
 import io.github.mangi.eta.agent.terminal.LinuxPackageProfiles
@@ -41,7 +51,10 @@ import io.github.mangi.eta.ui.components.EtaTextButton
 import io.github.mangi.eta.ui.components.EtaWindowDialog
 import io.github.mangi.eta.ui.components.MiuixDialogActions
 import io.github.mangi.eta.ui.components.MiuixScaffoldPage
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.IconButton
 import top.yukonga.miuix.kmp.basic.Text
@@ -55,6 +68,7 @@ internal fun CliAccountsScreen(
     context: Context,
     onBack: () -> Unit,
     onOpenTerminal: (CliAgent) -> Unit,
+    onOpenLinuxEnvironment: () -> Unit,
 ) {
     val appContext = context.applicationContext
     val store = remember { CliAccountStore(appContext) }
@@ -66,6 +80,7 @@ internal fun CliAccountsScreen(
     var busy by remember { mutableStateOf(false) }
     var showAdd by remember { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<CliAccount?>(null) }
+    var refreshKey by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
     val toast = remember(appContext) { { text: String ->
         Toast.makeText(appContext, text, Toast.LENGTH_SHORT).show()
@@ -76,27 +91,61 @@ internal fun CliAccountsScreen(
     val rootfs = remember(distribution, backend) {
         LinuxEnvironmentPaths.rootfsDir(appContext, distribution, backend)
     }
-    val installed = remember(selectedAgent, distribution, backend) {
-        val profile = LinuxPackageProfiles.ALL.firstOrNull { it.id == selectedAgent.packageProfileId }
-        profile != null && linuxPackageProfileReady(rootfs, profile)
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) refreshKey++
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    val installed by produceState(false, selectedAgent, distribution, backend, refreshKey) {
+        value = withContext(Dispatchers.IO) {
+            try {
+                val profile = LinuxPackageProfiles.ALL.firstOrNull { it.id == selectedAgent.packageProfileId }
+                profile != null && linuxPackageProfileReady(rootfs, profile)
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (_: Throwable) {
+                false
+            }
+        }
     }
 
     val accounts = state.accounts.filter { it.agentId == selectedAgent.id }
     val activeId = state.activeByAgent[selectedAgent.id]
+    val appliedText = stringResource(R.string.cli_account_applied)
+    val saveFailedText = stringResource(R.string.cli_error_save_failed)
+    val installHintText = stringResource(R.string.cli_account_install_hint)
+    val unexpectedText = stringResource(R.string.cli_error_unexpected)
 
     fun switchTo(account: CliAccount) {
         if (busy) return
         busy = true
         scope.launch {
-            val result = manager.apply(account)
-            busy = false
+            val result = try {
+                manager.apply(account)
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (_: Throwable) {
+                CliApplyResult.Failed(R.string.cli_error_unexpected)
+            } finally {
+                busy = false
+            }
             when (result) {
                 CliApplyResult.Success -> {
-                    state = store.setActive(account.agentId, account.id)
-                    toast(appContext.getString(R.string.cli_account_applied))
+                    val next = runCatching { store.setActive(account.agentId, account.id) }.getOrNull()
+                    if (next == null) {
+                        toast(saveFailedText)
+                    } else {
+                        state = next
+                        toast(appliedText)
+                    }
                 }
-                CliApplyResult.NotReady -> toast(appContext.getString(R.string.cli_account_install_hint))
-                is CliApplyResult.Failed -> toast(result.message)
+                CliApplyResult.NotReady -> toast(installHintText)
+                is CliApplyResult.Failed -> toast(appContext.getString(result.messageRes))
             }
         }
     }
@@ -108,7 +157,12 @@ internal fun CliAccountsScreen(
             IconButton(onClick = { showAdd = true }, enabled = !busy) {
                 Icon(Icons.Rounded.Add, stringResource(R.string.cli_account_add), Modifier.size(22.dp))
             }
-            IconButton(onClick = { onOpenTerminal(selectedAgent) }, enabled = !busy) {
+            IconButton(
+                onClick = {
+                    if (installed) onOpenTerminal(selectedAgent) else toast(installHintText)
+                },
+                enabled = !busy,
+            ) {
                 Icon(Icons.Rounded.Terminal, stringResource(R.string.cli_account_terminal), Modifier.size(21.dp))
             }
         },
@@ -122,6 +176,7 @@ internal fun CliAccountsScreen(
                     EtaTextButton(
                         text = agent.displayName,
                         onClick = { selectedAgent = agent },
+                        enabled = !busy,
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -130,10 +185,17 @@ internal fun CliAccountsScreen(
         if (!installed) {
             item(key = "install-hint") {
                 Text(
-                    text = stringResource(R.string.cli_account_install_hint),
+                    text = installHintText,
                     style = MiuixTheme.textStyles.footnote2,
                     color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
                     modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                )
+            }
+            item(key = "install-action") {
+                EtaTextButton(
+                    text = stringResource(R.string.cli_account_install_action),
+                    onClick = onOpenLinuxEnvironment,
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
                 )
             }
         }
@@ -150,6 +212,7 @@ internal fun CliAccountsScreen(
         items(accounts, key = { it.id }) { account ->
             EtaCard(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 6.dp),
+                insideMargin = PaddingValues(0.dp),
             ) {
                 Column(Modifier.padding(14.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -219,12 +282,18 @@ internal fun CliAccountsScreen(
             agent = selectedAgent,
             onDismiss = { showAdd = false },
             onSave = { account ->
-                state = store.upsert(account)
-                showAdd = false
-                toast(appContext.getString(R.string.cli_account_saved))
+                val next = runCatching { store.upsert(account) }.getOrNull()
+                if (next == null) {
+                    toast(saveFailedText)
+                } else {
+                    state = next
+                    showAdd = false
+                    toast(appContext.getString(R.string.cli_account_saved))
+                }
             },
             manager = manager,
             toast = toast,
+            unexpectedText = unexpectedText,
         )
     }
 
@@ -239,7 +308,8 @@ internal fun CliAccountsScreen(
                 confirmText = stringResource(R.string.cli_account_delete),
                 onCancel = { deleteTarget = null },
                 onConfirm = {
-                    state = store.delete(account.id)
+                    val next = runCatching { store.delete(account.id) }.getOrNull()
+                    if (next == null) toast(saveFailedText) else state = next
                     deleteTarget = null
                 },
                 destructive = true,
@@ -255,6 +325,7 @@ private fun AddCliAccountDialog(
     onSave: (CliAccount) -> Unit,
     manager: CliConfigManager,
     toast: (String) -> Unit,
+    unexpectedText: String,
 ) {
     var kind by remember { mutableStateOf(CliAccountKind.API_KEY) }
     var name by remember { mutableStateOf("") }
@@ -264,6 +335,13 @@ private fun AddCliAccountDialog(
     var importing by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     val captureFailedText = stringResource(R.string.cli_account_capture_failed)
+    val installHintText = stringResource(R.string.cli_account_install_hint)
+    val defaultOfficialName = stringResource(R.string.cli_account_official_default, agent.displayName)
+    val invalidAuthText = stringResource(R.string.cli_error_invalid_auth)
+    val captureErrors = mapOf(
+        R.string.cli_error_invalid_auth to invalidAuthText,
+        R.string.cli_error_unexpected to unexpectedText,
+    )
 
     EtaWindowDialog(
         show = true,
@@ -297,6 +375,8 @@ private fun AddCliAccountDialog(
                     onValueChange = { apiKey = it },
                     label = stringResource(R.string.cli_account_key),
                     singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    visualTransformation = PasswordVisualTransformation(),
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (kind == CliAccountKind.THIRD_PARTY) {
@@ -338,26 +418,30 @@ private fun AddCliAccountDialog(
                         if (!importing) {
                             importing = true
                             scope.launch {
-                                val files = manager.capture(agent)
-                                importing = false
-                                if (files == null ||
-                                    (files.authJson == null && files.credentialsJson == null)
-                                ) {
-                                    toast(captureFailedText)
-                                    return@launch
+                                try {
+                                    when (val captured = manager.capture(agent)) {
+                                        CliCaptureResult.NotReady -> toast(installHintText)
+                                        CliCaptureResult.NoLogin -> toast(captureFailedText)
+                                        is CliCaptureResult.Failed ->
+                                            toast(captureErrors[captured.messageRes] ?: unexpectedText)
+                                        is CliCaptureResult.Success -> onSave(
+                                            CliAccount(
+                                                id = UUID.randomUUID().toString(),
+                                                agentId = agent.id,
+                                                name = name.ifBlank { defaultOfficialName },
+                                                kind = CliAccountKind.OFFICIAL,
+                                                authJson = captured.files.authJson,
+                                                credentialsJson = captured.files.credentialsJson,
+                                            ),
+                                        )
+                                    }
+                                } catch (cancel: CancellationException) {
+                                    throw cancel
+                                } catch (_: Throwable) {
+                                    toast(unexpectedText)
+                                } finally {
+                                    importing = false
                                 }
-                                onSave(
-                                    CliAccount(
-                                        id = UUID.randomUUID().toString(),
-                                        agentId = agent.id,
-                                        name = name.ifBlank { "${agent.displayName} Official" },
-                                        kind = CliAccountKind.OFFICIAL,
-                                        authJson = files.authJson,
-                                        configToml = files.configToml,
-                                        credentialsJson = files.credentialsJson,
-                                        settingsJson = files.settingsJson,
-                                    ),
-                                )
                             }
                         }
                     } else {
@@ -374,20 +458,30 @@ private fun AddCliAccountDialog(
                         )
                     }
                 },
-                confirmEnabled = !importing && (kind == CliAccountKind.OFFICIAL || apiKey.isNotBlank()),
+                confirmEnabled = !importing && when (kind) {
+                    CliAccountKind.OFFICIAL -> true
+                    CliAccountKind.API_KEY -> apiKey.isNotBlank()
+                    CliAccountKind.THIRD_PARTY -> apiKey.isNotBlank() && baseUrl.isNotBlank()
+                },
             )
         }
     }
 }
 
-private fun CliAccountKind.shortLabel(): String = when (this) {
-    CliAccountKind.OFFICIAL -> "Official"
-    CliAccountKind.API_KEY -> "Key"
-    CliAccountKind.THIRD_PARTY -> "Third-party"
-}
+@Composable
+private fun CliAccountKind.shortLabel(): String = stringResource(
+    when (this) {
+        CliAccountKind.OFFICIAL -> R.string.cli_kind_official_short
+        CliAccountKind.API_KEY -> R.string.cli_kind_api_key_short
+        CliAccountKind.THIRD_PARTY -> R.string.cli_kind_third_party_short
+    },
+)
 
-private fun CliAccountKind.label(): String = when (this) {
-    CliAccountKind.OFFICIAL -> "Official account"
-    CliAccountKind.API_KEY -> "API Key"
-    CliAccountKind.THIRD_PARTY -> "Third-party provider"
-}
+@Composable
+private fun CliAccountKind.label(): String = stringResource(
+    when (this) {
+        CliAccountKind.OFFICIAL -> R.string.cli_kind_official
+        CliAccountKind.API_KEY -> R.string.cli_kind_api_key
+        CliAccountKind.THIRD_PARTY -> R.string.cli_kind_third_party
+    },
+)

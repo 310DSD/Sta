@@ -21,10 +21,10 @@ internal data class CliAccount(
     val apiKey: String = "",
     val baseUrl: String = "",
     val model: String = "",
+    /** Codex 官方登录快照（`auth.json`）。 */
     val authJson: String? = null,
-    val configToml: String? = null,
+    /** Claude Code 官方登录快照（`.credentials.json`）。 */
     val credentialsJson: String? = null,
-    val settingsJson: String? = null,
     val createdAt: Long = System.currentTimeMillis(),
 )
 

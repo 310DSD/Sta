@@ -75,11 +75,17 @@ Codex 与 Claude Code 是终端 TUI 型 Agent，没有官方移动 Web UI，Sta 
 - 首页溢出菜单新增“CLI 智能体”，按 Agent 管理账号；账号页右上角可直接打开该 Agent 的终端标签，
   进入后自动执行 `codex` / `claude`。终端会话按 Agent 标签隔离，Codex 与 Claude Code 各自保留
   自己的 PTY，可在终端会话列表切换。
-- 账号类型：官方账号（导入当前 CLI 登录快照）、官方 API Key、第三方兼容端点（baseURL + key + model）。
-- 切换为手动操作，不做自动轮换：Codex 写 `~/.codex/auth.json` 与 `config.toml`，Claude Code 写
-  `~/.claude/.credentials.json` 与 `settings.json`；改动前保留一次 `*.eta-backup`，Claude 只合并/清理
-  自己管理的 `env` 字段，不覆盖 hooks 等其它设置。
-- 账号列表保存在 App 私有 `noBackupFilesDir/cli_accounts.json`（明文，尚未接入 Keystore）。
+- 账号类型：官方账号（只导入 CLI 自己生成的登录文件）、官方 API Key、第三方兼容端点
+  （baseURL + key + model）。
+- 切换语义参考 CC Switch：只改连接信息与 Sta 自己的 provider 表，保留 hooks、MCP、profiles、
+  注释等其它配置；第一次改写前备份，备份失败就中止，配置解析失败也失败关闭。
+- Codex：官方/API Key 会恢复或写入 `~/.codex/auth.json` 并清除 Sta 的选路；第三方 provider 写成
+  `[model_providers.eta]`，Key 放在 `experimental_bearer_token`，不依赖 `auth.json` 或进程环境变量。
+  `config.toml` 由行级编辑器只替换 `model` / `model_provider` / `openai_base_url` 与 eta 表。
+- Claude Code：官方账号只恢复 `~/.claude/.credentials.json`，并从 `settings.json` 的 `env` 中移除
+  Sta 管理的 Anthropic/云厂商键；API Key/第三方只合并 `env`，保留其它设置。
+- 账号列表保存在 App 私有 `noBackupFilesDir/cli_accounts.json`（明文，尚未接入 Keystore）；
+  官方登录快照可能因 CLI 刷新/轮换而失效，失效后重新导入即可。
 
 ### OpenCode 提供商同步
 

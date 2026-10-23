@@ -131,6 +131,10 @@ internal class ConsoleStore(
     private var lastCols = 0
     private var lastRows = 0
 
+    /** 最近一次请求的会话标签；创建期间用户切到别的 Agent 时，创建完成后按它校正。 */
+    @Volatile
+    private var requestedTag: String? = null
+
     /** 探测 PTY 前提；结果缓存进状态，不支持时入口回退到块式终端。 */
     fun probePtySupport() {
         scope.launch {
@@ -156,11 +160,14 @@ internal class ConsoleStore(
      */
     fun open(environment: TerminalEnvironment, cols: Int, rows: Int, tag: String? = null) {
         if (cols <= 0 || rows <= 0) return
+        requestedTag = tag
         lastCols = cols
         lastRows = rows
         val state = _uiState.value
         val active = state.sessions.find { it.id == state.activeSessionId }
-        if (active != null && controller.sessionAlive(active.id) && (tag == null || active.tag == tag)) {
+        if (active != null && controller.sessionAlive(active.id) &&
+            (tag == null || (active.tag == tag && active.environment == environment))
+        ) {
             resizeSession(active.id, cols, rows)
             return
         }
@@ -190,10 +197,12 @@ internal class ConsoleStore(
         return true
     }
 
-    /** 以当前环境与最近一次网格尺寸新建会话。 */
+    /** 以当前环境与最近一次网格尺寸新建会话；沿用当前 Agent 标签。 */
     fun newSession() {
         if (lastCols <= 0 || lastRows <= 0) return
-        createSession(_uiState.value.environment, lastCols, lastRows)
+        val state = _uiState.value
+        val tag = state.sessions.find { it.id == state.activeSessionId }?.tag
+        createSession(state.environment, lastCols, lastRows, tag)
     }
 
     fun switchSession(sessionId: String) {
@@ -225,7 +234,9 @@ internal class ConsoleStore(
             if (state.activeSessionId != sessionId) {
                 state.copy(sessions = sessions)
             } else {
-                val next = sessions.lastOrNull()
+                val closing = state.sessions.find { it.id == sessionId }
+                val next = sessions.lastOrNull { closing == null || it.tag == closing.tag }
+                    ?: sessions.lastOrNull()
                 state.copy(
                     sessions = sessions,
                     activeSessionId = next?.id,
@@ -255,14 +266,17 @@ internal class ConsoleStore(
         _uiState.update { state ->
             state.copy(sessions = state.sessions.filterNot { it.id == sessionId })
         }
-        createSession(session.environment, size.first, size.second)
+        createSession(session.environment, size.first, size.second, session.tag)
     }
 
     /** 切换环境 tab：只改目标环境；有该环境的存活会话则切过去，否则由网格回调新建。 */
     fun switchEnvironment(environment: TerminalEnvironment) {
         val state = _uiState.value
         if (state.environment == environment && state.activeSessionId != null) return
-        val reusable = state.sessions.lastOrNull { !it.exited && it.environment == environment }
+        val activeTag = state.sessions.find { it.id == state.activeSessionId }?.tag
+        val reusable = state.sessions.lastOrNull {
+            !it.exited && it.environment == environment && it.tag == activeTag
+        }
         if (reusable != null) {
             switchSession(reusable.id)
         } else {
@@ -348,6 +362,7 @@ internal class ConsoleStore(
         lastCols = cols
         lastRows = rows
         creatingSession = true
+        val previousActive = _uiState.value.activeSessionId
         _uiState.update { it.copy(connected = false, exited = false, failMessage = null) }
         scope.launch(Dispatchers.IO) {
             try {
@@ -358,6 +373,12 @@ internal class ConsoleStore(
             withContext(Dispatchers.Main) {
                 // 启动期间网格可能已变化，按最新尺寸同步一次。
                 _uiState.value.activeSessionId?.let { resizeSession(it, lastCols, lastRows) }
+                val state = _uiState.value
+                val active = state.sessions.find { it.id == state.activeSessionId }
+                if (active != null && active.id != previousActive && requestedTag != active.tag) {
+                    // 创建期间用户已经切到别的 Agent：按最新标签再建/切一次。
+                    open(state.environment, lastCols, lastRows, requestedTag)
+                }
             }
         }
     }

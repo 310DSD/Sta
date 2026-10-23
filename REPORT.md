@@ -122,21 +122,30 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 - `CliAgent` 定义 Codex 与 Claude Code 的安装 profile、启动命令与登录/配置文件路径；
   `LinuxPackageProfiles` 新增两个固定版本 profile（Codex 0.164.0、Claude Code 2.1.309），
   Linux 工具页增加对应安装行。
-- 新增 `CliAccountStore` / `CliConfigManager`：按 Agent 保存官方快照、API Key、第三方端点三类账号，
-  手动切换；Codex 写 `auth.json` + `config.toml`，Claude Code 写 `.credentials.json` + `settings.json`，
-  改动前保留一次 `*.eta-backup`。Claude 只合并/清理自己管理的 `env` 键，Codex 第三方模式使用
-  `model_providers.eta`，API Key 模式尽量保留既有 TOML 字段。
-- 新增 `CliAccountsScreen`（Miuix 页面）：Agent 切换、添加/删除/切换账号、安装提示、直接打开终端；
-  账号文件位于 App 私有 `noBackupFilesDir/cli_accounts.json`。
-- 路由新增 `CliAgents` / `CliTerminal(agentId)`；首页溢出菜单新增“CLI 智能体”入口。
+- 新增 `CliAccountStore` / `CliConfigManager`：按 Agent 保存官方登录快照、API Key、第三方端点三类账号，
+  手动切换。切换语义参考 CC Switch：只改连接信息和 Sta 自己的 provider 表，保留 hooks、MCP、
+  profiles、注释等其它配置；第一次改写前备份，备份失败或 JSON 解析失败时失败关闭。
+- Codex：官方/API Key 恢复或写入 `auth.json` 并清除 Sta 选路；第三方 provider 写
+  `[model_providers.eta]`，Key 放在 `experimental_bearer_token`，不再依赖 `auth.json` 或
+  `env_key` 环境变量。`config.toml` 由行级编辑器只替换关键字段与 eta 表；活动 profile 覆盖选路时
+  拒绝写入并提示。
+- Claude Code：官方账号只恢复 `.credentials.json`，并从 `settings.json.env` 移除 Sta 管理的
+  Anthropic/云厂商键；API Key/第三方只合并 `env`，保留其它设置。
+- 新增 `CliAccountsScreen`（Miuix 页面）：Agent 切换、添加/删除/切换账号、安装提示与跳转、
+  直接打开终端；API Key 输入做密码遮罩；账号文件位于 App 私有 `noBackupFilesDir/cli_accounts.json`。
+- 路由新增 `CliAgents` / `CliTerminal(agentId)`；首页溢出菜单新增“CLI 智能体”入口；Linux 工具页
+  安装完成后可直接打开对应 CLI 终端。
 - 终端页支持 `initialCommand` 与 `sessionTag`：PTY 控制台按 Agent 标签隔离会话，首次连接后
-  自动执行 `codex` / `claude`，返回页面不重复发送；PTY 不可用时回退到块式终端执行一次。
+  自动执行 `codex` / `claude`，返回页面不重复发送；PTY 不可用时显示“需要 PTY”占位，不再把 TUI
+  命令丢进块式终端。
 
 ### 验证
 
-- `compileDebugKotlin`、`assembleDebug`、`assembleRelease` 通过；release APK 使用 `CN=Sta Fork` 证书签名。
-- `AppRouteSerializationTest` 覆盖新增路由，`AlpineEnvironmentInstallerTest` 覆盖两个 CLI 安装脚本，
-  `EtaDatabaseMigrationTest` 覆盖 DB v24 迁移。
+- `compileDebugKotlin`、`assembleDebug`、`assembleRelease`、`lintDebug` 通过；release APK 使用
+  `CN=Sta Fork` 证书签名。
+- `CliConfigEditorsTest` 覆盖 Codex 官方/API Key/第三方切换、profile 覆盖拒绝、Claude 合并与
+  非法 JSON、官方登录格式校验；`AppRouteSerializationTest` 覆盖新增路由，
+  `AlpineEnvironmentInstallerTest` 覆盖两个 CLI 安装脚本，`EtaDatabaseMigrationTest` 覆盖 DB v24 迁移。
 - 受上游 ARM64-only 打包限制，x86_64 模拟器无法安装最终 APK；CLI 安装/登录需在 ARM64 设备或
   root/chroot 环境中实机验证。
 
@@ -170,4 +179,8 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
    已在 1.12.0 上验证；升级 Compose 后应保留 `SafeImeInsetsTest` 作为看门测试。
 4. CLI 账号文件目前是 App 私有目录下的明文 JSON，尚未接入 Android Keystore；官方订阅账号通过
    CLI 在官方客户端之外使用可能违反服务条款，建议优先使用 API Key 或第三方端点。
-   Codex 第三方模式会重写 `config.toml`（已有 `*.eta-backup` 备份），切换前应确认没有手工配置需要保留。
+   Codex 第三方模式按 Responses 兼容端点写入（`wire_api = "responses"`）；只支持 Chat Completions
+   的网关需要本地转换（CC Switch 的路由模式）才能使用。若用户把 `cli_auth_credentials_store`
+   设为 `keyring`，`auth.json` 切换可能不生效，需要在 Codex 配置里改回 `file`。
+   官方登录快照可能因 CLI 刷新或 refresh token 轮换而失效，失效后重新导入即可；活动 Codex
+   profile 覆盖 provider 选路时 Sta 会拒绝切换并提示先清除 profile。

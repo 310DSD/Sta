@@ -80,6 +80,12 @@ internal fun TerminalEntryScreen(
             initialCommand = initialCommand,
             sessionTag = sessionTag,
         )
+        consoleState.ptySupported == false && initialCommand != null -> TerminalPlaceholder(
+            icon = Icons.Rounded.Terminal,
+            message = stringResource(R.string.cli_terminal_requires_pty),
+            actionText = stringResource(R.string.terminal_open_environment),
+            onAction = onOpenEnvironment,
+        )
         else -> UserTerminalScreen(
             store = terminalStore,
             onOpenEnvironment = onOpenEnvironment,

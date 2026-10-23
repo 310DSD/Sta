@@ -453,6 +453,7 @@ fun AgentAppRoot(
                     context = context,
                     onBack = ::popRoute,
                     onOpenTerminal = { agent -> pushRoute(AppRoute.CliTerminal(agent.id)) },
+                    onOpenLinuxEnvironment = { pushRoute(AppRoute.LinuxEnvironment) },
                 )
             }
             entry<AppRoute.CliTerminal>(swipeDismiss = swipeDismiss) { route ->

@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import io.github.mangi.eta.EtaApp
 import io.github.mangi.eta.R
+import io.github.mangi.eta.agent.cli.CliAgent
 import io.github.mangi.eta.agent.extension.ExtensionAgent
 import io.github.mangi.eta.agent.terminal.AlpineEnvironmentInstaller
 import io.github.mangi.eta.agent.terminal.AlpineEnvironmentState
@@ -92,6 +93,12 @@ private fun InstallTarget.extensionAgent(): ExtensionAgent? = when (this) {
     InstallTarget.OPENCODE -> ExtensionAgent.OPENCODE
     InstallTarget.DSH -> ExtensionAgent.DSH
     InstallTarget.KIMI -> ExtensionAgent.KIMI
+    else -> null
+}
+
+private fun InstallTarget.cliAgent(): CliAgent? = when (this) {
+    InstallTarget.CODEX -> CliAgent.CODEX
+    InstallTarget.CLAUDE_CODE -> CliAgent.CLAUDE_CODE
     else -> null
 }
 
@@ -496,6 +503,7 @@ internal fun LinuxEnvironmentScreen(
                     packageProfileUis.forEachIndexed { index, profileUi ->
                         val ready = profileReady[profileUi.target] == true
                         val agent = profileUi.target.extensionAgent()
+                        val cliAgent = profileUi.target.cliAgent()
                         val agentRunning = agent != null && agent in runningAgents
                         val summaryRes = if (selectedDistribution == LinuxDistribution.DEBIAN) {
                             profileUi.debianSummaryRes
@@ -518,7 +526,13 @@ internal fun LinuxEnvironmentScreen(
                                 stringResource(summaryRes)
                             },
                             endActions = {
-                                if (agent != null && ready) {
+                                if (cliAgent != null && ready) {
+                                    EtaTextButton(
+                                        text = stringResource(R.string.action_open),
+                                        enabled = busyTarget == null && !requiresRoot,
+                                        onClick = { onNavigate(AppRoute.CliTerminal(cliAgent.id)) },
+                                    )
+                                } else if (agent != null && ready) {
                                     // 运行中只放“打开”，避免“停止 + 打开”把 45% 操作区挤成
                                     // 竖排；停止入口移到下一行的全宽次要操作。
                                     EtaTextButton(

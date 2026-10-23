@@ -256,6 +256,7 @@ internal object LinuxFileExplorer {
         linuxPath: String,
         content: String,
         hostWorkspace: File? = null,
+        privateMode: Boolean = false,
     ): WriteResult {
         if (!LinuxEnvironmentPaths.rootfsReady(rootfsDir.absolutePath)) return WriteResult.NotInstalled
         val hostPath = resolveHostPathFor(rootfsDir, linuxPath, hostWorkspace) ?: return WriteResult.NotFile
@@ -263,6 +264,16 @@ internal object LinuxFileExplorer {
         val quoted = shellQuote(
             if (rootless) "/" + File(rootfsDir.path).toPath().relativize(File(hostPath).toPath()).toString() else hostPath,
         )
+        val privateScript = if (privateMode) {
+            """
+            chmod 600 "${'$'}eta_tmp" 2>/dev/null || true
+            """.trimIndent()
+        } else ""
+        val privateAfter = if (privateMode) {
+            """
+            chmod 600 "${'$'}eta_target" 2>/dev/null || true
+            """.trimIndent()
+        } else ""
         val script = """
             eta_target=$quoted
             if [ -d "${'$'}eta_target" ]; then exit 43; fi
@@ -270,15 +281,12 @@ internal object LinuxFileExplorer {
             mkdir -p "${'$'}eta_dir" || exit 42
             eta_tmp="${'$'}eta_target.eta-tmp.${'$'}${'$'}"
             base64 -d > "${'$'}eta_tmp" || exit 42
+            $privateScript
             mv "${'$'}eta_tmp" "${'$'}eta_target" || exit 42
+            $privateAfter
             exit 0
         """.trimIndent()
-        val directWrite = runCatching {
-            val file = File(hostPath)
-            file.parentFile?.mkdirs()
-            file.writeText(content, Charsets.UTF_8)
-        }
-        if (directWrite.isSuccess) return WriteResult.Success
+        if (directWrite(hostPath, content, privateMode)) return WriteResult.Success
         val payload = Base64.getEncoder().encodeToString(content.toByteArray(Charsets.UTF_8)).toByteArray()
         val result = runOneShotShell(
             processSupervisor = supervisor,
@@ -290,12 +298,7 @@ internal object LinuxFileExplorer {
             linuxRootfsPath = rootfsDir.absolutePath,
         )
         if (result.exitCode != 0) {
-            val direct = runCatching {
-                val file = File(hostPath)
-                file.parentFile?.mkdirs()
-                file.writeText(content, Charsets.UTF_8)
-            }
-            if (direct.isSuccess) return WriteResult.Success
+            if (directWrite(hostPath, content, privateMode)) return WriteResult.Success
         }
         return when (result.exitCode) {
             0 -> WriteResult.Success
@@ -304,6 +307,23 @@ internal object LinuxFileExplorer {
             else -> WriteResult.CommandFailed
         }
     }
+
+    /** 直接写：privateMode 时先写临时文件再 rename，并把权限收紧到 0600。 */
+    private fun directWrite(hostPath: String, content: String, privateMode: Boolean): Boolean = runCatching {
+        val file = File(hostPath)
+        file.parentFile?.mkdirs()
+        if (!privateMode) {
+            file.writeText(content, Charsets.UTF_8)
+        } else {
+            val temp = File(file.parentFile, "${file.name}.eta-tmp.${System.nanoTime()}")
+            temp.writeText(content, Charsets.UTF_8)
+            if (!temp.renameTo(file)) {
+                file.writeText(content, Charsets.UTF_8)
+                temp.delete()
+            }
+            runCatching { android.system.Os.chmod(file.absolutePath, 384) }
+        }
+    }.isSuccess
 
     /** 读取单条路径的权限、属主、大小与时间，用于属性面板。 */
     fun stat(

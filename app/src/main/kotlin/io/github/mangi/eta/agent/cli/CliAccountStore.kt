@@ -15,8 +15,9 @@ internal class CliAccountStore(context: Context) {
         if (!file.isFile) CliAccountState() else json.decodeFromString<CliAccountState>(file.readText())
     }.getOrDefault(CliAccountState())
 
+    /** 保存失败返回 false，调用方必须提示用户，不能假装成功。 */
     @Synchronized
-    fun save(state: CliAccountState) {
+    fun save(state: CliAccountState): Boolean = runCatching {
         file.parentFile?.mkdirs()
         val temp = File(file.parentFile, "${file.name}.tmp")
         temp.writeText(json.encodeToString(state))
@@ -24,25 +25,31 @@ internal class CliAccountStore(context: Context) {
             file.writeText(temp.readText())
             temp.delete()
         }
-    }
+        true
+    }.getOrDefault(false)
 
-    fun upsert(account: CliAccount): CliAccountState {
+    fun upsert(account: CliAccount): CliAccountState? {
         val state = load()
         val accounts = state.accounts.filterNot { it.id == account.id } + account
-        return state.copy(accounts = accounts).also(::save)
+        val next = state.copy(accounts = accounts)
+        return next.takeIf { save(it) }
     }
 
-    fun delete(accountId: String): CliAccountState {
+    fun delete(accountId: String): CliAccountState? {
         val state = load()
         val account = state.accounts.firstOrNull { it.id == accountId }
         val active = state.activeByAgent.toMutableMap()
         if (account != null && active[account.agentId] == accountId) active.remove(account.agentId)
-        return state.copy(accounts = state.accounts.filterNot { it.id == accountId }, activeByAgent = active)
-            .also(::save)
+        val next = state.copy(
+            accounts = state.accounts.filterNot { it.id == accountId },
+            activeByAgent = active,
+        )
+        return next.takeIf { save(it) }
     }
 
-    fun setActive(agentId: String, accountId: String): CliAccountState {
+    fun setActive(agentId: String, accountId: String): CliAccountState? {
         val state = load()
-        return state.copy(activeByAgent = state.activeByAgent + (agentId to accountId)).also(::save)
+        val next = state.copy(activeByAgent = state.activeByAgent + (agentId to accountId))
+        return next.takeIf { save(it) }
     }
 }

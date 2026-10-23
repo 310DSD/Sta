@@ -212,13 +212,19 @@ Codex 与 Claude Code 没有官方移动 Web UI，因此不接入 `ExtensionAgen
 - `CliAgent` 固定两个 profile：Codex `@openai/codex@0.164.0`、Claude Code `@anthropic-ai/claude-code@2.1.309`，
   安装依赖 Node.js，安装脚本可重复执行。
 - 账号按 Agent 分组，支持三类：
-  - **官方账号**：读取 CLI 已生成的登录文件并保存快照，切换时整份恢复；
-  - **官方 API Key**：写 Codex `auth.json` 的 `OPENAI_API_KEY` / Claude `settings.json` 的 `env.ANTHROPIC_API_KEY`；
-  - **第三方提供商**：Codex 写 `model_providers.eta`（baseURL + `OPENAI_API_KEY`），Claude 写
-    `ANTHROPIC_BASE_URL` + `ANTHROPIC_AUTH_TOKEN`，可选模型名。
-- 切换是手动操作，不监听、不刷新 token、不自动轮换；每次写入前保留一次 `*.eta-backup`。
+  - **官方账号**：只读取 CLI 已生成的登录文件（Codex `auth.json`、Claude `.credentials.json`），
+    切换时恢复登录快照，不再保存整份 provider 配置；
+  - **官方 API Key**：写 Codex `auth.json` 的 `OPENAI_API_KEY` / Claude `settings.json` 的
+    `env.ANTHROPIC_API_KEY`；
+  - **第三方提供商**：Codex 写 `[model_providers.eta]`，Key 放在 `experimental_bearer_token`，
+    并设置 `requires_openai_auth = false`；Claude 写 `ANTHROPIC_BASE_URL` + `ANTHROPIC_AUTH_TOKEN`，
+    可选模型名。
+- 切换语义参考 CC Switch：只改连接信息和 Sta 自己的 provider 表，保留 hooks、MCP、profiles、注释；
+  第一次写入前备份，备份失败或配置解析失败时失败关闭。Codex 的活动 profile 覆盖选路时拒绝切换。
 - 账号列表在 App 私有 `noBackupFilesDir/cli_accounts.json`，当前为明文，后续可接 Keystore。
-- 入口：首页溢出菜单 →“CLI 智能体”，账号页右上角打开终端；终端页收到 `initialCommand` 后
-  在 PTY 首次连接时执行 `codex` / `claude`，PTY 不可用时回退块式终端执行一次。
-- 已知边界：官方订阅账号在官方客户端之外使用可能违反服务条款；Codex 第三方模式会重写
-  `config.toml`，仅保留 `*.eta-backup` 作为回滚。
+- 入口：首页溢出菜单 →“CLI 智能体”，账号页右上角打开终端；Linux 工具页安装完成后也可直接打开。
+  终端页收到 `initialCommand` 后在 PTY 首次连接时执行 `codex` / `claude`；PTY 不可用时显示
+  “需要 PTY”占位，不把 TUI 命令丢进块式终端。
+- 已知边界：官方订阅账号在官方客户端之外使用可能违反服务条款；Codex 第三方模式按 Responses
+  兼容端点写入，只支持 Chat Completions 的网关需要本地格式转换；若 Codex 使用 keyring 存凭据，
+  `auth.json` 切换可能不生效。
