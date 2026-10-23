@@ -43,14 +43,12 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.mangi.eta.EtaApp
 import io.github.mangi.eta.R
-import io.github.mangi.eta.agent.acp.AcpGuiInstaller
 import io.github.mangi.eta.agent.cli.CliAgent
 import io.github.mangi.eta.agent.device.BoundedRootCommandExecutor
 import io.github.mangi.eta.agent.extension.ExtensionAgent
 import io.github.mangi.eta.agent.device.DeviceLocationProvider
 import io.github.mangi.eta.agent.device.RootAccess
 import io.github.mangi.eta.agent.runtime.AgentRuntimeService
-import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
 import io.github.mangi.eta.core.AndroidAgentLogger
 import io.github.mangi.eta.data.repository.RuntimeConfigRepository
 import io.github.mangi.eta.ui.AppearanceSettingsScreen
@@ -319,12 +317,7 @@ fun AgentAppRoot(
     }
 
     fun launchAcp() {
-        val distribution = LinuxEnvironmentSettingsRepository.current(context)
-        val backend = LinuxEnvironmentSettingsRepository.backend(context, distribution)
-        if (!AcpGuiInstaller.install(context, distribution, backend)) {
-            pushRoute(AppRoute.LinuxEnvironment)
-            return
-        }
+        // ACP 的 assets 由扩展 Agent 启动器在实际 Linux 环境里落盘，避免路径不一致。
         launchExtensionAgent(ExtensionAgent.ACP)
     }
 
