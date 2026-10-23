@@ -1672,4 +1672,5 @@
   <string name="linux_acp_tools">ACP Workspace</string>
   <string name="linux_acp_tools_summary">Install ACP bridge and Claude/Codex adapters</string>
   <string name="linux_acp_tools_ready">ACP Workspace is ready</string>
+  <string name="agents_acp_install_hint">Install ACP Workspace in Linux tools first</string>
 </resources>

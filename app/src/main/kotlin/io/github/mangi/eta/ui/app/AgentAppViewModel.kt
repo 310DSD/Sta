@@ -74,6 +74,11 @@ internal class AgentAppViewModel(application: Application) : AndroidViewModel(ap
             }
         }
         refreshRunningExtensionAgents()
+        viewModelScope.launch(Dispatchers.IO) {
+            val distribution = LinuxEnvironmentSettingsRepository.current(getApplication())
+            val backend = LinuxEnvironmentSettingsRepository.backend(getApplication(), distribution)
+            AcpGuiInstaller.install(getApplication(), distribution, backend)
+        }
         viewModelScope.launch {
             while (isActive) {
                 delay(15_000)

@@ -1650,4 +1650,5 @@
   <string name="linux_acp_tools">ACP 工作区</string>
   <string name="linux_acp_tools_summary">安装 ACP bridge 与 Claude/Codex 适配器</string>
   <string name="linux_acp_tools_ready">ACP 工作区已就绪</string>
+  <string name="agents_acp_install_hint">请先在 Linux 工具页安装 ACP Workspace</string>
 </resources>

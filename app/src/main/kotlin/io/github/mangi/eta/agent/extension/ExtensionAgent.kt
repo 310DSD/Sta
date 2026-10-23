@@ -31,7 +31,7 @@ internal enum class ExtensionAgent(
     /** Command users can type in Eta's terminal for the TUI. */
     val terminalCommand: String,
     /** Working directory for the daemon command; ACP bridge does not need /workspace. */
-    val webCwd: String = "/workspace",
+    val webCwd: String = "/root",
     /**
      * Optional command that prints a one-time browser login URL for the running service.
      * OpenCode 2.x pairing only works with its shared background service.

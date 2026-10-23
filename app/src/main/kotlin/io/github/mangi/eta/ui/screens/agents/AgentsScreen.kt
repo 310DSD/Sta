@@ -204,7 +204,7 @@ internal fun AgentsScreen(
                 EtaPreferenceDivider()
                 val acpRunning = ExtensionAgent.ACP in runningExtensionAgents
                 val acpSummary = when {
-                    !acpInstalled -> stringResource(R.string.cli_account_install_hint)
+                    !acpInstalled -> stringResource(R.string.agents_acp_install_hint)
                     acpRunning -> stringResource(R.string.cli_agent_running)
                     else -> stringResource(R.string.agents_acp_summary)
                 }
