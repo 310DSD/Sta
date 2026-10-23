@@ -79,12 +79,14 @@ Codex 与 Claude Code 是终端 TUI 型 Agent，没有官方移动 Web UI，Sta 
 - 新增 **T3 Code GUI**（T3 Code v0.1.2，Debian/glibc arm64）：安装自包含 `t3` CLI，
   `t3 serve --host 127.0.0.1 --port 3773` 启动本地 Web UI；Eta 从启动日志提取带 token 的
   pairing URL 并直接用 WebView 打开。入口在“智能体 → CLI”分组，未安装时跳到 Linux 工具页。
-  T3 Code 仍处于 very early；Alpine/musl 不支持，仅 Debian 环境可用。
+  T3 Code 仍处于 very early；Alpine/musl 不支持，仅 Debian 环境可用。WebView 对 T3 注入
+  降低动画/backdrop 开销的移动 CSS；T3 自身仍会向会话追加系统提示与 MCP 工具，上游暂无关闭项。
 - 账号页沿用 Eta 的 preference group / choice chip / arrow preference 语言；账号行可打开
   “模型设置”：在线拉取 `/models`、选择模型、设置上下文/最大输出/思考等级，也支持从 Eta
   当前 provider/model 同步。
-- 终端工具栏在 CLI 会话中提供停止按钮；停止后显示“CLI 已停止”并可重新连接。终端会话按
-  Agent 标签隔离，Codex 与 Claude Code 各自保留自己的 PTY。
+- 智能体页的 CLI 行提供“启动/停止/打开”：启动在后台创建带标签 PTY，不强制跳转；停止直接
+  关闭该标签会话；打开进入终端查看。终端工具栏同样保留停止按钮。
+- 终端会话按 Agent 标签隔离，Codex 与 Claude Code 各自保留自己的 PTY。
 - CLI 终端与账号页使用 `imePaddingSafe`，弹窗改为 Compose overlay，避免输入法动画与
   WindowDialog 的 inset 不同步。
 - 账号类型：官方账号（只导入 CLI 自己生成的登录文件）、官方 API Key、第三方兼容端点

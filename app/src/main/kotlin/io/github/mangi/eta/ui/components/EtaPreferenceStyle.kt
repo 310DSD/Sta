@@ -29,6 +29,7 @@ internal object EtaPreferenceColors {
     val Green = StatusSuccess
     val Orange = Color(0xFFFF7700)
     val Yellow = StatusWarning
+    val Red = Color(0xFFE5484D)
 }
 
 internal object EtaPreferenceDefaults {

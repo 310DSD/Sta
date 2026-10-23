@@ -15,6 +15,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Cloud
+import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Download
 import androidx.compose.material.icons.rounded.Key
 import androidx.compose.material.icons.rounded.Terminal
@@ -167,6 +168,12 @@ internal fun CliAccountsScreen(
         onBack = onBack,
         modifier = Modifier.imePaddingSafe(),
         actions = {
+            IconButton(
+                onClick = { showAdd = true },
+                enabled = !busy,
+            ) {
+                Icon(Icons.Rounded.Add, stringResource(R.string.cli_account_add), Modifier.size(21.dp))
+            }
             IconButton(
                 onClick = {
                     if (installed) onOpenTerminal(selectedAgent) else toast(installHintText)
@@ -370,6 +377,13 @@ private fun AccountPreference(
                     color = MiuixTheme.colorScheme.primary,
                 )
             }
+            IconButton(onClick = onDelete, enabled = !busy) {
+                Icon(
+                    Icons.Rounded.Delete,
+                    stringResource(R.string.cli_account_delete),
+                    Modifier.size(20.dp),
+                )
+            }
         },
         bottomAction = {
             Row(
@@ -388,15 +402,9 @@ private fun AccountPreference(
                     enabled = !busy,
                     modifier = Modifier.weight(1f),
                 )
-                EtaTextButton(
-                    text = stringResource(R.string.cli_account_delete),
-                    onClick = onDelete,
-                    enabled = !busy,
-                    modifier = Modifier.weight(1f),
-                )
             }
         },
-        onClick = if (!busy && !active) onSwitch else null,
+        onClick = if (!busy) onSettings else null,
     )
 }
 

@@ -1,11 +1,17 @@
 package io.github.mangi.eta.ui.screens.agents
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AccountCircle
 import androidx.compose.material.icons.rounded.Terminal
+import androidx.compose.material.icons.rounded.PlayArrow
+import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.Web
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -18,6 +24,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import top.yukonga.miuix.kmp.basic.Text
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import io.github.mangi.eta.R
 import io.github.mangi.eta.agent.cli.CliAgent
 import io.github.mangi.eta.agent.extension.ExtensionAgent
@@ -31,6 +39,7 @@ import io.github.mangi.eta.ui.components.EtaPreferenceDivider
 import io.github.mangi.eta.ui.components.EtaPreferenceGroup
 import io.github.mangi.eta.ui.components.EtaPreferenceGroupTitle
 import io.github.mangi.eta.ui.components.EtaPreferenceIcon
+import io.github.mangi.eta.ui.components.EtaTextButton
 import io.github.mangi.eta.ui.components.MiuixScaffoldPage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -44,6 +53,11 @@ internal fun AgentsScreen(
     onOpenCliAccounts: () -> Unit,
     onOpenT3Code: () -> Unit,
     onOpenLinuxEnvironment: () -> Unit,
+    runningCliTags: Set<String>,
+    runningExtensionAgents: Set<ExtensionAgent>,
+    onStartCliAgent: (CliAgent) -> Unit,
+    onStopCliAgent: (CliAgent) -> Unit,
+    onStopT3Code: () -> Unit,
 ) {
     val context = LocalContext.current
     val webAgents = remember {
@@ -90,31 +104,103 @@ internal fun AgentsScreen(
                 cliAgents.forEachIndexed { index, agent ->
                     if (index > 0) EtaPreferenceDivider()
                     val installed = cliInstalled[agent] == true
+                    val running = agent.id in runningCliTags
+                    val summary = when {
+                        !installed -> stringResource(R.string.cli_account_install_hint)
+                        running -> stringResource(R.string.cli_agent_running)
+                        else -> stringResource(R.string.agents_cli_summary)
+                    }
+                    val actions: (@Composable () -> Unit)? = if (installed) {
+                        {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                EtaTextButton(
+                                    text = stringResource(
+                                        if (running) R.string.cli_stop_running else R.string.cli_start_running,
+                                    ),
+                                    onClick = if (running) {
+                                        { onStopCliAgent(agent) }
+                                    } else {
+                                        { onStartCliAgent(agent) }
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                )
+                                EtaTextButton(
+                                    text = stringResource(R.string.cli_account_terminal),
+                                    onClick = { onOpenCliAgent(agent) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                        }
+                    } else {
+                        null
+                    }
                     EtaArrowPreference(
                         title = agent.displayName,
-                        summary = stringResource(
-                            if (installed) R.string.agents_cli_summary else R.string.cli_account_install_hint,
-                        ),
+                        summary = summary,
                         startAction = {
-                            EtaPreferenceIcon(Icons.Rounded.Terminal, tint = EtaPreferenceColors.Blue)
+                            EtaPreferenceIcon(
+                                icon = if (running) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
+                                tint = if (running) EtaPreferenceColors.Red else EtaPreferenceColors.Blue,
+                            )
                         },
+                        bottomAction = actions,
                         onClick = {
                             if (installed) onOpenCliAgent(agent) else onOpenLinuxEnvironment()
                         },
                     )
                 }
                 EtaPreferenceDivider()
+                val t3Running = ExtensionAgent.T3_CODE in runningExtensionAgents
+                val t3Summary = when {
+                    !t3Installed -> stringResource(R.string.cli_account_install_hint)
+                    t3Running -> stringResource(R.string.cli_agent_running)
+                    else -> stringResource(R.string.agents_t3_code_summary)
+                }
+                val t3Actions: (@Composable () -> Unit)? = if (t3Installed) {
+                    {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            EtaTextButton(
+                                text = stringResource(
+                                    if (t3Running) R.string.cli_stop_running else R.string.cli_start_running,
+                                ),
+                                onClick = if (t3Running) onStopT3Code else onOpenT3Code,
+                                modifier = Modifier.weight(1f),
+                            )
+                            EtaTextButton(
+                                text = stringResource(R.string.cli_account_open),
+                                onClick = onOpenT3Code,
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
+                    }
+                } else {
+                    null
+                }
                 EtaArrowPreference(
                     title = stringResource(R.string.agents_t3_code),
-                    summary = stringResource(
-                        if (t3Installed) R.string.agents_t3_code_summary else R.string.cli_account_install_hint,
-                    ),
+                    summary = t3Summary,
                     startAction = {
-                        EtaPreferenceIcon(Icons.Rounded.Web, tint = EtaPreferenceColors.Blue)
+                        EtaPreferenceIcon(
+                            icon = if (t3Running) Icons.Rounded.Stop else Icons.Rounded.Web,
+                            tint = if (t3Running) EtaPreferenceColors.Red else EtaPreferenceColors.Blue,
+                        )
                     },
+                    bottomAction = t3Actions,
                     onClick = {
                         if (t3Installed) onOpenT3Code() else onOpenLinuxEnvironment()
                     },
+                )
+                Text(
+                    text = stringResource(R.string.agents_t3_code_injection_note),
+                    style = MiuixTheme.textStyles.footnote2,
+                    color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 6.dp),
                 )
             }
         }

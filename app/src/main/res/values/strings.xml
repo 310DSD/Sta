@@ -1664,4 +1664,8 @@
   <string name="linux_t3_code_tools">T3 Code GUI</string>
   <string name="linux_t3_code_tools_summary">Install T3 Code self-hosted GUI for Claude Code / Codex; Debian only</string>
   <string name="linux_t3_code_tools_ready">T3 Code GUI is ready</string>
+  <string name="cli_start_running">Start</string>
+  <string name="cli_agent_running">Running</string>
+  <string name="cli_account_open">Open</string>
+  <string name="agents_t3_code_injection_note">T3 Code injects its own system prompt and MCP tools; upstream has no opt-out yet.</string>
 </resources>

@@ -452,6 +452,11 @@ fun AgentAppRoot(
                 }
             }
             entry<AppRoute.Agents>(swipeDismiss = swipeDismiss) {
+                val consoleState by appViewModel.consoleStore.uiState.collectAsState()
+                val runningCliTags = consoleState.sessions
+                    .filterNot { it.exited }
+                    .mapNotNull { it.tag }
+                    .toSet()
                 AgentsScreen(
                     onBack = ::popRoute,
                     onOpenWebAgent = ::launchExtensionAgent,
@@ -459,6 +464,11 @@ fun AgentAppRoot(
                     onOpenCliAccounts = { pushRoute(AppRoute.CliAgents) },
                     onOpenT3Code = { launchExtensionAgent(ExtensionAgent.T3_CODE) },
                     onOpenLinuxEnvironment = { pushRoute(AppRoute.LinuxEnvironment) },
+                    runningCliTags = runningCliTags,
+                    runningExtensionAgents = appViewModel.runningExtensionAgents,
+                    onStartCliAgent = { agent -> appViewModel.consoleStore.startTaggedSession(agent.id, agent.command) },
+                    onStopCliAgent = { agent -> appViewModel.consoleStore.closeSessionsByTag(agent.id) },
+                    onStopT3Code = { appViewModel.stopExtensionAgent(ExtensionAgent.T3_CODE) },
                 )
             }
             entry<AppRoute.Browser>(swipeDismiss = swipeDismiss) {

@@ -163,6 +163,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     }
 
     private fun createWebView(): WebView = WebView(this).apply {
+        overScrollMode = View.OVER_SCROLL_NEVER
         layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -206,6 +207,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                     view.evaluateJavascript(MOBILE_LAYOUT_BRIDGE, null)
                     view.evaluateJavascript(OPENCODE_LAYOUT_BRIDGE, null)
                     view.evaluateJavascript(DSH_MOBILE_SHELL_JS, null)
+                    if (isT3CodeUrl(url)) view.evaluateJavascript(T3_MOBILE_BRIDGE, null)
                     updateTitle(view, url)
                 }
             }
@@ -446,6 +448,39 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
               (document.head || document.documentElement).appendChild(style);
             })();
         """.trimIndent()
+
+        private fun isT3CodeUrl(url: String): Boolean =
+            runCatching { Uri.parse(url).port == 3773 }.getOrDefault(false)
+
+        private const val T3_MOBILE_CSS = """
+            html { scroll-behavior: auto !important; }
+            *, *::before, *::after {
+              animation-duration: 120ms !important;
+              animation-delay: 0ms !important;
+              transition-duration: 120ms !important;
+              transition-delay: 0ms !important;
+              -webkit-backdrop-filter: none !important;
+              backdrop-filter: none !important;
+            }
+            button, [role="button"], a, input, textarea {
+              touch-action: manipulation;
+              -webkit-tap-highlight-color: transparent;
+            }
+            body { overscroll-behavior-y: contain; -webkit-font-smoothing: antialiased; }
+        """
+
+        private val T3_MOBILE_BRIDGE: String by lazy {
+            val css = JSONObject.quote(T3_MOBILE_CSS)
+            """
+            (function() {
+              if (document.getElementById('eta-t3-mobile')) return;
+              var style = document.createElement('style');
+              style.id = 'eta-t3-mobile';
+              style.textContent = $css;
+              (document.head || document.documentElement).appendChild(style);
+            })();
+            """.trimIndent()
+        }
 
         private val MOBILE_LAYOUT_BRIDGE: String by lazy {
             val css = JSONObject.quote(LinuxPackageProfiles.DSH_MOBILE_CSS)

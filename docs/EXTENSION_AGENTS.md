@@ -232,6 +232,8 @@ Codex 与 Claude Code 没有官方移动 Web UI，因此不接入 `ExtensionAgen
   以 `t3 serve --host 127.0.0.1 --port 3773` 启动；Eta 从日志中提取
   `http://127.0.0.1:3773/pair#token=...` 并在 WebView 打开。入口位于“智能体 → CLI”分组，
   Linux 工具页也有安装行。T3 Code 仍为 very early；仅支持 Debian/glibc，Alpine/musl 不支持。
+  WebView 对 T3 注入移动性能 CSS；T3 自身会追加系统提示与 MCP 工具，上游暂无关闭项。智能体页
+  的 CLI 行支持后台启动、停止和打开。
 - 终端页收到 `initialCommand` 后在 PTY 首次连接时执行 `codex` / `claude`；工具栏提供停止按钮，
   停止后显示“CLI 已停止”并可重连。PTY 不可用时显示“需要 PTY”占位，不把 TUI 命令丢进块式终端。
 - 已知边界：官方订阅账号在官方客户端之外使用可能违反服务条款；Codex 第三方模式按 Responses

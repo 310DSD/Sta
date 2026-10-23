@@ -138,6 +138,8 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
   `t3 serve --host 127.0.0.1 --port 3773`，从日志提取带 token 的 pairing URL 交给
   `ExtensionAgentWebActivity`；入口在“智能体 → CLI”分组，Linux 工具页有安装行。
   T3 Code 目前是 very early；官方 Linux 二进制为 glibc 构建，Alpine/musl 不支持。
+  对 T3 WebView 注入移动 CSS，降低动画/backdrop 开销；T3 自身仍会追加系统提示与 MCP 工具，
+  上游 0.1.2 暂无关閉项。
 - 账号行新增“模型设置”：在线拉取 `/models`、选择模型、设置上下文/最大输出/思考等级；
   “从 Eta 同步”可从当前 provider/model 填充连接信息与模型参数。Codex 写
   `model_context_window` / `model_reasoning_effort`，Claude 写
@@ -147,7 +149,8 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
   `+` 新建页弹窗也改为同一个总入口。
 - 终端页支持 `initialCommand`、`sessionTag` 与停止按钮：PTY 控制台按 Agent 标签隔离会话，首次
   连接后自动执行 `codex` / `claude`，返回页面不重复发送；停止后显示“CLI 已停止”并可重连。
-  PTY 不可用时显示“需要 PTY”占位，不再把 TUI 命令丢进块式终端。
+  智能体页的 CLI 行新增后台启动/停止/打开，启动不强制跳转终端。PTY 不可用时显示“需要 PTY”占位，
+  不再把 TUI 命令丢进块式终端。
 - CLI 终端使用 `imePaddingSafe` 并在键盘显示时避免重复叠加导航栏 padding；账号页与添加/模型设置
   弹窗使用 `imePaddingSafe` + Compose overlay dialog，修复输入法动画与 inset 不同步。
 

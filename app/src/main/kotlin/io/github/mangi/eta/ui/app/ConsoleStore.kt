@@ -135,6 +135,9 @@ internal class ConsoleStore(
     @Volatile
     private var requestedTag: String? = null
 
+    /** 从智能体页直接启动 CLI 时暂存待发送命令，会话就绪后消费一次。 */
+    private val pendingTaggedCommands = ConcurrentHashMap<String, String>()
+
     /** 探测 PTY 前提；结果缓存进状态，不支持时入口回退到块式终端。 */
     fun probePtySupport() {
         scope.launch {
@@ -203,6 +206,24 @@ internal class ConsoleStore(
         val state = _uiState.value
         val desired = tag ?: state.sessions.find { it.id == state.activeSessionId }?.tag
         createSession(state.environment, lastCols, lastRows, desired)
+    }
+
+    /**
+     * 从智能体页直接启动某个 CLI：在 Linux 环境后台创建带标签的会话，并在就绪后执行命令，
+     * 不强制跳转到终端页。若已有同标签存活会话则直接复用。
+     */
+    fun startTaggedSession(tag: String, command: String) {
+        val state = _uiState.value
+        val existing = state.sessions.firstOrNull { it.tag == tag && !it.exited }
+        if (existing != null) {
+            switchSession(existing.id)
+            return
+        }
+        if (creatingSession) return
+        val cols = lastCols.takeIf { it > 0 } ?: 80
+        val rows = lastRows.takeIf { it > 0 } ?: 24
+        pendingTaggedCommands[tag] = command + "\n"
+open(state.linuxEnvironment, cols, rows, tag)
     }
 
     fun switchSession(sessionId: String) {
@@ -420,6 +441,7 @@ internal class ConsoleStore(
         }
         when (result) {
             is ConsoleSessionController.OpenResult.Ready -> {
+                val pendingCommand = tag?.let { pendingTaggedCommands.remove(it) }
                 if (lease != null) {
                     sessionLeases[result.sessionId] = lease
                     if (!lease.attach(result.sessionId) || !controller.sessionAlive(result.sessionId)) {
@@ -435,7 +457,12 @@ internal class ConsoleStore(
                 sessionSizes[result.sessionId] = cols to rows
                 _uiState.update { state ->
                     state.copy(
-                        sessions = state.sessions + ConsoleSessionUi(result.sessionId, environment, tag = tag),
+                        sessions = state.sessions + ConsoleSessionUi(
+                            result.sessionId,
+                            environment,
+                            tag = tag,
+                            commandConsumed = pendingCommand != null,
+                        ),
                         activeSessionId = result.sessionId,
                         environment = environment,
                         connected = true,
@@ -443,9 +470,18 @@ internal class ConsoleStore(
                         frame = ConsoleFrame(),
                     )
                 }
+                if (pendingCommand != null) {
+                    scope.launch(inputDispatcher) {
+                        delay(600)
+                        if (controller.sessionAlive(result.sessionId)) {
+                            runCatching { controller.write(result.sessionId, pendingCommand) }
+                        }
+                    }
+                }
             }
             is ConsoleSessionController.OpenResult.Failed -> {
                 lease?.release()
+                tag?.let { pendingTaggedCommands.remove(it) }
                 _uiState.update { it.copy(connected = false, failMessage = result.message) }
             }
         }
