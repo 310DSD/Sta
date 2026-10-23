@@ -5,8 +5,14 @@
 
 - 上游：<https://github.com/Mangi-11/Eta>
 - 分支：`Sta`
-- 基线版本：Eta `3.3.1`
+- 基线版本：Eta `3.3.3`（上游 `5e9d3a7`）
 - Android：minSdk 33 / targetSdk 37
+
+## 上游同步
+
+已合并 Eta 3.3.3（`5e9d3a7`），保留 Sta 的扩展 Agent、DSH 移动壳与 Linux 文件管理器改动，并适配上游的
+Codex/Grok 订阅登录、网页搜索/读取切换、消息排队与插话、聊天/GUI 屏幕常亮、ARM64-only 打包和图标更新。
+Sta 与上游都曾停在 DB v23 但新增了不同列，合并后升到 v24，按列存在性补齐，兼容两种来源。
 
 ## 这个分支做了什么
 

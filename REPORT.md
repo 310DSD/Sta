@@ -4,14 +4,26 @@
 
 | 文件 | 说明 |
 | --- | --- |
-| `dist/Eta-v3.3.1-sta-release.apk` | 已签名的 release APK（targetSdk 37，11 MB） |
-| `dist/Eta-v3.3.1-sta-debug.apk` | 可调试的 debug APK（86 MB） |
+| `dist/Eta-v3.3.3-sta-release.apk` | 已签名的 release APK（targetSdk 37，10 MB，ARM64） |
+| `dist/Eta-v3.3.3-sta-debug.apk` | 可调试的 debug APK（83 MB，ARM64） |
 | `docs/ANDROID_17_IME_FIX.md` | Android 17 输入法动画问题根因与修复说明 |
 | `docs/EXTENSION_AGENTS.md` | OpenCode 2 / ZCode / DeepSeek Harness 评估（ZCode 实现阶段落选） |
 | `docs/CODE_REVIEW.md` | 严格代码审查记录（含 chroot/root 调用链） |
-| 分支 `sta/android17-extension-agents` | 基于 `Mangi-11/Eta` main（c8e05d6）的 fork 提交 |
+| 分支 `Sta` | 基于 `Mangi-11/Eta` main（`5e9d3a7`，v3.3.3）的 fork 提交 |
 
 release APK 使用本地生成的 `CN=Sta Fork` 证书签名；如需上架或长期分发，请替换为自己的正式密钥。
+
+## 上游同步（Eta 3.3.3）
+
+已将上游 `5e9d3a7`（v3.3.3）合并进 Sta，保留 Sta 的扩展 Agent、DSH 移动壳与 Linux 文件管理器改动，并适配：
+
+- Codex/Grok 订阅登录与远端模型同步；
+- 网页搜索/读取切换 DeepSeek 或自定义接口；
+- 消息排队发送与插话发送；
+- 聊天回复和 GUI 执行期间保持屏幕常亮；
+- ARM64-only 打包与应用图标更新；
+- Kimi 未运行状态误报修复（Sta 的 Kimi 走扩展 Agent，启动状态由 `ExtensionAgentLauncher` 统一处理）；
+- DB 升到 v24，兼容 Sta v23（`max_output_tokens`）与上游 v23（`auth_mode`）两种数据库。
 
 ## 需求 1：修复 Android 17 输入框/输入法动画丢失
 

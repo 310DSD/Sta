@@ -26,7 +26,7 @@ import androidx.room.migration.Migration
         CharacterEntity::class,
         UserPersonaEntity::class,
     ],
-    version = 23,
+    version = 24,
     exportSchema = false,
 )
 internal abstract class EtaDatabase : RoomDatabase() {
@@ -66,6 +66,7 @@ internal abstract class EtaDatabase : RoomDatabase() {
                         MIGRATION_20_21,
                         MIGRATION_21_22,
                         MIGRATION_22_23,
+                        MIGRATION_23_24,
                     )
                     .addCallback(object : Callback() {
                         override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) { createTextChunkCleanup(db) }
@@ -116,7 +117,32 @@ internal abstract class EtaDatabase : RoomDatabase() {
 
         internal val MIGRATION_22_23 = Migration(22, 23) { database ->
             database.execSQL("ALTER TABLE provider_models ADD COLUMN max_output_tokens INTEGER")
+            database.execSQL("ALTER TABLE model_providers ADD COLUMN auth_mode TEXT NOT NULL DEFAULT 'api_key'")
         }
+
+        /**
+         * Sta 与上游都曾把 schema 停在第 23 版，但各自新增了不同列：
+         * - Sta 的 23 版有 provider_models.max_output_tokens；
+         * - 上游的 23 版有 model_providers.auth_mode。
+         * 合并后升到 24，按列是否存在补齐，兼容两种来源的 23 版数据库。
+         */
+        internal val MIGRATION_23_24 = Migration(23, 24) { database ->
+            if (!database.hasColumn("provider_models", "max_output_tokens")) {
+                database.execSQL("ALTER TABLE provider_models ADD COLUMN max_output_tokens INTEGER")
+            }
+            if (!database.hasColumn("model_providers", "auth_mode")) {
+                database.execSQL("ALTER TABLE model_providers ADD COLUMN auth_mode TEXT NOT NULL DEFAULT 'api_key'")
+            }
+        }
+
+        private fun androidx.sqlite.db.SupportSQLiteDatabase.hasColumn(table: String, column: String): Boolean =
+            query("PRAGMA table_info($table)").use { cursor ->
+                val nameIndex = cursor.getColumnIndex("name")
+                while (cursor.moveToNext()) {
+                    if (nameIndex >= 0 && cursor.getString(nameIndex) == column) return true
+                }
+                false
+            }
 
         private fun createTextChunkCleanup(database: androidx.sqlite.db.SupportSQLiteDatabase) {
             mapOf("runtime_results" to "run_id", "runtime_archive_runs" to "archive_run_id",
