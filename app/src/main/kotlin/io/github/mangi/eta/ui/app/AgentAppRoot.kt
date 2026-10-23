@@ -45,6 +45,7 @@ import io.github.mangi.eta.EtaApp
 import io.github.mangi.eta.R
 import io.github.mangi.eta.agent.cli.CliAgent
 import io.github.mangi.eta.agent.device.BoundedRootCommandExecutor
+import io.github.mangi.eta.agent.extension.ExtensionAgent
 import io.github.mangi.eta.agent.device.DeviceLocationProvider
 import io.github.mangi.eta.agent.device.RootAccess
 import io.github.mangi.eta.agent.runtime.AgentRuntimeService
@@ -68,6 +69,7 @@ import io.github.mangi.eta.ui.pages.providers.CommunityCatalogProviderScreen
 import io.github.mangi.eta.ui.pages.providers.CommunityCatalogScreen
 import io.github.mangi.eta.ui.pages.providers.ModelProviderDetailScreen
 import io.github.mangi.eta.ui.pages.providers.ModelProviderListScreen
+import io.github.mangi.eta.ui.screens.agents.AgentsScreen
 import io.github.mangi.eta.ui.screens.backup.DataBackupScreen
 import io.github.mangi.eta.ui.screens.browser.AgentBrowserScreen
 import io.github.mangi.eta.ui.screens.characters.CharacterDetailScreen
@@ -122,6 +124,8 @@ fun AgentAppRoot(
     onTerminalOpened: () -> Unit = {},
     openCliAgents: Boolean = false,
     onCliAgentsOpened: () -> Unit = {},
+    openAgents: Boolean = false,
+    onAgentsOpened: () -> Unit = {},
     onSpeechSettingsOpened: () -> Unit = {},
     onAssistantConversationOpened: (Boolean) -> Unit = {},
 ) {
@@ -145,6 +149,12 @@ fun AgentAppRoot(
         if (openCliAgents) {
             if (backStack.lastOrNull() != AppRoute.CliAgents) backStack.add(AppRoute.CliAgents)
             onCliAgentsOpened()
+        }
+    }
+    LaunchedEffect(openAgents) {
+        if (openAgents) {
+            if (backStack.lastOrNull() != AppRoute.Agents) backStack.add(AppRoute.Agents)
+            onAgentsOpened()
         }
     }
     val navigator = remember(backStack) { AgentNavigator(backStack) }
@@ -284,6 +294,28 @@ fun AgentAppRoot(
         conversationPaneOpen = false
     }
 
+    fun launchExtensionAgent(agent: ExtensionAgent) {
+        requestExecutionNotifications()
+        appViewModel.launchExtensionAgent(agent) { result ->
+            if (result is ExtensionAgentLaunchResult.Failed) {
+                if (result.code in setOf(
+                        "PROFILE_NOT_INSTALLED",
+                        "LINUX_ENVIRONMENT_NOT_READY",
+                        "ROOT_REQUIRED",
+                    )
+                ) {
+                    pushRoute(AppRoute.LinuxEnvironment)
+                } else {
+                    Toast.makeText(
+                        context,
+                        result.message(context),
+                        Toast.LENGTH_LONG,
+                    ).show()
+                }
+            }
+        }
+    }
+
     @Composable
     fun RoutedShell(
         route: AppRoute,
@@ -300,34 +332,12 @@ fun AgentAppRoot(
             onSearchConversations = { query -> agentState.updateSearchQuery(query) },
             onNewConversation = { createConversation() },
             onOpenTerminal = { pushRoute(AppRoute.Terminal) },
-            onLaunchExtensionAgent = { agent ->
-                requestExecutionNotifications()
-                appViewModel.launchExtensionAgent(agent) { result ->
-                    if (result is ExtensionAgentLaunchResult.Failed) {
-                        if (result.code in setOf(
-                                "PROFILE_NOT_INSTALLED",
-                                "LINUX_ENVIRONMENT_NOT_READY",
-                                "ROOT_REQUIRED",
-                            )
-                        ) {
-                            pushRoute(AppRoute.LinuxEnvironment)
-                        } else {
-                            Toast.makeText(
-                                context,
-                                result.message(context),
-                                Toast.LENGTH_LONG,
-                            ).show()
-                        }
-                    }
-                }
-            },
-            extensionAgentLabel = appViewModel.extensionAgentState.actionLabel(context),
             canStopExtensionAgent = appViewModel.extensionAgentState.canStop,
             runningExtensionAgents = appViewModel.runningExtensionAgents,
             onStopExtensionAgent = { agent -> appViewModel.stopExtensionAgent(agent) },
             onRefreshExtensionAgent = appViewModel::refreshExtensionAgent,
             onOpenBrowser = { pushRoute(AppRoute.Browser) },
-            onOpenCliAgents = { pushRoute(AppRoute.CliAgents) },
+            onOpenAgents = { pushRoute(AppRoute.Agents) },
             onSelectConversation = { conversationId -> selectConversation(conversationId) },
             onConversationRename = { conversation ->
                 conversationRenameTarget = conversation
@@ -440,6 +450,15 @@ fun AgentAppRoot(
                         isDrawerOpen = conversationPaneOpen,
                     )
                 }
+            }
+            entry<AppRoute.Agents>(swipeDismiss = swipeDismiss) {
+                AgentsScreen(
+                    onBack = ::popRoute,
+                    onOpenWebAgent = ::launchExtensionAgent,
+                    onOpenCliAgent = { agent -> pushRoute(AppRoute.CliTerminal(agent.id)) },
+                    onOpenCliAccounts = { pushRoute(AppRoute.CliAgents) },
+                    onOpenLinuxEnvironment = { pushRoute(AppRoute.LinuxEnvironment) },
+                )
             }
             entry<AppRoute.Browser>(swipeDismiss = swipeDismiss) {
                 RoutedShell(route = AppRoute.Browser) {

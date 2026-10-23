@@ -17,6 +17,10 @@ sealed interface AppRoute : NavKey {
     @Serializable
     data object Tools : AppRoute
 
+    /** 智能体总入口：Web / CLI 分类。 */
+    @Serializable
+    data object Agents : AppRoute
+
     /** Codex / Claude Code 的账号与 provider 管理页。 */
     @Serializable
     data object CliAgents : AppRoute

@@ -134,18 +134,24 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
 - 新增 `CliAccountsScreen`（Miuix 页面）：使用 Eta 的 preference group、choice chip、arrow
   preference 与 overlay dialog 语言；支持 Agent 切换、添加/删除/切换账号、安装提示与跳转、
   直接打开终端；API Key 输入做密码遮罩；账号文件位于 App 私有 `noBackupFilesDir/cli_accounts.json`。
-- 路由新增 `CliAgents` / `CliTerminal(agentId)`；首页溢出菜单新增“CLI 智能体”入口；Linux 工具页
-  安装完成后可直接打开对应 CLI 终端；内置 WebView 的 `+` 新建页面弹窗加入“CLI 智能体”快速入口。
-- 终端页支持 `initialCommand` 与 `sessionTag`：PTY 控制台按 Agent 标签隔离会话，首次连接后
-  自动执行 `codex` / `claude`，返回页面不重复发送；PTY 不可用时显示“需要 PTY”占位，不再把 TUI
-  命令丢进块式终端。
+- 账号行新增“模型设置”：在线拉取 `/models`、选择模型、设置上下文/最大输出/思考等级；
+  “从 Eta 同步”可从当前 provider/model 填充连接信息与模型参数。Codex 写
+  `model_context_window` / `model_reasoning_effort`，Claude 写
+  `CLAUDE_CODE_MAX_CONTEXT_TOKENS` / `CLAUDE_CODE_EFFORT_LEVEL`。
+- 路由新增 `Agents`（Web / CLI 分组的总入口）、`CliAgents`、`CliTerminal(agentId)`。首页右上角
+  菜单只保留“智能体”总入口；页面内按字母排序列出 5 个 Agent 与“CLI 账号管理器”。WebView 的
+  `+` 新建页弹窗也改为同一个总入口。
+- 终端页支持 `initialCommand`、`sessionTag` 与停止按钮：PTY 控制台按 Agent 标签隔离会话，首次
+  连接后自动执行 `codex` / `claude`，返回页面不重复发送；停止后显示“CLI 已停止”并可重连。
+  PTY 不可用时显示“需要 PTY”占位，不再把 TUI 命令丢进块式终端。
+- CLI 终端使用 `imePaddingSafe` 并在键盘显示时避免重复叠加导航栏 padding；账号页与添加/模型设置
+  弹窗使用 `imePaddingSafe` + Compose overlay dialog，修复输入法动画与 inset 不同步。
 
 ### 验证
 
 - `compileDebugKotlin`、`assembleDebug`、`assembleRelease`、`lintDebug` 通过；release APK 使用
   `CN=Sta Fork` 证书签名。
-- `CliConfigEditorsTest` 覆盖 Codex 官方/API Key/第三方切换、profile 覆盖拒绝、Claude 合并与
-  非法 JSON、官方登录格式校验；`AppRouteSerializationTest` 覆盖新增路由，
+- `CliConfigEditorsTest`（12 个用例）覆盖 Codex 官方/API Key/第三方切换、上下文/思考等级、profile 覆盖拒绝、Claude 合并与非法 JSON、官方登录格式校验；`AppRouteSerializationTest` 覆盖新增路由，
   `AlpineEnvironmentInstallerTest` 覆盖两个 CLI 安装脚本，`EtaDatabaseMigrationTest` 覆盖 DB v24 迁移。
 - 受上游 ARM64-only 打包限制，x86_64 模拟器无法安装最终 APK；CLI 安装/登录需在 ARM64 设备或
   root/chroot 环境中实机验证。

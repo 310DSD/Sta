@@ -198,11 +198,11 @@ internal class ConsoleStore(
     }
 
     /** 以当前环境与最近一次网格尺寸新建会话；沿用当前 Agent 标签。 */
-    fun newSession() {
+    fun newSession(tag: String? = null) {
         if (lastCols <= 0 || lastRows <= 0) return
         val state = _uiState.value
-        val tag = state.sessions.find { it.id == state.activeSessionId }?.tag
-        createSession(state.environment, lastCols, lastRows, tag)
+        val desired = tag ?: state.sessions.find { it.id == state.activeSessionId }?.tag
+        createSession(state.environment, lastCols, lastRows, desired)
     }
 
     fun switchSession(sessionId: String) {
@@ -267,6 +267,11 @@ internal class ConsoleStore(
             state.copy(sessions = state.sessions.filterNot { it.id == sessionId })
         }
         createSession(session.environment, size.first, size.second, session.tag)
+    }
+
+    /** 停止某个 CLI 标签下的全部 PTY 会话。 */
+    fun closeSessionsByTag(tag: String) {
+        _uiState.value.sessions.filter { it.tag == tag }.forEach { closeSession(it.id) }
     }
 
     /** 切换环境 tab：只改目标环境；有该环境的存活会话则切过去，否则由网格回调新建。 */

@@ -13,10 +13,12 @@ internal data class MainActivityLaunchRequests(
     val speechSettings: Boolean = false,
     val terminal: Boolean = false,
     val cliAgents: Boolean = false,
+    val agents: Boolean = false,
 ) {
     fun accept(intent: Intent?): MainActivityLaunchRequests = when (intent?.action) {
         MainActivity.ACTION_OPEN_TERMINAL -> copy(terminal = true)
         MainActivity.ACTION_OPEN_CLI_AGENTS -> copy(cliAgents = true)
+        MainActivity.ACTION_OPEN_AGENTS -> copy(agents = true)
         ACTION_SPEECH_SETTINGS -> copy(speechSettings = true)
         MainActivity.ACTION_OPEN_CONVERSATION_ID -> copy(
             conversationId = intent.nonBlankExtra(MainActivity.EXTRA_CONVERSATION_ID),
@@ -45,6 +47,7 @@ internal data class MainActivityLaunchRequests(
             putBoolean("speech_settings", speechSettings)
             putBoolean("terminal", terminal)
             putBoolean("cli_agents", cliAgents)
+            putBoolean("agents", agents)
         })
     }
 
@@ -66,6 +69,7 @@ internal data class MainActivityLaunchRequests(
                 speechSettings = saved.getBoolean("speech_settings"),
                 terminal = saved.getBoolean("terminal"),
                 cliAgents = saved.getBoolean("cli_agents"),
+                agents = saved.getBoolean("agents"),
             )
         }
     }

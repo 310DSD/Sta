@@ -13,6 +13,7 @@ class AppRouteSerializationTest {
             AppRoute.Home,
             AppRoute.Browser,
             AppRoute.Terminal,
+            AppRoute.Agents,
             AppRoute.CliAgents,
             AppRoute.CliTerminal("codex"),
             AppRoute.Tools,

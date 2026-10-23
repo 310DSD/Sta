@@ -1,6 +1,5 @@
 package io.github.mangi.eta.ui.web
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,7 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Folder
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -24,13 +23,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import io.github.mangi.eta.R
-import io.github.mangi.eta.agent.extension.ExtensionAgent
 import io.github.mangi.eta.ui.components.EtaWindowDialog
 import io.github.mangi.eta.ui.components.MiuixDialogActions
 import top.yukonga.miuix.kmp.basic.HorizontalDivider
@@ -46,8 +42,7 @@ import top.yukonga.miuix.kmp.theme.MiuixTheme
 internal fun NewPageDialog(
     show: Boolean,
     onDismiss: () -> Unit,
-    onOpenAgent: (ExtensionAgent) -> Unit,
-    onOpenCliAccounts: () -> Unit,
+    onOpenAgents: () -> Unit,
     onOpenFileManager: () -> Unit,
     onOpenUrl: (String) -> Unit,
 ) {
@@ -63,35 +58,17 @@ internal fun NewPageDialog(
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             QuickEntry(
-                icon = { BrandIcon(R.drawable.ic_opencode) },
-                title = ExtensionAgent.OPENCODE.displayName,
-                summary = stringResource(R.string.webview_agent_summary),
-                onClick = { onOpenAgent(ExtensionAgent.OPENCODE) },
-            )
-            QuickEntry(
-                icon = { BrandIcon(R.drawable.provider_logo_deepseek) },
-                title = ExtensionAgent.DSH.displayName,
-                summary = stringResource(R.string.webview_agent_summary),
-                onClick = { onOpenAgent(ExtensionAgent.DSH) },
-            )
-            QuickEntry(
-                icon = { BrandIcon(R.drawable.provider_logo_kimi) },
-                title = ExtensionAgent.KIMI.displayName,
-                summary = stringResource(R.string.webview_agent_summary),
-                onClick = { onOpenAgent(ExtensionAgent.KIMI) },
-            )
-            QuickEntry(
                 icon = {
                     Icon(
-                        imageVector = Icons.Rounded.Code,
+                        imageVector = Icons.Rounded.Extension,
                         contentDescription = null,
                         modifier = Modifier.size(22.dp),
                         tint = MiuixTheme.colorScheme.primary,
                     )
                 },
-                title = stringResource(R.string.webview_cli_agents),
-                summary = stringResource(R.string.webview_cli_agents_summary),
-                onClick = onOpenCliAccounts,
+                title = stringResource(R.string.webview_agents),
+                summary = stringResource(R.string.webview_agents_summary),
+                onClick = onOpenAgents,
             )
             QuickEntry(
                 icon = {
@@ -129,18 +106,6 @@ internal fun NewPageDialog(
             )
         }
     }
-}
-
-@Composable
-private fun BrandIcon(resId: Int) {
-    Image(
-        painter = painterResource(resId),
-        contentDescription = null,
-        contentScale = ContentScale.Fit,
-        modifier = Modifier
-            .size(22.dp)
-            .clip(RoundedCornerShape(5.dp)),
-    )
 }
 
 @Composable

@@ -165,7 +165,7 @@ internal fun ConsoleScreen(
             .fillMaxSize()
             .background(MiuixTheme.colorScheme.surface)
             .imePaddingSafe()
-            .navigationBarsPadding(),
+            .then(if (keyboardVisible) Modifier else Modifier.navigationBarsPadding()),
     ) {
         TerminalToolbar(
             environment = state.environment,
@@ -180,13 +180,17 @@ internal fun ConsoleScreen(
             },
             modeTarget = TerminalModeTarget.BLOCKS,
             onSwitchMode = onExitConsole,
+            onStop = sessionTag?.takeIf { state.activeSessionId != null }?.let { tag ->
+                { store.closeSessionsByTag(tag) }
+            },
         )
         ConsoleGrid(
             state = state,
             composing = composing,
             onGridSize = { cols, rows -> store.open(state.environment, cols, rows, sessionTag) },
-            onReconnect = store::reconnect,
+            onReconnect = { if (sessionTag != null) store.newSession(sessionTag) else store.reconnect() },
             onOpenEnvironment = onOpenEnvironment,
+            sessionTag = sessionTag,
             modifier = Modifier
                 .weight(1f)
                 .consoleTextInput(inputSink, keyboard)
@@ -257,6 +261,7 @@ private fun ConsoleGrid(
     onGridSize: (cols: Int, rows: Int) -> Unit,
     onReconnect: () -> Unit,
     onOpenEnvironment: () -> Unit,
+    sessionTag: String?,
     modifier: Modifier = Modifier,
 ) {
     val density = LocalDensity.current
@@ -322,7 +327,17 @@ private fun ConsoleGrid(
             }
         }
 
-        if (state.exited || state.failMessage != null) {
+        if (state.activeSessionId == null && sessionTag != null) {
+            TerminalPlaceholder(
+                icon = Icons.Rounded.Terminal,
+                message = stringResource(R.string.cli_stopped),
+                actionText = stringResource(R.string.terminal_reconnect),
+                onAction = onReconnect,
+                secondaryActionText = stringResource(R.string.terminal_open_environment),
+                onSecondaryAction = onOpenEnvironment,
+                modifier = Modifier.background(colors.surface),
+            )
+        } else if (state.exited || state.failMessage != null) {
             TerminalPlaceholder(
                 icon = Icons.Rounded.Terminal,
                 message = state.failMessage ?: stringResource(R.string.terminal_session_closed),

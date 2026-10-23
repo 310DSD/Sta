@@ -222,10 +222,14 @@ Codex 与 Claude Code 没有官方移动 Web UI，因此不接入 `ExtensionAgen
 - 切换语义参考 CC Switch：只改连接信息和 Sta 自己的 provider 表，保留 hooks、MCP、profiles、注释；
   第一次写入前备份，备份失败或配置解析失败时失败关闭。Codex 的活动 profile 覆盖选路时拒绝切换。
 - 账号列表在 App 私有 `noBackupFilesDir/cli_accounts.json`，当前为明文，后续可接 Keystore。
-- 入口：首页溢出菜单 →“CLI 智能体”，账号页右上角打开终端；Linux 工具页安装完成后也可直接打开；
-  内置 WebView 的 `+` 新建页面弹窗同样提供“CLI 智能体”快速入口。账号页使用 Eta 的 preference
-  group / choice chip / arrow preference 样式。终端页收到 `initialCommand` 后在 PTY 首次连接时
-  执行 `codex` / `claude`；PTY 不可用时显示“需要 PTY”占位，不把 TUI 命令丢进块式终端。
+- 入口：首页右上角“智能体”总入口按 Web / CLI 分组、组内按字母排序，包含 5 个 Agent 与
+  “CLI 账号管理器”；WebView 的 `+` 新建页弹窗也使用同一个总入口。账号页使用 Eta 的 preference
+  group / choice chip / arrow preference 样式。
+- 账号页“模型设置”可在线拉取 `/models`、选择模型、设置上下文/最大输出/思考等级，也可从 Eta
+  当前 provider/model 同步。Codex 写 `model_context_window` / `model_reasoning_effort`，
+  Claude 写 `CLAUDE_CODE_MAX_CONTEXT_TOKENS` / `CLAUDE_CODE_EFFORT_LEVEL`。
+- 终端页收到 `initialCommand` 后在 PTY 首次连接时执行 `codex` / `claude`；工具栏提供停止按钮，
+  停止后显示“CLI 已停止”并可重连。PTY 不可用时显示“需要 PTY”占位，不把 TUI 命令丢进块式终端。
 - 已知边界：官方订阅账号在官方客户端之外使用可能违反服务条款；Codex 第三方模式按 Responses
   兼容端点写入，只支持 Chat Completions 的网关需要本地格式转换；若 Codex 使用 keyring 存凭据，
   `auth.json` 切换可能不生效。

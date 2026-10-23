@@ -17,6 +17,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.Layers
+import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.Terminal
 import androidx.compose.material.icons.rounded.ViewAgenda
 import androidx.compose.runtime.Composable
@@ -61,6 +62,7 @@ internal fun TerminalToolbar(
     onOpenTasks: () -> Unit,
     modeTarget: TerminalModeTarget?,
     onSwitchMode: () -> Unit,
+    onStop: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Row(
@@ -99,6 +101,13 @@ internal fun TerminalToolbar(
                         if (modeTarget == TerminalModeTarget.CONSOLE) R.string.terminal_console_mode else R.string.terminal_block_mode,
                     ),
                     onClick = onSwitchMode,
+                )
+            }
+            onStop?.let { stop ->
+                ToolbarIcon(
+                    icon = Icons.Rounded.Stop,
+                    contentDescription = stringResource(R.string.cli_stop_running),
+                    onClick = stop,
                 )
             }
         }

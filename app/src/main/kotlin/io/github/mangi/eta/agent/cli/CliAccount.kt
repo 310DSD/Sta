@@ -13,6 +13,16 @@ internal enum class CliAccountKind {
 }
 
 @Serializable
+internal data class CliModelInfo(
+    val id: String,
+    val displayName: String,
+    val contextWindow: Int? = null,
+    val maxOutputTokens: Int? = null,
+    val reasoningEfforts: List<String> = emptyList(),
+    val defaultReasoningEffort: String = "",
+)
+
+@Serializable
 internal data class CliAccount(
     val id: String,
     val agentId: String,
@@ -21,6 +31,11 @@ internal data class CliAccount(
     val apiKey: String = "",
     val baseUrl: String = "",
     val model: String = "",
+    /** 在线获取的模型目录，供模型/上下文/思考等级选择。 */
+    val models: List<CliModelInfo> = emptyList(),
+    val contextWindow: Int? = null,
+    val maxOutputTokens: Int? = null,
+    val reasoningEffort: String = "",
     /** Codex 官方登录快照（`auth.json`）。 */
     val authJson: String? = null,
     /** Claude Code 官方登录快照（`.credentials.json`）。 */

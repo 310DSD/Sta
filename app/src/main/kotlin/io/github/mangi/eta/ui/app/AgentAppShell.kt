@@ -23,7 +23,7 @@ import androidx.compose.material.icons.automirrored.rounded.VolumeOff
 import androidx.compose.material.icons.automirrored.rounded.VolumeUp
 import androidx.compose.material.icons.outlined.MoreHoriz
 import androidx.compose.material.icons.rounded.AddComment
-import androidx.compose.material.icons.rounded.Code
+import androidx.compose.material.icons.rounded.Extension
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material.icons.rounded.Stop
 import androidx.compose.material.icons.rounded.Terminal
@@ -95,14 +95,12 @@ internal fun AgentAppShell(
     onSearchConversations: (String) -> Unit,
     onNewConversation: () -> Unit,
     onOpenTerminal: () -> Unit,
-    onLaunchExtensionAgent: (ExtensionAgent) -> Unit,
-    extensionAgentLabel: String,
     canStopExtensionAgent: Boolean,
     runningExtensionAgents: Set<ExtensionAgent>,
     onStopExtensionAgent: (ExtensionAgent) -> Unit,
     onRefreshExtensionAgent: () -> Unit,
     onOpenBrowser: () -> Unit,
-    onOpenCliAgents: () -> Unit,
+    onOpenAgents: () -> Unit,
     onSelectConversation: (String) -> Unit,
     onConversationRename: (ConversationSummaryUi) -> Unit,
     onConversationExport: (ConversationSummaryUi) -> Unit,
@@ -138,14 +136,12 @@ internal fun AgentAppShell(
                             onOpenConversationPane = onOpenConversationPane,
                             onNewConversation = onNewConversation,
                             onOpenTerminal = onOpenTerminal,
-                            onLaunchExtensionAgent = onLaunchExtensionAgent,
-                            extensionAgentLabel = extensionAgentLabel,
                             canStopExtensionAgent = canStopExtensionAgent,
                             runningExtensionAgents = runningExtensionAgents,
                             onStopExtensionAgent = onStopExtensionAgent,
                             onRefreshExtensionAgent = onRefreshExtensionAgent,
                             onOpenBrowser = onOpenBrowser,
-                            onOpenCliAgents = onOpenCliAgents,
+                            onOpenAgents = onOpenAgents,
                             homeCharacter = homeCharacter,
                             onOpenCharacter = onOpenCharacter,
                         )
@@ -201,14 +197,12 @@ private fun AgentTopBar(
     onOpenConversationPane: () -> Unit,
     onNewConversation: () -> Unit,
     onOpenTerminal: () -> Unit,
-    onLaunchExtensionAgent: (ExtensionAgent) -> Unit,
-    extensionAgentLabel: String,
     canStopExtensionAgent: Boolean,
     runningExtensionAgents: Set<ExtensionAgent>,
     onStopExtensionAgent: (ExtensionAgent) -> Unit,
     onRefreshExtensionAgent: () -> Unit,
     onOpenBrowser: () -> Unit,
-    onOpenCliAgents: () -> Unit,
+    onOpenAgents: () -> Unit,
     homeCharacter: RoleplayChatUi?,
     onOpenCharacter: () -> Unit,
 ) {
@@ -237,14 +231,12 @@ private fun AgentTopBar(
             TopBarOverflowMenu(
                 onNewConversation = onNewConversation,
                 onOpenTerminal = onOpenTerminal,
-                onLaunchExtensionAgent = onLaunchExtensionAgent,
-                extensionAgentLabel = extensionAgentLabel,
                 canStopExtensionAgent = canStopExtensionAgent,
                 runningExtensionAgents = runningExtensionAgents,
                 onStopExtensionAgent = onStopExtensionAgent,
                 onRefreshExtensionAgent = onRefreshExtensionAgent,
                 onOpenBrowser = onOpenBrowser,
-                onOpenCliAgents = onOpenCliAgents,
+                onOpenAgents = onOpenAgents,
             )
         }
     }
@@ -281,14 +273,12 @@ private val TopBarMenuIconSize = 20.dp
 private fun TopBarOverflowMenu(
     onNewConversation: () -> Unit,
     onOpenTerminal: () -> Unit,
-    onLaunchExtensionAgent: (ExtensionAgent) -> Unit,
-    extensionAgentLabel: String,
     canStopExtensionAgent: Boolean,
     runningExtensionAgents: Set<ExtensionAgent>,
     onStopExtensionAgent: (ExtensionAgent) -> Unit,
     onRefreshExtensionAgent: () -> Unit,
     onOpenBrowser: () -> Unit,
-    onOpenCliAgents: () -> Unit,
+    onOpenAgents: () -> Unit,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
@@ -310,11 +300,8 @@ private fun TopBarOverflowMenu(
         ) {
             val newConversationText = stringResource(R.string.action_new_conversation)
             val openTerminalText = stringResource(R.string.action_open_terminal)
-            val openCodeText = stringResource(R.string.action_launch_agent_web, ExtensionAgent.OPENCODE.displayName)
-            val dshText = stringResource(R.string.action_launch_agent_web, ExtensionAgent.DSH.displayName)
-            val kimiText = stringResource(R.string.action_launch_agent_web, ExtensionAgent.KIMI.displayName)
+            val openAgentsText = stringResource(R.string.action_open_agents)
             val openBrowserText = stringResource(R.string.action_open_browser)
-            val cliAgentsText = stringResource(R.string.action_open_cli_agents)
             val running = remember(runningExtensionAgents) {
                 ExtensionAgent.entries.filter { it in runningExtensionAgents }
             }
@@ -327,11 +314,8 @@ private fun TopBarOverflowMenu(
             val menuItems = remember(
                 newConversationText,
                 openTerminalText,
-                openCodeText,
-                dshText,
-                kimiText,
+                openAgentsText,
                 openBrowserText,
-                cliAgentsText,
                 running,
                 stopLabels,
                 autoReadText,
@@ -360,30 +344,10 @@ private fun TopBarOverflowMenu(
                         },
                     ),
                     DropdownItem(
-                        text = openCodeText,
+                        text = openAgentsText,
                         icon = { modifier ->
                             Icon(
-                                imageVector = Icons.Rounded.Terminal,
-                                contentDescription = null,
-                                modifier = modifier.size(TopBarMenuIconSize),
-                            )
-                        },
-                    ),
-                    DropdownItem(
-                        text = dshText,
-                        icon = { modifier ->
-                            Icon(
-                                imageVector = Icons.Rounded.Terminal,
-                                contentDescription = null,
-                                modifier = modifier.size(TopBarMenuIconSize),
-                            )
-                        },
-                    ),
-                    DropdownItem(
-                        text = kimiText,
-                        icon = { modifier ->
-                            Icon(
-                                imageVector = Icons.Rounded.Terminal,
+                                imageVector = Icons.Rounded.Extension,
                                 contentDescription = null,
                                 modifier = modifier.size(TopBarMenuIconSize),
                             )
@@ -394,16 +358,6 @@ private fun TopBarOverflowMenu(
                         icon = { modifier ->
                             Icon(
                                 imageVector = Icons.Rounded.Language,
-                                contentDescription = null,
-                                modifier = modifier.size(TopBarMenuIconSize),
-                            )
-                        },
-                    ),
-                    DropdownItem(
-                        text = cliAgentsText,
-                        icon = { modifier ->
-                            Icon(
-                                imageVector = Icons.Rounded.Code,
                                 contentDescription = null,
                                 modifier = modifier.size(TopBarMenuIconSize),
                             )
@@ -454,12 +408,9 @@ private fun TopBarOverflowMenu(
                             } else when (index) {
                                 0 -> onNewConversation()
                                 1 -> onOpenTerminal()
-                                2 -> onLaunchExtensionAgent(ExtensionAgent.OPENCODE)
-                                3 -> onLaunchExtensionAgent(ExtensionAgent.DSH)
-                                4 -> onLaunchExtensionAgent(ExtensionAgent.KIMI)
-                                5 -> onOpenBrowser()
-                                6 -> onOpenCliAgents()
-                                else -> running.getOrNull(index - 7)?.let(onStopExtensionAgent)
+                                2 -> onOpenAgents()
+                                3 -> onOpenBrowser()
+                                else -> running.getOrNull(index - 4)?.let(onStopExtensionAgent)
                             }
                         },
                     )
@@ -474,7 +425,8 @@ private fun titleForRoute(route: AppRoute?): String = when (route) {
     is AppRoute.Home -> ""
     is AppRoute.Browser -> stringResource(R.string.route_browser)
     is AppRoute.Terminal -> stringResource(R.string.route_terminal)
-    is AppRoute.CliAgents -> stringResource(R.string.cli_agents_title)
+    is AppRoute.Agents -> stringResource(R.string.agents_title)
+    is AppRoute.CliAgents -> stringResource(R.string.cli_accounts_title)
     is AppRoute.CliTerminal -> CliAgent.fromId(route.agentId)?.displayName
         ?: stringResource(R.string.route_terminal)
     is AppRoute.Tools -> stringResource(R.string.route_tools)

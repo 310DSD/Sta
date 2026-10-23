@@ -4,9 +4,23 @@ import org.json.JSONObject
 
 /** Codex `config.toml` 的目标路由；只描述连接信息，不携带整份配置快照。 */
 internal sealed interface CodexRoute {
-    data object Official : CodexRoute
-    data class ApiKey(val model: String?) : CodexRoute
-    data class ThirdParty(val baseUrl: String, val apiKey: String, val model: String?) : CodexRoute
+    data class Official(
+        val model: String? = null,
+        val contextWindow: Int? = null,
+        val reasoningEffort: String? = null,
+    ) : CodexRoute
+    data class ApiKey(
+        val model: String?,
+        val contextWindow: Int? = null,
+        val reasoningEffort: String? = null,
+    ) : CodexRoute
+    data class ThirdParty(
+        val baseUrl: String,
+        val apiKey: String,
+        val model: String?,
+        val contextWindow: Int? = null,
+        val reasoningEffort: String? = null,
+    ) : CodexRoute
 }
 
 /** Codex 当前 profile 覆盖了选路；继续写只会得到一个不生效的配置。 */
@@ -25,6 +39,8 @@ internal object CodexConfigEditor {
         "model_provider",
         "openai_base_url",
         "experimental_bearer_token",
+        "model_context_window",
+        "model_reasoning_effort",
     )
 
     private val ROOT_LINE = Regex("""^(\s*)([A-Za-z0-9_-]+)\s*=\s*(.*)$""")
@@ -47,13 +63,27 @@ internal object CodexConfigEditor {
         val rest = lines.subList(rootEnd, lines.size).toMutableList()
 
         val desired = when (route) {
-            CodexRoute.Official -> emptyMap()
+            is CodexRoute.Official -> buildMap {
+                route.model?.takeIf(String::isNotBlank)?.let { put("model", quote(it)) }
+                route.contextWindow?.takeIf { it > 0 }?.let { put("model_context_window", it.toString()) }
+                route.reasoningEffort?.takeIf(String::isNotBlank)?.let {
+                    put("model_reasoning_effort", quote(it))
+                }
+            }
             is CodexRoute.ApiKey -> buildMap {
                 route.model?.takeIf(String::isNotBlank)?.let { put("model", quote(it)) }
+                route.contextWindow?.takeIf { it > 0 }?.let { put("model_context_window", it.toString()) }
+                route.reasoningEffort?.takeIf(String::isNotBlank)?.let {
+                    put("model_reasoning_effort", quote(it))
+                }
             }
             is CodexRoute.ThirdParty -> buildMap {
                 route.model?.takeIf(String::isNotBlank)?.let { put("model", quote(it)) }
                 put("model_provider", quote(ROUTE_ID))
+                route.contextWindow?.takeIf { it > 0 }?.let { put("model_context_window", it.toString()) }
+                route.reasoningEffort?.takeIf(String::isNotBlank)?.let {
+                    put("model_reasoning_effort", quote(it))
+                }
             }
         }
 
@@ -187,6 +217,8 @@ internal object ClaudeSettingsEditor {
         "CLAUDE_CODE_USE_BEDROCK",
         "CLAUDE_CODE_USE_VERTEX",
         "CLAUDE_CODE_USE_FOUNDRY",
+        "CLAUDE_CODE_MAX_CONTEXT_TOKENS",
+        "CLAUDE_CODE_EFFORT_LEVEL",
     )
 
     fun merge(
@@ -195,6 +227,8 @@ internal object ClaudeSettingsEditor {
         apiKey: String,
         baseUrl: String,
         model: String,
+        contextWindow: Int? = null,
+        reasoningEffort: String = "",
     ): String {
         val root = parse(existing)
         val env = root.optJSONObject("env") ?: JSONObject()
@@ -208,6 +242,8 @@ internal object ClaudeSettingsEditor {
             }
         }
         if (model.isNotBlank()) env.put("ANTHROPIC_MODEL", model)
+        contextWindow?.takeIf { it > 0 }?.let { env.put("CLAUDE_CODE_MAX_CONTEXT_TOKENS", it.toString()) }
+        reasoningEffort.takeIf(String::isNotBlank)?.let { env.put("CLAUDE_CODE_EFFORT_LEVEL", it) }
         if (env.length() == 0) root.remove("env") else root.put("env", env)
         return root.toString(2)
     }

@@ -56,7 +56,7 @@ class CliConfigEditorsTest {
             model = "o4-mini"
         """.trimIndent()
 
-        val updated = CodexConfigEditor.apply(withRoute, CodexRoute.Official)
+        val updated = CodexConfigEditor.apply(withRoute, CodexRoute.Official())
 
         assertFalse(updated.contains("model_provider"))
         assertFalse(updated.contains("openai_base_url"))
@@ -159,6 +159,42 @@ class CliConfigEditorsTest {
     }
 
     @Test
+    fun thirdPartyWritesContextAndReasoning() {
+        val updated = CodexConfigEditor.apply(
+            existingCodex,
+            CodexRoute.ThirdParty(
+                baseUrl = "https://relay.example/v1",
+                apiKey = "sk-test",
+                model = "gpt-5.1",
+                contextWindow = 128_000,
+                reasoningEffort = "high",
+            ),
+        )
+
+        assertTrue(updated.contains("model_context_window = 128000"))
+        assertTrue(updated.contains("model_reasoning_effort = \"high\""))
+    }
+
+    @Test
+    fun claudeWritesContextAndEffort() {
+        val json = JSONObject(
+            ClaudeSettingsEditor.merge(
+                existing = "{}",
+                kind = CliAccountKind.THIRD_PARTY,
+                apiKey = "sk",
+                baseUrl = "https://relay.example/v1",
+                model = "claude-custom",
+                contextWindow = 200_000,
+                reasoningEffort = "high",
+            ),
+        )
+        val env = json.getJSONObject("env")
+
+        assertEquals("200000", env.getString("CLAUDE_CODE_MAX_CONTEXT_TOKENS"))
+        assertEquals("high", env.getString("CLAUDE_CODE_EFFORT_LEVEL"))
+    }
+
+    @Test
     fun activeProfileRouteOverrideIsRejected() {
         val existing = """
             profile = "fast"
@@ -186,7 +222,7 @@ class CliConfigEditorsTest {
         """.trimIndent()
 
         try {
-            CodexConfigEditor.apply(existing, CodexRoute.Official)
+            CodexConfigEditor.apply(existing, CodexRoute.Official())
             throw AssertionError("expected CodexProfileOverrideException")
         } catch (_: CodexProfileOverrideException) {
             // expected

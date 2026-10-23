@@ -72,11 +72,17 @@ Codex 与 Claude Code 是终端 TUI 型 Agent，没有官方移动 Web UI，Sta 
 
 - Linux 工具页新增 Codex（`@openai/codex@0.164.0`）与 Claude Code（`@anthropic-ai/claude-code@2.1.309`）
   安装行，依赖 Node.js；安装脚本固定版本，可重复执行。
-- 首页溢出菜单新增“CLI 智能体”，账号页右上角可直接打开该 Agent 的终端标签，
-  进入后自动执行 `codex` / `claude`。终端会话按 Agent 标签隔离，Codex 与 Claude Code 各自保留
-  自己的 PTY，可在终端会话列表切换。
-- 账号页沿用 Eta 的 preference group / choice chip / arrow preference 语言；内置 WebView 的
-  `+` 新建页面弹窗也提供“CLI 智能体”快速入口。
+- 首页右上角二级菜单新增“智能体”总入口：页面按 **Web / CLI** 分组、组内按字母排序，
+  包含 OpenCode、DeepSeek Harness、Kimi Code、Claude Code、Codex 五个 Agent 与
+  “CLI 账号管理器”。两个 CLI 在总入口内各有快速入口；内置 WebView 的 `+` 新建页弹窗
+  也提供同一个总入口。
+- 账号页沿用 Eta 的 preference group / choice chip / arrow preference 语言；账号行可打开
+  “模型设置”：在线拉取 `/models`、选择模型、设置上下文/最大输出/思考等级，也支持从 Eta
+  当前 provider/model 同步。
+- 终端工具栏在 CLI 会话中提供停止按钮；停止后显示“CLI 已停止”并可重新连接。终端会话按
+  Agent 标签隔离，Codex 与 Claude Code 各自保留自己的 PTY。
+- CLI 终端与账号页使用 `imePaddingSafe`，弹窗改为 Compose overlay，避免输入法动画与
+  WindowDialog 的 inset 不同步。
 - 账号类型：官方账号（只导入 CLI 自己生成的登录文件）、官方 API Key、第三方兼容端点
   （baseURL + key + model）。
 - 切换语义参考 CC Switch：只改连接信息与 Sta 自己的 provider 表，保留 hooks、MCP、profiles、

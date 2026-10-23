@@ -29,21 +29,14 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
-import io.github.mangi.eta.agent.extension.ExtensionAgent
-import io.github.mangi.eta.agent.terminal.DetachedTaskSupervisor
-import io.github.mangi.eta.agent.terminal.LinuxEnvironmentPaths
 import io.github.mangi.eta.agent.terminal.LinuxPackageProfiles
-import io.github.mangi.eta.agent.terminal.SharedFolderMounts
 import io.github.mangi.eta.agent.terminal.terminalEnvironment
-import io.github.mangi.eta.core.AndroidAgentLogger
 import io.github.mangi.eta.R
 import io.github.mangi.eta.data.model.AppearanceSettings
 import io.github.mangi.eta.data.repository.AppearanceSettingsRepository
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
 import io.github.mangi.eta.ui.MainActivity
 import io.github.mangi.eta.ui.app.AgentAppTheme
-import io.github.mangi.eta.ui.app.ExtensionAgentLaunchResult
-import io.github.mangi.eta.ui.app.ExtensionAgentLauncher
 import io.github.mangi.eta.ui.app.message
 import io.github.mangi.eta.ui.screens.terminal.LinuxFileManagerActivity
 import kotlinx.coroutines.launch
@@ -74,28 +67,6 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         val webView: WebView,
         var title: String = "",
     )
-
-    private val daemonSupervisor by lazy {
-        DetachedTaskSupervisor(
-            logger = AndroidAgentLogger,
-            recordsFile = DetachedTaskSupervisor.defaultRecordsFile(this),
-            linuxRootfsPathProvider = { environment ->
-                environment.linuxDistribution?.let { distribution ->
-                    LinuxEnvironmentPaths.rootfsDir(this, distribution).absolutePath
-                }
-            },
-            linuxSharedMountsProvider = { SharedFolderMounts.current() },
-        )
-    }
-
-    private val extensionAgentLauncher by lazy {
-        ExtensionAgentLauncher(this, daemonSupervisor) { url ->
-            runOnUiThread {
-                if (!isFinishing && !isDestroyed) openTab(url)
-            }
-            true
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -129,13 +100,9 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                     NewPageDialog(
                         show = newPageDialog,
                         onDismiss = { newPageDialog = false },
-                        onOpenAgent = { agent ->
+                        onOpenAgents = {
                             newPageDialog = false
-                            launchAgent(agent)
-                        },
-                        onOpenCliAccounts = {
-                            newPageDialog = false
-                            openCliAccounts()
+                            openAgents()
                         },
                         onOpenFileManager = {
                             newPageDialog = false
@@ -297,22 +264,6 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         if (tabs.isEmpty()) finish()
     }
 
-    private fun launchAgent(agent: ExtensionAgent) {
-        Toast.makeText(this, getString(R.string.extension_agent_preparing), Toast.LENGTH_SHORT).show()
-        lifecycleScope.launch {
-            val distribution = LinuxEnvironmentSettingsRepository.current(this@ExtensionAgentWebActivity)
-            val backend = LinuxEnvironmentSettingsRepository.backend(this@ExtensionAgentWebActivity, distribution)
-            val result = extensionAgentLauncher.launch(agent, distribution.terminalEnvironment, backend)
-            if (result is ExtensionAgentLaunchResult.Failed) {
-                Toast.makeText(
-                    this@ExtensionAgentWebActivity,
-                    result.message(this@ExtensionAgentWebActivity),
-                    Toast.LENGTH_LONG,
-                ).show()
-            }
-        }
-    }
-
     private fun openFileManager() {
         val distribution = LinuxEnvironmentSettingsRepository.current(this)
         startActivity(
@@ -321,10 +272,10 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         )
     }
 
-    private fun openCliAccounts() {
+    private fun openAgents() {
         startActivity(
             Intent(this, MainActivity::class.java)
-                .setAction(MainActivity.ACTION_OPEN_CLI_AGENTS),
+                .setAction(MainActivity.ACTION_OPEN_AGENTS),
         )
     }
 

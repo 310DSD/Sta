@@ -47,6 +47,7 @@ import io.github.mangi.eta.agent.terminal.LinuxEnvironmentPaths
 import io.github.mangi.eta.agent.terminal.LinuxPackageProfiles
 import io.github.mangi.eta.agent.terminal.linuxPackageProfileReady
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
+import io.github.mangi.eta.ui.insets.imePaddingSafe
 import io.github.mangi.eta.ui.components.EtaArrowPreference
 import io.github.mangi.eta.ui.components.EtaChoiceChip
 import io.github.mangi.eta.ui.components.EtaOverlayDialog
@@ -58,7 +59,6 @@ import io.github.mangi.eta.ui.components.EtaPreferenceGroup
 import io.github.mangi.eta.ui.components.EtaPreferenceGroupTitle
 import io.github.mangi.eta.ui.components.EtaPreferenceIcon
 import io.github.mangi.eta.ui.components.EtaTextButton
-import io.github.mangi.eta.ui.components.EtaWindowDialog
 import io.github.mangi.eta.ui.components.ListEmptyState
 import io.github.mangi.eta.ui.components.MiuixDialogActions
 import io.github.mangi.eta.ui.components.MiuixScaffoldPage
@@ -91,6 +91,7 @@ internal fun CliAccountsScreen(
     var busy by remember { mutableStateOf(false) }
     var showAdd by remember { mutableStateOf(false) }
     var deleteTarget by remember { mutableStateOf<CliAccount?>(null) }
+    var settingsTarget by remember { mutableStateOf<CliAccount?>(null) }
     var refreshKey by remember { mutableIntStateOf(0) }
     val scope = rememberCoroutineScope()
     val toast = remember(appContext) { { text: String ->
@@ -164,6 +165,7 @@ internal fun CliAccountsScreen(
     MiuixScaffoldPage(
         title = stringResource(R.string.cli_accounts_title),
         onBack = onBack,
+        modifier = Modifier.imePaddingSafe(),
         actions = {
             IconButton(
                 onClick = {
@@ -227,6 +229,7 @@ internal fun CliAccountsScreen(
                             active = account.id == activeId,
                             busy = busy,
                             onSwitch = { switchTo(account) },
+                            onSettings = { settingsTarget = account },
                             onDelete = { deleteTarget = account },
                         )
                     }
@@ -290,6 +293,29 @@ internal fun CliAccountsScreen(
         )
     }
 
+    settingsTarget?.let { account ->
+        CliAccountSettingsDialog(
+            account = account,
+            manager = manager,
+            onDismiss = { settingsTarget = null },
+            onSave = { updated ->
+                val next = runCatching { store.upsert(updated) }.getOrNull()
+                if (next == null) {
+                    toast(saveFailedText)
+                } else {
+                    state = next
+                    settingsTarget = null
+                    if (next.activeByAgent[updated.agentId] == updated.id) {
+                        switchTo(updated)
+                    } else {
+                        toast(appContext.getString(R.string.cli_account_saved))
+                    }
+                }
+            },
+            toast = toast,
+        )
+    }
+
     deleteTarget?.let { account ->
         EtaOverlayDialog(
             show = true,
@@ -317,6 +343,7 @@ private fun AccountPreference(
     active: Boolean,
     busy: Boolean,
     onSwitch: () -> Unit,
+    onSettings: () -> Unit,
     onDelete: () -> Unit,
 ) {
     val icon = when (account.kind) {
@@ -356,6 +383,12 @@ private fun AccountPreference(
                     modifier = Modifier.weight(1f),
                 )
                 EtaTextButton(
+                    text = stringResource(R.string.cli_account_model_settings),
+                    onClick = onSettings,
+                    enabled = !busy,
+                    modifier = Modifier.weight(1f),
+                )
+                EtaTextButton(
                     text = stringResource(R.string.cli_account_delete),
                     onClick = onDelete,
                     enabled = !busy,
@@ -392,13 +425,13 @@ private fun AddCliAccountDialog(
         R.string.cli_error_unexpected to unexpectedText,
     )
 
-    EtaWindowDialog(
+    EtaOverlayDialog(
         show = true,
         title = stringResource(R.string.cli_account_add),
         summary = agent.displayName,
         onDismissRequest = onDismiss,
     ) {
-        Column {
+        Column(Modifier.imePaddingSafe()) {
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 CliAccountKind.entries.forEach { option ->
                     EtaChoiceChip(

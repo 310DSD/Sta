@@ -6,10 +6,18 @@ import io.github.mangi.eta.R
 import io.github.mangi.eta.agent.terminal.LinuxEnvironmentPaths
 import io.github.mangi.eta.agent.terminal.LinuxFileExplorer
 import io.github.mangi.eta.agent.terminal.ShellProcessSupervisor
+import io.github.mangi.eta.data.model.AnthropicProviderSetting
+import io.github.mangi.eta.data.model.Model
+import io.github.mangi.eta.data.model.OpenAiCompatibleProviderSetting
+import io.github.mangi.eta.data.model.selectedOrFirstModel
 import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
+import io.github.mangi.eta.data.repository.ProviderRepository
+import io.github.mangi.eta.data.repository.RemoteModelFetcher
+import io.github.mangi.eta.data.repository.RuntimeConfigRepository
 import java.io.File
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withContext
 import org.json.JSONException
 
@@ -45,6 +53,72 @@ internal class CliConfigManager(private val context: Context) {
     private val appContext = context.applicationContext
 
     fun close() = supervisor.beginClosing()
+
+    /** 在线读取账号对应端点的 `/models`；官方 OAuth 账号没有可直接使用的 API Key。 */
+    suspend fun fetchModels(account: CliAccount): Result<List<CliModelInfo>> = withContext(Dispatchers.IO) {
+        try {
+            val agent = CliAgent.fromId(account.agentId)
+                ?: error("Unknown CLI")
+            if (account.kind == CliAccountKind.OFFICIAL) error("Official accounts use the CLI login")
+            if (account.apiKey.isBlank()) error("API key is empty")
+            val baseUrl = when (agent) {
+                CliAgent.CODEX -> account.baseUrl.ifBlank { "https://api.openai.com/v1" }
+                CliAgent.CLAUDE_CODE -> account.baseUrl.ifBlank { "https://api.anthropic.com" }
+            }
+            val provider = when (agent) {
+                CliAgent.CODEX -> OpenAiCompatibleProviderSetting(
+                    id = "cli-${account.id}",
+                    name = account.name,
+                    baseUrl = baseUrl,
+                    apiKey = account.apiKey,
+                )
+                CliAgent.CLAUDE_CODE -> AnthropicProviderSetting(
+                    id = "cli-${account.id}",
+                    name = account.name,
+                    baseUrl = baseUrl,
+                    apiKey = account.apiKey,
+                )
+            }
+            Result.success(RemoteModelFetcher.fetch(provider).getOrThrow().map(::toCliModelInfo))
+        } catch (cancel: CancellationException) {
+            throw cancel
+        } catch (failure: Throwable) {
+            Result.failure(failure)
+        }
+    }
+
+    /** 从 Eta 当前选中的 provider/model 填充连接信息、上下文和思考等级。 */
+    suspend fun syncFromEta(account: CliAccount): CliAccount? = withContext(Dispatchers.IO) {
+        val providerId = RuntimeConfigRepository.selectedProviderIdFlow().first()
+        val modelId = RuntimeConfigRepository.selectedModelIdFlow().first()
+        val provider = providerId?.let { ProviderRepository.providerById(it) } ?: return@withContext null
+        val model = provider.selectedOrFirstModel(modelId) ?: return@withContext null
+        account.copy(
+            apiKey = provider.apiKey.ifBlank { account.apiKey },
+            baseUrl = provider.baseUrl.ifBlank { account.baseUrl },
+            model = model.modelId.ifBlank { account.model },
+            contextWindow = model.contextWindowOverride ?: model.contextWindow ?: account.contextWindow,
+            maxOutputTokens = model.maxOutputTokens ?: account.maxOutputTokens,
+            reasoningEffort = model.effectiveReasoningCapabilities?.defaultEffort?.wireValue
+                ?.takeUnless { it == "default" }
+                ?: account.reasoningEffort,
+        )
+    }
+
+    private fun toCliModelInfo(model: Model): CliModelInfo = CliModelInfo(
+        id = model.modelId.ifBlank { model.id },
+        displayName = model.displayName.ifBlank { model.modelId.ifBlank { model.id } },
+        contextWindow = model.contextWindowOverride ?: model.contextWindow,
+        maxOutputTokens = model.maxOutputTokens,
+        reasoningEfforts = model.effectiveReasoningCapabilities
+            ?.selectableEfforts
+            ?.map { it.wireValue }
+            .orEmpty(),
+        defaultReasoningEffort = model.effectiveReasoningCapabilities
+            ?.defaultEffort
+            ?.wireValue
+            .orEmpty(),
+    )
 
     private fun rootfs(): File? {
         val distribution = LinuxEnvironmentSettingsRepository.current(appContext)
@@ -113,12 +187,22 @@ internal class CliConfigManager(private val context: Context) {
         val existing = readRequired(rootfs, configPath)
             ?: return CliApplyResult.Failed(R.string.cli_error_read_config)
         val route = when (account.kind) {
-            CliAccountKind.OFFICIAL -> CodexRoute.Official
-            CliAccountKind.API_KEY -> CodexRoute.ApiKey(account.model)
+            CliAccountKind.OFFICIAL -> CodexRoute.Official(
+                model = account.model,
+                contextWindow = account.contextWindow,
+                reasoningEffort = account.reasoningEffort,
+            )
+            CliAccountKind.API_KEY -> CodexRoute.ApiKey(
+                model = account.model,
+                contextWindow = account.contextWindow,
+                reasoningEffort = account.reasoningEffort,
+            )
             CliAccountKind.THIRD_PARTY -> CodexRoute.ThirdParty(
                 baseUrl = account.baseUrl,
                 apiKey = account.apiKey,
                 model = account.model,
+                contextWindow = account.contextWindow,
+                reasoningEffort = account.reasoningEffort,
             )
         }
         val updated = try {
@@ -171,12 +255,17 @@ internal class CliConfigManager(private val context: Context) {
             ?: return CliApplyResult.Failed(R.string.cli_error_read_config)
         val updated = try {
             when (account.kind) {
-                CliAccountKind.OFFICIAL -> ClaudeSettingsEditor.stripManaged(existing)
+                CliAccountKind.OFFICIAL -> ClaudeSettingsEditor.merge(
+                    existing, account.kind, "", "", account.model,
+                    account.contextWindow, account.reasoningEffort,
+                )
                 CliAccountKind.API_KEY -> ClaudeSettingsEditor.merge(
                     existing, account.kind, account.apiKey, account.baseUrl, account.model,
+                    account.contextWindow, account.reasoningEffort,
                 )
                 CliAccountKind.THIRD_PARTY -> ClaudeSettingsEditor.merge(
                     existing, account.kind, account.apiKey, account.baseUrl, account.model,
+                    account.contextWindow, account.reasoningEffort,
                 )
             }
         } catch (_: JSONException) {
