@@ -30,6 +30,8 @@ internal enum class ExtensionAgent(
     val webUrlPattern: Regex,
     /** Command users can type in Eta's terminal for the TUI. */
     val terminalCommand: String,
+    /** Working directory for the daemon command; ACP bridge does not need /workspace. */
+    val webCwd: String = "/workspace",
     /**
      * Optional command that prints a one-time browser login URL for the running service.
      * OpenCode 2.x pairing only works with its shared background service.
@@ -102,6 +104,7 @@ internal enum class ExtensionAgent(
         acceptedCommands = setOf("node /opt/eta/acp/server.mjs"),
         webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):3210(?:/[A-Za-z0-9/?:=&._~%+#-]*)?"""),
         terminalCommand = "node /opt/eta/acp/server.mjs",
+        webCwd = "/root",
     ),
     ;
 

@@ -47,7 +47,7 @@ internal class ExtensionAgentLauncher(
             override fun start(agent: ExtensionAgent, environment: TerminalEnvironment, identity: String) =
                 daemonSupervisor.start(
                     command = agent.webCommand,
-                    cwd = "/workspace",
+                    cwd = agent.webCwd,
                     identity = identity,
                     environment = environment,
                 )
