@@ -88,7 +88,7 @@ private enum class InstallTarget {
     CODEX,
     CLAUDE_CODE,
     CLOUDCLI,
-    CODEXAPP,
+    ACP,
 }
 
 private fun InstallTarget.extensionAgent(): ExtensionAgent? = when (this) {
@@ -96,7 +96,7 @@ private fun InstallTarget.extensionAgent(): ExtensionAgent? = when (this) {
     InstallTarget.DSH -> ExtensionAgent.DSH
     InstallTarget.KIMI -> ExtensionAgent.KIMI
     InstallTarget.CLOUDCLI -> ExtensionAgent.CLOUDCLI
-    InstallTarget.CODEXAPP -> ExtensionAgent.CODEXAPP
+    InstallTarget.ACP -> ExtensionAgent.ACP
     else -> null
 }
 
@@ -183,12 +183,13 @@ private val packageProfileUis = listOf(
         readyRes = R.string.linux_cloudcli_tools_ready,
     ),
     PackageProfileUi(
-        target = InstallTarget.CODEXAPP,
-        profile = LinuxPackageProfiles.CODEXAPP,
-        titleRes = R.string.linux_codexapp_tools,
-        summaryRes = R.string.linux_codexapp_tools_summary,
-        readyRes = R.string.linux_codexapp_tools_ready,
+        target = InstallTarget.ACP,
+        profile = LinuxPackageProfiles.ACP,
+        titleRes = R.string.linux_acp_tools,
+        summaryRes = R.string.linux_acp_tools_summary,
+        readyRes = R.string.linux_acp_tools_ready,
     ),
+
 )
 
 @Composable

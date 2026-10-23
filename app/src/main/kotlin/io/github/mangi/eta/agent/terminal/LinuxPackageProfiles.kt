@@ -117,10 +117,17 @@ internal object LinuxPackageProfiles {
             "@openai/codex@0.164.0 || " +
             "npm install -g --prefix /usr/local --include=optional @openai/codex@0.164.0"
 
-    private const val CODEXAPP_INSTALL_SCRIPT =
-        "npm install -g --prefix /usr/local --include=optional " +
-            "--registry=https://registry.npmmirror.com @brutalstrikedevs/codexapp@0.1.91 || " +
-            "npm install -g --prefix /usr/local --include=optional @brutalstrikedevs/codexapp@0.1.91"
+    private const val ACP_INSTALL_SCRIPT =
+        "mkdir -p /opt/eta/acp && " +
+            "npm install -g --prefix /usr/local --include=optional " +
+            "--registry=https://registry.npmmirror.com " +
+            "@agentclientprotocol/claude-agent-acp@0.94.0 " +
+            "@agentclientprotocol/codex-acp@2.2.2 || " +
+            "npm install -g --prefix /usr/local --include=optional " +
+            "@agentclientprotocol/claude-agent-acp@0.94.0 " +
+            "@agentclientprotocol/codex-acp@2.2.2; " +
+            "npm install --prefix /opt/eta/acp --registry=https://registry.npmmirror.com ws@8 || " +
+            "npm install --prefix /opt/eta/acp ws@8"
 
     private const val CLOUDCLI_INSTALL_SCRIPT =
         "npm install -g --prefix /usr/local --include=optional " +
@@ -894,27 +901,27 @@ internal object LinuxPackageProfiles {
         ),
     )
 
-    val CODEXAPP = LinuxPackageProfile(
-        id = "codexapp",
-        markerName = AlpineEnvironmentPaths.CODEXAPP_TOOLS_MARKER,
-        revision = AlpineEnvironmentPaths.CODEXAPP_TOOLS_REVISION,
-        dependsOn = CODEX,
+    val ACP = LinuxPackageProfile(
+        id = "acp",
+        markerName = AlpineEnvironmentPaths.ACP_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.ACP_TOOLS_REVISION,
+        dependsOn = NODE,
         installTimeoutSeconds = 3600L,
         specs = mapOf(
             LinuxDistribution.ALPINE to LinuxPackageSpec(
-                packages = listOf("build-base", "python3", "linux-headers"),
-                setupScript = CODEXAPP_INSTALL_SCRIPT,
-                verifyCommand = "command -v codexapp >/dev/null",
+                packages = listOf("curl", "ca-certificates"),
+                setupScript = ACP_INSTALL_SCRIPT,
+                verifyCommand = "command -v claude-agent-acp >/dev/null && command -v codex-acp >/dev/null && test -d /opt/eta/acp/node_modules/ws",
             ),
             LinuxDistribution.DEBIAN to LinuxPackageSpec(
-                packages = listOf("build-essential", "python3"),
-                setupScript = CODEXAPP_INSTALL_SCRIPT,
-                verifyCommand = "command -v codexapp >/dev/null",
+                packages = listOf("curl", "ca-certificates"),
+                setupScript = ACP_INSTALL_SCRIPT,
+                verifyCommand = "command -v claude-agent-acp >/dev/null && command -v codex-acp >/dev/null && test -d /opt/eta/acp/node_modules/ws",
             ),
         ),
     )
 
-    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, DSH, KIMI, CODEX, CLAUDE_CODE, CLOUDCLI, CODEXAPP)
+    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, DSH, KIMI, CODEX, CLAUDE_CODE, CLOUDCLI, ACP)
 }
 
 internal fun linuxPackageProfileReady(rootfs: File, profile: LinuxPackageProfile): Boolean {

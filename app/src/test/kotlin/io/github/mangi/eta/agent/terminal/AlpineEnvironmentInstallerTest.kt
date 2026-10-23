@@ -175,16 +175,16 @@ class AlpineEnvironmentInstallerTest {
     }
 
     @Test
-    fun codexAppProfilePinsNpmPackageAndInstallsNativeBuildTools() {
-        val debian = LinuxPackageProfiles.CODEXAPP.spec(LinuxDistribution.DEBIAN)
-        assertTrue(debian.setupScript.orEmpty().contains("@brutalstrikedevs/codexapp@0.1.91"))
-        assertTrue(debian.setupScript.orEmpty().contains("npm install -g"))
-        assertTrue(debian.packages.containsAll(listOf("build-essential", "python3")))
-        assertTrue(debian.verifyCommand.orEmpty().contains("codexapp"))
+    fun acpProfilePinsClaudeAndCodexAdapters() {
+        val debian = LinuxPackageProfiles.ACP.spec(LinuxDistribution.DEBIAN)
+        assertTrue(debian.setupScript.orEmpty().contains("@agentclientprotocol/claude-agent-acp@0.94.0"))
+        assertTrue(debian.setupScript.orEmpty().contains("@agentclientprotocol/codex-acp@2.2.2"))
+        assertTrue(debian.setupScript.orEmpty().contains("ws@8"))
+        assertTrue(debian.verifyCommand.orEmpty().contains("claude-agent-acp"))
+        assertTrue(debian.verifyCommand.orEmpty().contains("codex-acp"))
 
-        val alpine = LinuxPackageProfiles.CODEXAPP.spec(LinuxDistribution.ALPINE)
-        assertTrue(alpine.setupScript.orEmpty().contains("@brutalstrikedevs/codexapp@0.1.91"))
-        assertTrue(alpine.packages.containsAll(listOf("build-base", "python3")))
+        val alpine = LinuxPackageProfiles.ACP.spec(LinuxDistribution.ALPINE)
+        assertTrue(alpine.setupScript.orEmpty().contains("@agentclientprotocol/codex-acp@2.2.2"))
     }
 
     @Test

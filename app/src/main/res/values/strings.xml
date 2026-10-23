@@ -1667,9 +1667,9 @@
   <string name="cli_start_running">Start</string>
   <string name="cli_agent_running">Running</string>
   <string name="cli_account_open">Open</string>
-  <string name="agents_codexapp">Codex App</string>
-  <string name="agents_codexapp_summary">Native Codex app-server GUI</string>
-  <string name="linux_codexapp_tools">Codex App</string>
-  <string name="linux_codexapp_tools_summary">Install Codex App browser GUI on top of Codex app-server</string>
-  <string name="linux_codexapp_tools_ready">Codex App GUI is ready</string>
+  <string name="agents_acp">ACP Workspace</string>
+  <string name="agents_acp_summary">Unified Claude Code + Codex workspace</string>
+  <string name="linux_acp_tools">ACP Workspace</string>
+  <string name="linux_acp_tools_summary">Install ACP bridge and Claude/Codex adapters</string>
+  <string name="linux_acp_tools_ready">ACP Workspace is ready</string>
 </resources>

@@ -68,7 +68,7 @@ DSH Web 前端是桌面优先布局。Sta 在**不修改 DSH 逻辑和 DOM 锚�
 
 ### Codex / Claude Code 与 CLI 账号
 
-Codex 与 Claude Code 是终端 TUI 型 Agent，没有官方移动 Web UI，Sta 统一用内置 PTY 终端承载：
+Codex 与 Claude Code 是终端 TUI 型 Agent；Sta 同时提供内置 PTY 终端和自研 ACP GUI：
 
 - Linux 工具页新增 Codex（`@openai/codex@0.164.0`）与 Claude Code（`@anthropic-ai/claude-code@2.1.309`）
   安装行，依赖 Node.js；安装脚本固定版本，可重复执行。
@@ -81,15 +81,15 @@ Codex 与 Claude Code 是终端 TUI 型 Agent，没有官方移动 Web UI，Sta 
   `http://127.0.0.1:3001`；入口在“智能体 → CLI”分组，Linux 工具页有安装行，首次启动在
   WebView 内完成 CloudCLI 本地账号初始化。CloudCLI 复用官方 Claude Code / Codex 会话与配置，
   不使用 T3 那种自己的编排提示；AGPL-3.0，包体和原生依赖较重（需 build-essential/python3）。
+- 新增 **ACP Workspace**：自研本地 Web GUI，通过 `@agentclientprotocol/claude-agent-acp`
+  和 `@agentclientprotocol/codex-acp` 连接官方 Claude Code / Codex；前端采用接近官方
+  desktop 的侧栏 + 会话流 + 工具卡 + 审批 + 计划/改动栏布局。ACP bridge 监听
+  `127.0.0.1:3210`，不注入编排提示，保留原生 system prompt、工具与会话。
 - 账号页沿用 Eta 的 preference group / choice chip / arrow preference 语言；账号行可打开
   “模型设置”：在线拉取 `/models`、选择模型、设置上下文/最大输出/思考等级，也支持从 Eta
   当前 provider/model 同步。
 - 智能体页的 CLI 行提供“启动/停止/打开”：启动在后台创建带标签 PTY，不强制跳转；停止直接
   关闭该标签会话；打开进入终端查看。终端工具栏同样保留停止按钮。
-- 另有 **Codex App GUI**（@brutalstrikedevs/codexapp 0.1.91，MIT）：启动
-  `codexapp --no-tunnel --no-open --no-login --port 18923`，WebView 打开
-  `http://127.0.0.1:18923`；它直接桥接 Codex app-server，界面更接近 Codex 桌面 App。
-  codexapp 默认监听 0.0.0.0，但 loopback 请求自动免密；非 loopback 访问需要其密码。
 - 终端会话按 Agent 标签隔离，Codex 与 Claude Code 各自保留自己的 PTY。
 - CLI 终端与账号页使用 `imePaddingSafe`，弹窗改为 Compose overlay，避免输入法动画与
   WindowDialog 的 inset 不同步。

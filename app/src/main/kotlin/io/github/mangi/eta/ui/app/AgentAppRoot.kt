@@ -43,12 +43,14 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.mangi.eta.EtaApp
 import io.github.mangi.eta.R
+import io.github.mangi.eta.agent.acp.AcpGuiInstaller
 import io.github.mangi.eta.agent.cli.CliAgent
 import io.github.mangi.eta.agent.device.BoundedRootCommandExecutor
 import io.github.mangi.eta.agent.extension.ExtensionAgent
 import io.github.mangi.eta.agent.device.DeviceLocationProvider
 import io.github.mangi.eta.agent.device.RootAccess
 import io.github.mangi.eta.agent.runtime.AgentRuntimeService
+import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
 import io.github.mangi.eta.core.AndroidAgentLogger
 import io.github.mangi.eta.data.repository.RuntimeConfigRepository
 import io.github.mangi.eta.ui.AppearanceSettingsScreen
@@ -316,6 +318,16 @@ fun AgentAppRoot(
         }
     }
 
+    fun launchAcp() {
+        val distribution = LinuxEnvironmentSettingsRepository.current(context)
+        val backend = LinuxEnvironmentSettingsRepository.backend(context, distribution)
+        if (!AcpGuiInstaller.install(context, distribution, backend)) {
+            pushRoute(AppRoute.LinuxEnvironment)
+            return
+        }
+        launchExtensionAgent(ExtensionAgent.ACP)
+    }
+
     @Composable
     fun RoutedShell(
         route: AppRoute,
@@ -463,14 +475,14 @@ fun AgentAppRoot(
                     onOpenCliAgent = { agent -> pushRoute(AppRoute.CliTerminal(agent.id)) },
                     onOpenCliAccounts = { pushRoute(AppRoute.CliAgents) },
                     onOpenCloudCli = { launchExtensionAgent(ExtensionAgent.CLOUDCLI) },
-                    onOpenCodexApp = { launchExtensionAgent(ExtensionAgent.CODEXAPP) },
+                    onOpenAcp = ::launchAcp,
                     onOpenLinuxEnvironment = { pushRoute(AppRoute.LinuxEnvironment) },
                     runningCliTags = runningCliTags,
                     runningExtensionAgents = appViewModel.runningExtensionAgents,
                     onStartCliAgent = { agent -> appViewModel.consoleStore.startTaggedSession(agent.id, agent.command) },
                     onStopCliAgent = { agent -> appViewModel.consoleStore.closeSessionsByTag(agent.id) },
                     onStopCloudCli = { appViewModel.stopExtensionAgent(ExtensionAgent.CLOUDCLI) },
-                    onStopCodexApp = { appViewModel.stopExtensionAgent(ExtensionAgent.CODEXAPP) },
+                    onStopAcp = { appViewModel.stopExtensionAgent(ExtensionAgent.ACP) },
                 )
             }
             entry<AppRoute.Browser>(swipeDismiss = swipeDismiss) {

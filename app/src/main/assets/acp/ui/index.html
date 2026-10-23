@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="color-scheme" content="dark light">
+  <title>ACP Workspace</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app" id="app" data-agent="claude">
+    <div class="mobile-scrim" id="scrim"></div>
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark"><span></span><span></span><span></span></div>
+        <div class="brand-copy"><strong>ACP</strong><small>agent workspace</small></div>
+        <button class="icon-button sidebar-close" id="sidebarClose" aria-label="关闭侧栏">×</button>
+      </div>
+      <button class="new-session" id="newSession"><span>＋</span> 新建会话</button>
+      <div class="section-label">最近会话</div>
+      <div class="session-list" id="sessionList"></div>
+      <div class="sidebar-foot">
+        <div class="agent-picker" id="agentPicker">
+          <button data-agent="claude" class="agent-option active"><i class="agent-dot claude"></i>Claude Code</button>
+          <button data-agent="codex" class="agent-option"><i class="agent-dot codex"></i>Codex</button>
+        </div>
+        <button class="quiet-button" id="themeButton">切换主题</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="topbar">
+        <button class="icon-button menu-button" id="menuButton" aria-label="打开侧栏">☰</button>
+        <div class="crumbs">
+          <span class="crumb-agent" id="agentLabel">Claude Code</span>
+          <span class="crumb-slash">/</span>
+          <span class="crumb-session" id="sessionLabel">新会话</span>
+        </div>
+        <div class="top-actions">
+          <span class="connection" id="connection"><i></i><span>连接中</span></span>
+          <button class="stop-button" id="stopButton" disabled>停止</button>
+        </div>
+      </header>
+
+      <section class="thread" id="thread">
+        <div class="empty-state" id="emptyState">
+          <div class="empty-mark" id="emptyMark">✳</div>
+          <h1 id="emptyTitle">从一个想法开始</h1>
+          <p id="emptyCopy">连接 Claude Code 或 Codex，在本地工作区里开始一段对话。</p>
+          <div class="workspace-field">
+            <label for="cwd">工作目录</label>
+            <input id="cwd" spellcheck="false" value="/root" placeholder="/root 或 /workspace">
+          </div>
+          <button class="primary-button" id="startButton">开始会话</button>
+          <div class="empty-hint" id="emptyHint">使用官方 CLI 的登录状态与原生工具</div>
+        </div>
+        <div class="messages" id="messages"></div>
+      </section>
+
+      <footer class="composer-wrap">
+        <div class="composer" id="composer">
+          <div class="composer-top">
+            <select id="modeSelect" aria-label="模式" hidden></select>
+            <select id="modelSelect" aria-label="模型" hidden></select>
+            <span class="config-selects" id="configSelects"></span>
+            <span class="composer-spacer"></span>
+            <span class="context-meter" id="contextMeter"></span>
+          </div>
+          <textarea id="prompt" rows="1" placeholder="给 Agent 一个任务…" spellcheck="false"></textarea>
+          <div class="composer-bottom">
+            <button class="attach-button" id="attachButton" title="附件即将支持" disabled>＋</button>
+            <span class="composer-hint" id="composerHint">Enter 发送 · Shift+Enter 换行</span>
+            <button class="send-button" id="sendButton" aria-label="发送">↑</button>
+          </div>
+        </div>
+        <div class="footnote">ACP · 本地会话 · 不上传工作区</div>
+      </footer>
+    </main>
+
+    <aside class="inspector" id="inspector">
+      <div class="inspector-head">
+        <span>会话详情</span>
+        <button class="icon-button" id="inspectorClose" aria-label="关闭详情">×</button>
+      </div>
+      <section class="inspector-section">
+        <div class="section-label">计划</div>
+        <div class="plan-list" id="planList"><div class="inspector-empty">还没有计划</div></div>
+      </section>
+      <section class="inspector-section">
+        <div class="section-label">改动</div>
+        <div class="change-list" id="changeList"><div class="inspector-empty">还没有文件改动</div></div>
+      </section>
+      <section class="inspector-section">
+        <div class="section-label">上下文</div>
+        <div class="usage-card" id="usageCard">等待会话</div>
+      </section>
+    </aside>
+
+    <div class="permission-layer" id="permissionLayer" hidden>
+      <div class="permission-card" role="dialog" aria-modal="true" aria-labelledby="permissionTitle">
+        <div class="permission-kicker">需要你的确认</div>
+        <h2 id="permissionTitle">允许这个操作吗？</h2>
+        <p class="permission-sub" id="permissionSub"></p>
+        <pre class="permission-input" id="permissionInput"></pre>
+        <div class="permission-actions" id="permissionActions"></div>
+      </div>
+    </div>
+
+    <div class="toast" id="toast" hidden></div>
+  </div>
+  <script src="/app.js"></script>
+</body>
+</html>

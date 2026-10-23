@@ -10,7 +10,7 @@ import org.junit.Test
 class ExtensionAgentTest {
     @Test
     fun catalogueHasTheSelectedAgentsIncludingKimi() {
-        assertEquals(listOf("opencode", "kimi", "dsh", "cloudcli", "codexapp"), ExtensionAgent.entries.map { it.id })
+        assertEquals(listOf("opencode", "kimi", "dsh", "cloudcli", "acp"), ExtensionAgent.entries.map { it.id })
     }
 
     @Test
@@ -32,9 +32,8 @@ class ExtensionAgentTest {
             } else if (agent == ExtensionAgent.CLOUDCLI) {
                 assertTrue(agent.webCommand.contains("cloudcli --port 3001"))
                 assertTrue(agent.webCommand.contains("HOST=127.0.0.1"))
-            } else if (agent == ExtensionAgent.CODEXAPP) {
-                assertTrue(agent.webCommand.contains("codexapp"))
-                assertTrue(agent.webCommand.contains("--no-tunnel"))
+            } else if (agent == ExtensionAgent.ACP) {
+                assertTrue(agent.webCommand.contains("/opt/eta/acp/server.mjs"))
             } else {
                 assertTrue(agent.webCommand.contains("kimi web"))
             }
@@ -42,7 +41,7 @@ class ExtensionAgentTest {
             val sample = when (agent) {
                 ExtensionAgent.KIMI -> "http://127.0.0.1:4096/#token=abc"
                 ExtensionAgent.CLOUDCLI -> "http://127.0.0.1:3001"
-                ExtensionAgent.CODEXAPP -> "http://127.0.0.1:18923"
+                ExtensionAgent.ACP -> "http://127.0.0.1:3210"
                 else -> "http://127.0.0.1:4096"
             }
             assertTrue(agent.webUrlPattern.containsMatchIn(sample))

@@ -49,18 +49,18 @@ internal fun AgentsScreen(
     onOpenCliAgent: (CliAgent) -> Unit,
     onOpenCliAccounts: () -> Unit,
     onOpenCloudCli: () -> Unit,
-    onOpenCodexApp: () -> Unit,
+    onOpenAcp: () -> Unit,
     onOpenLinuxEnvironment: () -> Unit,
     runningCliTags: Set<String>,
     runningExtensionAgents: Set<ExtensionAgent>,
     onStartCliAgent: (CliAgent) -> Unit,
     onStopCliAgent: (CliAgent) -> Unit,
     onStopCloudCli: () -> Unit,
-    onStopCodexApp: () -> Unit,
+    onStopAcp: () -> Unit,
 ) {
     val context = LocalContext.current
     val webAgents = remember {
-        ExtensionAgent.entries.filter { it != ExtensionAgent.CLOUDCLI && it != ExtensionAgent.CODEXAPP }
+        ExtensionAgent.entries.filter { it != ExtensionAgent.CLOUDCLI && it != ExtensionAgent.ACP }
             .sortedBy { it.displayName.lowercase() }
     }
     val cliAgents = remember { CliAgent.entries.sortedBy { it.displayName.lowercase() } }
@@ -82,9 +82,9 @@ internal fun AgentsScreen(
             linuxPackageProfileReady(rootfs, LinuxPackageProfiles.CLOUDCLI)
         }
     }
-    val codexAppInstalled by produceState(false, distribution, backend) {
+    val acpInstalled by produceState(false, distribution, backend) {
         value = withContext(Dispatchers.IO) {
-            linuxPackageProfileReady(rootfs, LinuxPackageProfiles.CODEXAPP)
+            linuxPackageProfileReady(rootfs, LinuxPackageProfiles.ACP)
         }
     }
 
@@ -202,13 +202,13 @@ internal fun AgentsScreen(
                     },
                 )
                 EtaPreferenceDivider()
-                val codexAppRunning = ExtensionAgent.CODEXAPP in runningExtensionAgents
-                val codexAppSummary = when {
-                    !codexAppInstalled -> stringResource(R.string.cli_account_install_hint)
-                    codexAppRunning -> stringResource(R.string.cli_agent_running)
-                    else -> stringResource(R.string.agents_codexapp_summary)
+                val acpRunning = ExtensionAgent.ACP in runningExtensionAgents
+                val acpSummary = when {
+                    !acpInstalled -> stringResource(R.string.cli_account_install_hint)
+                    acpRunning -> stringResource(R.string.cli_agent_running)
+                    else -> stringResource(R.string.agents_acp_summary)
                 }
-                val codexAppActions: (@Composable () -> Unit)? = if (codexAppInstalled) {
+                val acpActions: (@Composable () -> Unit)? = if (acpInstalled) {
                     {
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -216,14 +216,14 @@ internal fun AgentsScreen(
                         ) {
                             EtaTextButton(
                                 text = stringResource(
-                                    if (codexAppRunning) R.string.cli_stop_running else R.string.cli_start_running,
+                                    if (acpRunning) R.string.cli_stop_running else R.string.cli_start_running,
                                 ),
-                                onClick = if (codexAppRunning) onStopCodexApp else onOpenCodexApp,
+                                onClick = if (acpRunning) onStopAcp else onOpenAcp,
                                 modifier = Modifier.weight(1f),
                             )
                             EtaTextButton(
                                 text = stringResource(R.string.cli_account_open),
-                                onClick = onOpenCodexApp,
+                                onClick = onOpenAcp,
                                 modifier = Modifier.weight(1f),
                             )
                         }
@@ -232,17 +232,17 @@ internal fun AgentsScreen(
                     null
                 }
                 EtaArrowPreference(
-                    title = stringResource(R.string.agents_codexapp),
-                    summary = codexAppSummary,
+                    title = stringResource(R.string.agents_acp),
+                    summary = acpSummary,
                     startAction = {
                         EtaPreferenceIcon(
-                            icon = if (codexAppRunning) Icons.Rounded.Stop else Icons.Rounded.Web,
-                            tint = if (codexAppRunning) EtaPreferenceColors.Red else EtaPreferenceColors.Blue,
+                            icon = if (acpRunning) Icons.Rounded.Stop else Icons.Rounded.Web,
+                            tint = if (acpRunning) EtaPreferenceColors.Red else EtaPreferenceColors.Blue,
                         )
                     },
-                    bottomAction = codexAppActions,
+                    bottomAction = acpActions,
                     onClick = {
-                        if (codexAppInstalled) onOpenCodexApp() else onOpenLinuxEnvironment()
+                        if (acpInstalled) onOpenAcp() else onOpenLinuxEnvironment()
                     },
                 )
             }
@@ -270,7 +270,7 @@ private fun WebAgentIcon(agent: ExtensionAgent) {
         ExtensionAgent.DSH -> R.drawable.provider_logo_deepseek
         ExtensionAgent.KIMI -> R.drawable.provider_logo_kimi
         ExtensionAgent.CLOUDCLI -> R.drawable.ic_opencode
-        ExtensionAgent.CODEXAPP -> R.drawable.ic_opencode
+        ExtensionAgent.ACP -> R.drawable.ic_opencode
     }
     Image(
         painter = painterResource(res),
