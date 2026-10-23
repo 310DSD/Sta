@@ -204,6 +204,14 @@ internal fun CliAccountsScreen(
                 modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp),
             )
         }
+        item(key = "security-hint") {
+            Text(
+                text = stringResource(R.string.cli_account_security_hint),
+                style = MiuixTheme.textStyles.footnote2,
+                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+            )
+        }
     }
 
     if (showAdd) {

@@ -1511,4 +1511,5 @@
   <string name="cli_account_install_hint">請先在 Linux 工具頁安裝此 CLI。</string>
   <string name="cli_account_official_hint">先在終端完成 CLI 登入，再匯入目前登入。</string>
   <string name="cli_account_saved">帳號已儲存</string>
+  <string name="cli_account_security_hint">帳號檔案保存在應用程式私有目錄，未加密；訂閱帳號請遵守服務條款。</string>
 </resources>

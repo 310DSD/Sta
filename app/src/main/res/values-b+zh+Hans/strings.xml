@@ -1581,4 +1581,5 @@
   <string name="cli_account_install_hint">请先在 Linux 工具页安装该 CLI。</string>
   <string name="cli_account_official_hint">先在终端完成 CLI 登录，再导入当前登录。</string>
   <string name="cli_account_saved">账号已保存</string>
+  <string name="cli_account_security_hint">账号文件保存在应用私有目录，未加密；订阅账号请遵守服务条款。</string>
 </resources>

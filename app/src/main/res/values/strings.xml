@@ -1603,4 +1603,5 @@
   <string name="cli_account_install_hint">Install the CLI from Linux tools first.</string>
   <string name="cli_account_official_hint">Run the CLI login in the terminal, then import the current login.</string>
   <string name="cli_account_saved">Account saved</string>
+  <string name="cli_account_security_hint">Account files stay in app-private storage without encryption. Use subscription accounts in line with their terms.</string>
 </resources>
