@@ -27,7 +27,7 @@
   const CWD_KEY = (agent) => `sta.acp.cwd.${agent}`;
   const THEME_KEY = (agent) => `sta.acp.theme.${agent}`;
 
-  const CRAB_SVG = `<svg class="crab-svg" viewBox="0 0 17 11" shape-rendering="crispEdges" aria-hidden="true"><g fill="currentColor"><rect x="4" y="0" width="9" height="9"/><rect x="3" y="1" width="11" height="8"/><rect x="0" y="3" width="17" height="3"/><rect x="3" y="9" width="2" height="2"/><rect x="6" y="9" width="2" height="2"/><rect x="10" y="9" width="2" height="2"/><rect x="13" y="9" width="2" height="2"/></g><g fill="#241713"><rect x="4" y="2" width="1" height="1"/><rect x="12" y="2" width="1" height="1"/></g></svg>`;
+  const CRAB_SVG = `<svg class="crab-svg" viewBox="0 0 36 24" shape-rendering="crispEdges" aria-hidden="true"><g fill="currentColor"><rect x="0" y="6" width="10" height="8"/><rect x="0" y="4" width="5" height="2" fill="#E58B6C"/><rect x="0" y="14" width="5" height="2" fill="#E58B6C"/><rect x="28" y="6" width="8" height="8"/><rect x="31" y="4" width="5" height="2" fill="#E58B6C"/><rect x="31" y="14" width="5" height="2" fill="#E58B6C"/><rect x="8" y="2" width="20" height="15"/><rect x="11" y="0" width="14" height="2"/><rect x="10" y="16" width="4" height="4"/><rect x="16" y="16" width="4" height="4"/><rect x="22" y="16" width="4" height="4"/></g><g fill="#E58B6C"><rect x="12" y="3" width="12" height="2"/></g><g fill="#2A1A15"><rect x="13" y="7" width="2" height="3"/><rect x="21" y="7" width="2" height="3"/><rect x="16" y="12" width="4" height="1"/></g><g fill="#F7F6F1"><rect x="13" y="7" width="1" height="1"/><rect x="21" y="7" width="1" height="1"/></g></svg>`;
 
   const MARKS = {
     claude: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 10.95h3v3.1h-3v3.03h-1.49V20H18v-2.92h-1.49V20H15v-2.92H9V20H7.49v-2.92H6V20H4.49v-2.92H3V14.05H0v-3.1h3V5h18v5.95ZM6 10.95h1.49V8.1H6v2.85Zm10.51 0H18V8.1h-1.49v2.85Z" fill="currentColor"/></svg>`,
@@ -119,6 +119,8 @@
     sessionTitle: '新会话',
     cwd: '/root',
     sessions: loadSessions(),
+    sessionQuery: '',
+    draftPromise: null,
     messages: [],
     tools: new Map(),
     plan: [],
@@ -373,6 +375,10 @@
     document.documentElement.style.colorScheme = state.theme;
     const meta = document.querySelector('meta[name="theme-color"]');
     if (meta) meta.content = state.theme === 'dark' ? (state.agent === 'codex' ? '#191919' : '#1f1e1c') : (state.agent === 'codex' ? '#ffffff' : '#f7f6f1');
+    try {
+      const canvas = getComputedStyle(app).getPropertyValue('--canvas').trim();
+      if (canvas && window.StaHost?.setChrome) window.StaHost.setChrome(canvas);
+    } catch {}
     $('themeLabel').textContent = state.theme === 'dark' ? '浅色外观' : '深色外观';
     const use = $('themeButton').querySelector('use');
     use.setAttribute('href', state.theme === 'dark' ? '#i-sun' : '#i-moon');
@@ -457,21 +463,45 @@
     $('sessionLabel').textContent = state.sessionTitle || '新会话';
   }
 
+  function sessionDay(value) {
+    const date = new Date(fmtDate(value) || Date.now());
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    const day = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    if (day === start) return '今天';
+    if (day === start - 86400000) return '昨天';
+    if (day > start - 7 * 86400000) return '本周';
+    return '更早';
+  }
+
   function renderSessions() {
-    const items = state.sessions.filter((session) => session.agent === state.agent).sort((a, b) => b.updated - a.updated);
+    const query = state.sessionQuery.trim().toLowerCase();
+    const items = state.sessions
+      .filter((session) => session.agent === state.agent)
+      .filter((session) => !query || `${session.title || ''} ${session.cwd || ''}`.toLowerCase().includes(query))
+      .sort((a, b) => b.updated - a.updated);
     $('sessionCount').textContent = items.length ? String(items.length) : '';
     if (!items.length) {
-      sessionList.innerHTML = '<div class="sidebar-empty">还没有会话。发送第一条消息，CLI 会在这里保留上下文。</div>';
+      sessionList.innerHTML = `<div class="sidebar-empty">${query ? '没有匹配的会话。' : '还没有会话。发送第一条消息，CLI 会在这里保留上下文。'}</div>`;
       return;
     }
-    sessionList.innerHTML = items.map((session) => {
-      const active = session.id === state.sessionId;
-      const running = active && state.busy;
-      return `<button class="session-item ${active ? 'active' : ''} ${running ? 'running' : ''}" data-session-id="${esc(session.id)}">
-        <span class="session-row"><span class="session-dot"></span><strong>${esc(session.title || '新会话')}</strong></span>
-        <span class="session-meta"><span>${esc(basename(session.cwd) || 'root')}</span><span>·</span><span>${esc(relativeTime(session.updated))}</span></span>
-      </button>`;
-    }).join('');
+    const groups = new Map();
+    for (const session of items) {
+      const day = sessionDay(session.updated);
+      if (!groups.has(day)) groups.set(day, []);
+      groups.get(day).push(session);
+    }
+    sessionList.innerHTML = [...groups.entries()].map(([day, rows]) => `
+      <div class="session-date">${esc(day)}</div>
+      ${rows.map((session) => {
+        const active = session.id === state.sessionId;
+        const running = active && state.busy;
+        return `<button class="session-item ${active ? 'active' : ''} ${running ? 'running' : ''}" data-session-id="${esc(session.id)}">
+          <span class="session-row"><span class="session-dot"></span><strong>${esc(session.title || '未命名会话')}</strong>${active ? '<span class="session-active-pill">当前</span>' : ''}</span>
+          <span class="session-meta"><span>${icon('i-folder')}${esc(basename(session.cwd) || 'root')}</span><span>·</span><span>${esc(relativeTime(session.updated))}</span></span>
+        </button>`;
+      }).join('')}
+    `).join('');
   }
 
   async function refreshSessions() {
@@ -577,13 +607,13 @@
     const legacyMode = state.legacyModes?.availableModes?.find((item) => item.id === state.legacyModes.currentModeId);
     const modeName = mode ? optionLabel(mode) : legacyMode?.name || '';
     const modeValue = mode ? String(mode.currentValue) : state.legacyModes?.currentModeId || '';
-    $('modeChip').hidden = !modeName;
-    $('modeLabel').textContent = modeName || 'Mode';
+    $('modeChip').hidden = false;
+    $('modeLabel').textContent = modeName || (state.sessionId ? '权限' : '选择权限');
     $('modeChip').classList.toggle('danger', ['bypassPermissions', 'agent-full-access'].includes(modeValue));
     $('modeIcon').innerHTML = icon(MODE_ICON[modeValue] || 'i-shield');
     $('modeChip').title = mode?.description || legacyMode?.description || '会话权限模式';
-    $('modelChip').hidden = !model;
-    $('modelLabel').textContent = model ? modelDisplayName(model) : '';
+    $('modelChip').hidden = false;
+    $('modelLabel').textContent = model ? modelDisplayName(model) : (state.sessionId ? '未配置模型' : '选择模型');
     $('effortLabel').textContent = effort ? optionLabel(effort) : '';
     $('effortLabel').hidden = !effort;
     $('modelChip').title = model?.description || '模型';
@@ -1383,7 +1413,7 @@
   }
 
   // ---------- Session actions ----------
-  async function newSession({ silent = false } = {}) {
+  async function newSession({ silent = false, draft = false } = {}) {
     if (state.busy) {
       if (!silent) toast('当前任务运行中');
       return null;
@@ -1407,7 +1437,7 @@
       if (!state.sessionId) throw new Error('CLI 没有返回 sessionId');
       applySessionConfig(result, true);
       state.sessionTitle = '新会话';
-      upsertSession({ title: '新会话', cwd });
+      if (!draft) upsertSession({ title: '新会话', cwd });
       syncMessages();
       emptyState.style.display = '';
       focusPrompt();
@@ -1423,6 +1453,15 @@
       }
       return null;
     }
+  }
+
+  async function ensureDraftSession() {
+    if (state.sessionId) return true;
+    if (state.draftPromise) return state.draftPromise;
+    state.draftPromise = newSession({ silent: true, draft: true })
+      .then((id) => !!id)
+      .finally(() => { state.draftPromise = null; });
+    return state.draftPromise;
   }
 
   async function loadSession(sessionId) {
@@ -1657,7 +1696,8 @@
     return flat;
   }
 
-  function openModelSheet() {
+  async function openModelSheet() {
+    if (!state.sessionId && !(await ensureDraftSession())) return;
     const model = findConfig('model', 'model');
     const effort = findConfig('thought_level', 'effort');
     const fast = findConfig('model_config', 'fast');
@@ -1712,7 +1752,8 @@
     });
   }
 
-  function openModeSheet() {
+  async function openModeSheet() {
+    if (!state.sessionId && !(await ensureDraftSession())) return;
     const mode = findConfig('mode', 'mode');
     const collaboration = findConfig('collaboration_mode', 'collaboration_mode');
     const modes = mode ? optionValues(mode) : (state.legacyModes?.availableModes || []);
@@ -2000,6 +2041,8 @@
   $('newSession').addEventListener('click', () => { closeSidebar(); newSession(); });
   $('newSessionTop').addEventListener('click', () => newSession());
   $('menuButton').addEventListener('click', openSidebar);
+  $('historyButton').addEventListener('click', openSidebar);
+  $('sessionSearch').addEventListener('input', (event) => { state.sessionQuery = event.target.value || ''; renderSessions(); });
   $('sidebarClose').addEventListener('click', closeSidebar);
   $('scrim').addEventListener('click', closeSidebar);
   $('sheetClose').addEventListener('click', () => closeSheet());

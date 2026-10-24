@@ -194,3 +194,5 @@ REPORT.md                本分支改动报告
 
 Sta 是非官方分支，与 Eta 上游、OpenCode、DeepSeek、Moonshot 均无隶属关系。使用第三方模型服务
 需要自备 API Key；Root / LSPosed 相关能力取决于设备授权与 ROM 适配。
+
+- ACP 界面按 Claude Code / Codex 的原生远程工作区重建，并使用 Anthropic 字体、日期分组历史、未发消息可选的模型/权限控件和与主题同步的底部系统栏颜色。

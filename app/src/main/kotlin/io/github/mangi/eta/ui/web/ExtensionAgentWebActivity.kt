@@ -3,10 +3,13 @@ package io.github.mangi.eta.ui.web
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.ApplicationInfo
+import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
+import android.webkit.JavascriptInterface
 import android.webkit.ValueCallback
 import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
@@ -61,6 +64,8 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     private var nextTabId = 1L
     private var current: Tab? = null
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
+    private var chromeRoot: View? = null
+    private var chromeBackground = Color.rgb(247, 246, 241)
 
     private data class Tab(
         val id: Long,
@@ -77,7 +82,11 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         }
 
         if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) WebView.setWebContentsDebuggingEnabled(true)
-        val root = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(chromeBackground)
+        }
+        chromeRoot = root
         val tabBar = ComposeView(this).apply {
             setViewCompositionStrategy(ViewCompositionStrategy.DisposeOnViewTreeLifecycleDestroyed)
             setContent {
@@ -139,6 +148,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
             insets
         }
         setContentView(root)
+        applyChromeBackground(chromeBackground)
         ViewCompat.requestApplyInsets(root)
 
         onBackPressedDispatcher.addCallback(this) {
@@ -163,6 +173,13 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     }
 
     private fun createWebView(): WebView = WebView(this).apply {
+        addJavascriptInterface(object {
+            @JavascriptInterface
+            fun setChrome(color: String) {
+                val parsed = runCatching { Color.parseColor(color) }.getOrNull() ?: return
+                runOnUiThread { applyChromeBackground(parsed) }
+            }
+        }, "StaHost")
         overScrollMode = View.OVER_SCROLL_NEVER
         layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -305,6 +322,25 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         }
         tabs.clear()
         super.onDestroy()
+    }
+
+    private fun applyChromeBackground(color: Int) {
+        chromeBackground = color
+        chromeRoot?.setBackgroundColor(color)
+        // Keep the window surface behind the gesture area in the same color. This
+        // also covers Android 15 where navigationBarColor is edge-to-edge and may
+        // be ignored by the system.
+        window.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(color))
+        window.navigationBarColor = color
+        window.statusBarColor = color
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            window.isNavigationBarContrastEnforced = false
+            window.isStatusBarContrastEnforced = false
+        }
+        WindowCompat.getInsetsController(window, chromeRoot ?: window.decorView).apply {
+            isAppearanceLightNavigationBars = Color.luminance(color) > 0.5f
+            isAppearanceLightStatusBars = Color.luminance(color) > 0.5f
+        }
     }
 
     private fun dp(value: Int): Int =

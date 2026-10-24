@@ -70,6 +70,10 @@
         <span>新建会话</span>
         <kbd>⌘ N</kbd>
       </button>
+      <label class="sidebar-search">
+        <svg class="icon"><use href="#i-search"/></svg>
+        <input id="sessionSearch" type="search" placeholder="搜索会话" spellcheck="false">
+      </label>
 
       <div class="sidebar-scroll">
         <div class="list-head">
@@ -121,6 +125,7 @@
         </div>
         <div class="top-actions">
           <span class="connection" id="connection" title="ACP 连接状态"><i></i><span>连接中</span></span>
+          <button class="icon-btn" id="historyButton" aria-label="历史会话" title="历史会话"><svg class="icon"><use href="#i-clock"/></svg></button>
           <button class="icon-btn" id="newSessionTop" aria-label="新建会话"><svg class="icon"><use href="#i-plus"/></svg></button>
           <button class="icon-btn" id="moreButton" aria-label="更多"><svg class="icon"><use href="#i-more"/></svg></button>
         </div>
