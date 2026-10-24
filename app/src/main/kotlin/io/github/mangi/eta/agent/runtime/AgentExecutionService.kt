@@ -54,6 +54,7 @@ internal class AgentExecutionService : Service() {
             startRejected = true
             AndroidAgentLogger.warn("Execution service foreground failed: type=${failure.safeLogType()}")
             stopTasks(startFailed = true)
+            stopSelf()
         }
     }
 
@@ -159,22 +160,32 @@ internal class AgentExecutionService : Service() {
             }
         }
 
-        /** 必须从有效的用户入口取得引用，再创建会话或子进程；失败时调用方不启动任务。 */
+        /**
+         * 必须从有效的用户入口取得引用，再创建会话或子进程。
+         *
+         * [allowBoundFallback] 用于“用户已经在前台明确点按启动”的长驻本地服务：
+         * 个别 ROM/系统策略会拒绝 startForegroundService，但此时直接拒绝会让整个
+         * 扩展 Agent、终端任务永远不可用。允许回退为普通前台进程，仍保留 onStop 回调。
+         */
         fun acquire(
             context: Context,
             id: String,
             allowBoundFallback: Boolean = false,
             onStop: () -> Unit,
         ): Boolean {
-            if (instance?.startRejected == true) return false
             if (!leases.acquire(id, allowBoundFallback, onStop)) return true
+            if (instance?.startRejected == true) {
+                if (allowBoundFallback) return true
+                leases.release(id)
+                return false
+            }
             return try {
                 context.applicationContext.startForegroundService(Intent(context, AgentExecutionService::class.java))
                 true
             } catch (failure: RuntimeException) {
                 leases.release(id)
                 AndroidAgentLogger.warn("Execution service start rejected: type=${failure.safeLogType()}")
-                false
+                if (allowBoundFallback) true else false
             }
         }
 

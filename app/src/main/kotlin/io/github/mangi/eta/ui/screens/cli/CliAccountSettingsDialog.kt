@@ -30,7 +30,7 @@ import io.github.mangi.eta.agent.cli.CliAccountKind
 import io.github.mangi.eta.agent.cli.CliAgent
 import io.github.mangi.eta.agent.cli.CliConfigManager
 import io.github.mangi.eta.ui.components.EtaChoiceChip
-import io.github.mangi.eta.ui.components.EtaOverlayDialog
+import io.github.mangi.eta.ui.components.EtaWindowDialog
 import io.github.mangi.eta.ui.components.EtaTextButton
 import io.github.mangi.eta.ui.components.MiuixDialogActions
 import io.github.mangi.eta.ui.insets.imePaddingSafe
@@ -131,7 +131,7 @@ internal fun CliAccountSettingsDialog(
     val selectedModel = models.firstOrNull { it.id == model }
     val efforts = selectedModel?.reasoningEfforts?.ifEmpty { defaultEfforts } ?: defaultEfforts
 
-    EtaOverlayDialog(
+    EtaWindowDialog(
         show = true,
         title = stringResource(R.string.cli_account_model_settings_title),
         summary = account.name,

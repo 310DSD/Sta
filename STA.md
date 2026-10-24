@@ -92,6 +92,11 @@ Codex 与 Claude Code 是终端 TUI 型 Agent；Sta 同时提供内置 PTY 终�
 - ACP bridge 监听 `127.0.0.1:3210`，每个 Agent 维护一个常驻 CLI 子进程；WebView 断开不会终止
   正在运行的 CLI，重新连接会重放认证状态和未完成的审批请求。不注入编排提示，保留原生 system
   prompt、工具与会话。
+- 免 Root 环境会优先使用 `/root`；若镜像的 `/root` 是 root:700，启动器和 ACP bridge 自动回退到
+  PRoot 已挂载的 `/workspace`，避免后台任务在 `cd /root` 时直接失败。前台服务被 ROM 拒绝时，
+  用户明确点按的扩展 Agent 仍可回退为前台进程启动。
+- CLI 账号存储会迁移第一版数据（`claude` 旧 agent id、缺失 id/name 等），并把账号操作按钮移出
+  父级 clickable 行，旧账号的模型设置、切换和删除都仍可操作。
 - 账号页沿用 Eta 的 preference group / choice chip / arrow preference 语言；账号行可打开
   “模型设置”：在线拉取 `/models`、选择模型、设置上下文/最大输出/思考等级，也支持从 Eta
   当前 provider/model 同步。

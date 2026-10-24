@@ -54,7 +54,7 @@ import io.github.mangi.eta.data.repository.LinuxEnvironmentSettingsRepository
 import io.github.mangi.eta.ui.insets.imePaddingSafe
 import io.github.mangi.eta.ui.components.EtaArrowPreference
 import io.github.mangi.eta.ui.components.EtaChoiceChip
-import io.github.mangi.eta.ui.components.EtaOverlayDialog
+import io.github.mangi.eta.ui.components.EtaWindowDialog
 import io.github.mangi.eta.ui.components.EtaPreference
 import io.github.mangi.eta.ui.components.EtaPreferenceColors
 import io.github.mangi.eta.ui.components.EtaPreferenceDefaults
@@ -327,7 +327,7 @@ internal fun CliAccountsScreen(
     }
 
     deleteTarget?.let { account ->
-        EtaOverlayDialog(
+        EtaWindowDialog(
             show = true,
             title = stringResource(R.string.cli_account_delete),
             summary = account.name,
@@ -368,47 +368,54 @@ private fun AccountPreference(
             .joinToString(" · ")
         if (extra.isNotBlank()) append(" · ").append(extra)
     }
-    EtaPreference(
-        title = account.name,
-        summary = detail,
-        startAction = { EtaPreferenceIcon(icon, tint = EtaPreferenceColors.Blue) },
-        endActions = {
-            if (active) {
-                Text(
-                    text = stringResource(R.string.cli_account_active),
-                    style = MiuixTheme.textStyles.footnote1,
-                    color = MiuixTheme.colorScheme.primary,
-                )
-            }
-            IconButton(onClick = onDelete, enabled = !busy) {
-                Icon(
-                    Icons.Rounded.Delete,
-                    stringResource(R.string.cli_account_delete),
-                    Modifier.size(20.dp),
-                )
-            }
-        },
-        bottomAction = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                EtaTextButton(
-                    text = stringResource(R.string.cli_account_switch),
-                    onClick = onSwitch,
-                    enabled = !busy && !active,
-                    modifier = Modifier.weight(1f),
-                )
-                EtaTextButton(
-                    text = stringResource(R.string.cli_account_model_settings),
-                    onClick = onSettings,
-                    enabled = !busy,
-                    modifier = Modifier.weight(1f),
-                )
-            }
-        },
-        onClick = if (!busy) onSettings else null,
-    )
+    // 操作按钮放在 EtaPreference 的 clickable 容器之外：旧账号也能稳定打开设置/删除，
+    // 不再依赖嵌套 clickable 的事件分发。
+    Column(Modifier.fillMaxWidth()) {
+        EtaPreference(
+            title = account.name,
+            summary = detail,
+            startAction = { EtaPreferenceIcon(icon, tint = EtaPreferenceColors.Blue) },
+            endActions = {
+                if (active) {
+                    Text(
+                        text = stringResource(R.string.cli_account_active),
+                        style = MiuixTheme.textStyles.footnote1,
+                        color = MiuixTheme.colorScheme.primary,
+                    )
+                }
+            },
+            onClick = if (!busy) onSettings else null,
+        )
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(
+                    start = EtaPreferenceDefaults.SidePadding,
+                    end = EtaPreferenceDefaults.SidePadding,
+                    bottom = 10.dp,
+                ),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            EtaTextButton(
+                text = stringResource(R.string.cli_account_switch),
+                onClick = onSwitch,
+                enabled = !busy && !active,
+                modifier = Modifier.weight(1f),
+            )
+            EtaTextButton(
+                text = stringResource(R.string.cli_account_model_settings),
+                onClick = onSettings,
+                enabled = !busy,
+                modifier = Modifier.weight(1f),
+            )
+            EtaTextButton(
+                text = stringResource(R.string.cli_account_delete),
+                onClick = onDelete,
+                enabled = !busy,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
 }
 
 @Composable
@@ -436,7 +443,7 @@ private fun AddCliAccountDialog(
         R.string.cli_error_unexpected to unexpectedText,
     )
 
-    EtaOverlayDialog(
+    EtaWindowDialog(
         show = true,
         title = stringResource(R.string.cli_account_add),
         summary = agent.displayName,

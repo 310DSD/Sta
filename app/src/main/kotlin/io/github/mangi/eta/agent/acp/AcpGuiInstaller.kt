@@ -17,7 +17,7 @@ import java.io.ByteArrayOutputStream
  * 保证终端里看到的 `/opt/eta/acp` 与 App 启动的 bridge 是同一份文件。
  */
 internal object AcpGuiInstaller {
-    private const val VERSION = "4"
+    private const val VERSION = "5"
     private val FILES = listOf(
         "acp/server.mjs" to "/opt/eta/acp/server.mjs",
         "acp/ui/index.html" to "/opt/eta/acp/ui/index.html",

@@ -975,6 +975,16 @@
     requestAnimationFrame(() => promptEl.focus());
   }
 
+  function hydrateServerCwd() {
+    fetch('/api/info').then((response) => response.json()).then((info) => {
+      if (!safeStorageGet(CWD_KEY(state.agent)) && typeof info?.cwd === 'string' && info.cwd.startsWith('/')) {
+        state.cwd = info.cwd;
+        $('cwdLabel').textContent = basename(state.cwd);
+        $('cwdChip').title = state.cwd;
+      }
+    }).catch(() => {});
+  }
+
   // ---------- ACP connection ----------
   function send(value) {
     if (state.ws?.readyState === WebSocket.OPEN) {
@@ -2154,6 +2164,7 @@
       state.usage = null;
       clearConversation();
       updateAgentUi();
+      hydrateServerCwd();
       closeSidebar();
       await connect();
     });
@@ -2168,5 +2179,6 @@
   renderAttachments();
   autoSizePrompt();
   updateComposer();
+  hydrateServerCwd();
   connect();
 })();

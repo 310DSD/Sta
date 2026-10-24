@@ -33,7 +33,14 @@ internal object TerminalRuntime {
     }
 
     fun acquireUserTask(id: String, onStop: () -> Unit): Boolean =
-        appContext?.let { AgentExecutionService.acquire(it, id, onStop = onStop) } ?: true
+        appContext?.let {
+            AgentExecutionService.acquire(
+                context = it,
+                id = id,
+                allowBoundFallback = true,
+                onStop = onStop,
+            )
+        } ?: true
 
     fun releaseUserTask(id: String) {
         if (appContext != null) AgentExecutionService.release(id)

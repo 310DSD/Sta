@@ -51,7 +51,7 @@ internal class ExtensionAgentWebSession(
                 val started = tasks.start(agent, environment, identity)
             ) {
                 is DaemonStartResult.Started -> started.task.id.also { createdTaskId = it }
-                is DaemonStartResult.Failed -> return ExtensionAgentLaunchResult.Failed(started.code)
+                is DaemonStartResult.Failed -> return ExtensionAgentLaunchResult.Failed(started.code, started.message)
             }
             var lastLogs: String? = null
             repeat(waitAttempts) {

@@ -2,6 +2,7 @@ package io.github.mangi.eta.agent.cli
 
 import android.content.Context
 import java.io.File
+import java.util.UUID
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
@@ -12,8 +13,39 @@ internal class CliAccountStore(context: Context) {
 
     @Synchronized
     fun load(): CliAccountState = runCatching {
-        if (!file.isFile) CliAccountState() else json.decodeFromString<CliAccountState>(file.readText())
+        if (!file.isFile) CliAccountState() else normalize(json.decodeFromString<CliAccountState>(file.readText()))
     }.getOrDefault(CliAccountState())
+
+    private fun normalizeAgent(agentId: String): CliAgent? =
+        CliAgent.fromId(agentId) ?: when (agentId.trim().lowercase()) {
+            "claude", "claude_code", "claudecode" -> CliAgent.CLAUDE_CODE
+            "codex-cli", "openai-codex" -> CliAgent.CODEX
+            else -> null
+        }
+
+    /**
+     * 第一版账号文件可能只有旧字段；保留它并补齐今天界面依赖的 id/agent/name，
+     * 避免旧账号在列表里“看得见但点不动”。
+     */
+    private fun normalize(state: CliAccountState): CliAccountState {
+        val accounts = state.accounts.mapNotNull { account ->
+            val agent = normalizeAgent(account.agentId)
+                ?: if (account.credentialsJson != null) CliAgent.CLAUDE_CODE else CliAgent.CODEX
+            account.copy(
+                id = account.id.trim().ifBlank { UUID.randomUUID().toString() },
+                agentId = agent.id,
+                name = account.name.trim().ifBlank { agent.displayName },
+            )
+        }
+        val ids = accounts.mapTo(mutableSetOf()) { it.id }
+        val active = buildMap {
+            state.activeByAgent.forEach { (agentId, accountId) ->
+                val agent = normalizeAgent(agentId) ?: return@forEach
+                if (accountId in ids) put(agent.id, accountId)
+            }
+        }
+        return state.copy(accounts = accounts, activeByAgent = active)
+    }
 
     /** 保存失败返回 false，调用方必须提示用户，不能假装成功。 */
     @Synchronized

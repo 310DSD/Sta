@@ -154,6 +154,11 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
   认证状态与未完成审批。`AcpGuiInstaller` 通过实际 chroot/PRoot shell 写入 `server.mjs`、UI、
   Geist/DM Sans/Instrument Serif 字体和品牌 SVG，避免 Android 侧直写 rootfs 路径。Codex App
   入口已移除，CloudCLI 保留为兜底。
+- 修复 PRoot 下 `/root` 可能不可进入导致的后台启动失败：扩展启动器、`DetachedTaskSupervisor`
+  与 ACP bridge 依次探测并回退到 `/workspace`；前台服务启动被拒绝时，用户明确触发的扩展 Agent
+  允许回退为普通前台进程。启动失败现在会把守护进程 detail 带入提示，便于定位。
+- CLI 账号存储增加第一版数据迁移（旧 `claude` agent id、缺失 id/name、旧 active map），账号操作
+  按钮从父级 clickable 行移出，模型设置/切换/删除使用窗口级对话框，旧账号仍可完整操作。
 - 终端页支持 `initialCommand`、`sessionTag` 与停止按钮：PTY 控制台按 Agent 标签隔离会话，首次
   连接后自动执行 `codex` / `claude`，返回页面不重复发送；停止后显示“CLI 已停止”并可重连。
   智能体页的 CLI 行新增后台启动/停止/打开，启动不强制跳转终端。PTY 不可用时显示“需要 PTY”占位，

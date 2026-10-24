@@ -42,6 +42,19 @@ function readArgs(name) {
   }
 }
 
+function chooseCwd() {
+  const candidates = [process.env.ACP_CWD, process.env.HOME, '/root', '/workspace', '/'];
+  for (const candidate of candidates) {
+    if (!candidate) continue;
+    try {
+      if (!fs.statSync(candidate).isDirectory()) continue;
+      fs.accessSync(candidate, fs.constants.X_OK);
+      return candidate;
+    } catch {}
+  }
+  return '/';
+}
+
 const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
@@ -80,7 +93,7 @@ class AgentBridge {
     if (this.child && !this.child.killed) return;
     if (this.initPromise) return this.initPromise;
     const generation = ++this.generation;
-    const cwd = process.env.ACP_CWD || process.env.HOME || '/root';
+    const cwd = chooseCwd();
     const command = this.spec.command;
     const args = this.spec.args;
     this.lastError = null;
@@ -388,7 +401,7 @@ const server = http.createServer((req, res) => {
     return;
   }
   if (requestUrl.pathname === '/api/info') {
-    json(res, 200, { version: 2, client: CLIENT_INFO, agents: Object.keys(AGENTS) });
+    json(res, 200, { version: 2, client: CLIENT_INFO, agents: Object.keys(AGENTS), cwd: chooseCwd() });
     return;
   }
 

@@ -365,8 +365,17 @@ internal class DetachedTaskSupervisor(
 
     private fun ownerProof(task: DetachedTask): String = "$ETA_PROCESS_OWNER_ENV=${task.token}"
 
+    /** `/root` 在部分免 Root 镜像中是 root:700；PRoot 的普通身份无法进入，改用已挂载工作区。 */
+    private fun resolveUserCwd(cwd: String, environment: TerminalEnvironment): String {
+        if (!environment.isLinux || cwd != "/root") return cwd
+        val rootfs = rootfsPath(environment)
+        val root = File(rootfs, "root")
+        return if (root.isDirectory && root.canRead() && root.canExecute()) cwd else TerminalRuntime.LINUX_WORKSPACE_PATH
+    }
+
     /** 普通守护任务保留完整宿主壳和 tracer；guest 内不能再次脱离 PRoot 的生命周期。 */
-    private fun startUserDaemon(id: String, token: String, command: String, cwd: String, environment: TerminalEnvironment): DaemonStartResult {
+    private fun startUserDaemon(id: String, token: String, command: String, requestedCwd: String, environment: TerminalEnvironment): DaemonStartResult {
+        val cwd = resolveUserCwd(requestedCwd, environment)
         val workspace = if (environment.isLinux || daemonDir == DEFAULT_DAEMON_DIR) TerminalRuntime.userWorkspacePath else File(daemonDir).parent!!
         val hostDir = if (environment.isLinux || daemonDir == DEFAULT_DAEMON_DIR) File(workspace, "daemon") else File(daemonDir)
         if (!hostDir.mkdirs() && !hostDir.isDirectory) return DaemonStartResult.Failed("WORKSPACE_UNAVAILABLE", "工作目录不可访问")

@@ -13,6 +13,7 @@ import io.github.mangi.eta.agent.terminal.LinuxExecutionBackend
 import io.github.mangi.eta.agent.terminal.LinuxPackageProfiles
 import io.github.mangi.eta.agent.terminal.TerminalEnvironment
 import io.github.mangi.eta.agent.terminal.TerminalRuntime
+import io.github.mangi.eta.agent.terminal.isLinux
 import io.github.mangi.eta.agent.terminal.linuxPackageProfileReady
 import java.util.concurrent.ConcurrentHashMap
 import kotlinx.coroutines.Dispatchers
@@ -47,7 +48,7 @@ internal class ExtensionAgentLauncher(
             override fun start(agent: ExtensionAgent, environment: TerminalEnvironment, identity: String) =
                 daemonSupervisor.start(
                     command = agent.webCommand,
-                    cwd = agent.webCwd,
+                    cwd = resolveWebCwd(agent, environment, identity),
                     identity = identity,
                     environment = environment,
                 )
@@ -70,6 +71,25 @@ internal class ExtensionAgentLauncher(
         } catch (_: SecurityException) {
             false
         }
+
+    /**
+     * 免 Root Linux 里 `/root` 可能是 root:700，PRoot 的普通应用身份无法 `cd` 进去。
+     * 这种情况下退回 PRoot 已挂载的 `/workspace`，避免守护进程在真正启动前就失败。
+     */
+    private fun resolveWebCwd(
+        agent: ExtensionAgent,
+        environment: TerminalEnvironment,
+        identity: String,
+    ): String {
+        val requested = agent.webCwd
+        if (identity != "user" || !environment.isLinux || requested == "/workspace") return requested
+        val distribution = environment.linuxDistribution ?: return requested
+        val hostRoot = java.io.File(
+            LinuxEnvironmentPaths.rootfsDir(context, distribution, LinuxExecutionBackend.PROOT),
+            requested.trimStart('/'),
+        )
+        return if (hostRoot.isDirectory && hostRoot.canRead() && hostRoot.canExecute()) requested else "/workspace"
+    }
 
     suspend fun launch(
         agent: ExtensionAgent,
@@ -103,7 +123,11 @@ internal class ExtensionAgentLauncher(
                 .forEach { daemonSupervisor.stop(it.task.id) }
             val job = currentCoroutineContext().job
             val launchId = "extension-agent-launch-${agent.id}"
-            if (identity == "user" && !AgentExecutionService.acquire(context, launchId) { job.cancel() }) {
+            if (identity == "user" && !AgentExecutionService.acquire(
+                    context,
+                    launchId,
+                    allowBoundFallback = true,
+                ) { job.cancel() }) {
                 return@withContext ExtensionAgentLaunchResult.Failed("BACKGROUND_START_NOT_ALLOWED")
             }
             try {
