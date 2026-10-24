@@ -12,11 +12,18 @@ import kotlinx.coroutines.launch
 internal fun CoroutineScope.launchForegroundExecution(
     context: Context,
     onUnavailable: () -> Unit,
+    allowBoundFallback: Boolean = false,
     block: suspend () -> Unit,
 ): Job? {
     val id = "foreground-ui:${UUID.randomUUID()}"
     val job = launch(start = CoroutineStart.LAZY) { block() }
-    if (!AgentExecutionService.acquire(context, id, onStop = { job.cancel() })) {
+    if (!AgentExecutionService.acquire(
+            context,
+            id,
+            allowBoundFallback = allowBoundFallback,
+            onStop = { job.cancel() },
+        )
+    ) {
         job.cancel()
         onUnavailable()
         return null

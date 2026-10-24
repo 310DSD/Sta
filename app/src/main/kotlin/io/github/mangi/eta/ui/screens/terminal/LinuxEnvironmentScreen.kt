@@ -395,6 +395,7 @@ internal fun LinuxEnvironmentScreen(
                     launchingAgent = null
                     resultMessage = context.getString(R.string.capability_background_failed)
                 },
+                allowBoundFallback = true,
                 block = operation,
             )
         }
