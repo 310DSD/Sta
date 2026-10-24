@@ -403,17 +403,25 @@ internal class DetachedTaskSupervisor(
             }
             val script = "printf '%s\\n' \"${'$'}${'$'}\" > ${shellQuote(pidFile.absolutePath)}; $payload"
             val launcher = "if command -v setsid >/dev/null 2>&1; then exec setsid -w sh -c ${shellQuote(script)}; else exec sh -c ${shellQuote(script)}; fi"
+            // Do not rely on PATH: some Android/PRoot combinations cannot resolve
+            // the relative name "sh" from the app process, which leaves no daemon
+            // record and therefore no log at all. /system/bin/sh is the platform
+            // shell on Android and "sh" remains the fallback for host tests.
+            val hostShell = File("/system/bin/sh").takeIf { it.isFile && it.canExecute() }?.absolutePath ?: "sh"
             val process = try {
-                ProcessBuilder("sh", "-c", launcher).apply {
+                ProcessBuilder(hostShell, "-c", launcher).apply {
                     environment()[ETA_PROCESS_OWNER_ENV] = token
                     if (environment == TerminalEnvironment.ANDROID) environment()["HOME"] = workspace
                     redirectInput(File("/dev/null"))
                     redirectOutput(logFile)
                     redirectErrorStream(true)
                 }.start()
-            } catch (_: java.io.IOException) {
+            } catch (failure: Throwable) {
                 releaseUserLease(lease)
-                return@synchronized DaemonStartResult.Failed("PROCESS_START_FAILED", "无法启动后台任务")
+                return@synchronized DaemonStartResult.Failed(
+                    "PROCESS_START_FAILED",
+                    "无法启动后台任务（$hostShell）：${failure.message ?: failure.javaClass.simpleName}",
+                )
             }
             val deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(3)
             while (pidFile.length() == 0L && process.isAlive && System.nanoTime() < deadline) Thread.sleep(10)

@@ -245,8 +245,9 @@ Codex 与 Claude Code 没有官方移动 Web UI，因此不接入 `ExtensionAgen
   `_auth/status_update` 与未完成审批。ACP 资源由 `AcpGuiInstaller` 通过 chroot/PRoot shell 写入，
   与终端看到的 `/opt/eta/acp` 一致。Codex App 入口已移除，CloudCLI 保留。
 - PRoot 的 `/root` 可能是 root:700：扩展启动器、daemon supervisor 和 bridge 会探测并回退到
-  `/workspace`；前台服务被系统拒绝时，用户明确触发的前台扩展启动允许无 FGS 回退。失败详情会
-  带到 UI 提示。第一版 CLI 账号数据会迁移旧 agent id/active 映射，账号操作不再嵌套在父级
+  `/workspace`；前台服务被系统拒绝时，用户明确触发的前台扩展启动允许无 FGS 回退。守护进程
+  使用绝对路径 `/system/bin/sh`，避免 PATH 找不到 `sh` 时无任务、无日志地失败；失败详情会带到
+  UI 提示。第一版 CLI 账号数据会迁移旧 agent id/active 映射，账号操作不再嵌套在父级
   clickable 内，模型设置/切换/删除均使用窗口级对话框。
 - 终端页收到 `initialCommand` 后在 PTY 首次连接时执行 `codex` / `claude`；工具栏提供停止按钮，
   停止后显示“CLI 已停止”并可重连。PTY 不可用时显示“需要 PTY”占位，不把 TUI 命令丢进块式终端。

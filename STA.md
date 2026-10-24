@@ -94,7 +94,8 @@ Codex 与 Claude Code 是终端 TUI 型 Agent；Sta 同时提供内置 PTY 终�
   prompt、工具与会话。
 - 免 Root 环境会优先使用 `/root`；若镜像的 `/root` 是 root:700，启动器和 ACP bridge 自动回退到
   PRoot 已挂载的 `/workspace`，避免后台任务在 `cd /root` 时直接失败。前台服务被 ROM 拒绝时，
-  用户明确点按的扩展 Agent 仍可回退为前台进程启动。
+  用户明确点按的扩展 Agent 仍可回退为前台进程启动；守护进程固定用 `/system/bin/sh` 启动，
+  不再依赖 PATH 中的 `sh`。
 - CLI 账号存储会迁移第一版数据（`claude` 旧 agent id、缺失 id/name 等），并把账号操作按钮移出
   父级 clickable 行，旧账号的模型设置、切换和删除都仍可操作。
 - 账号页沿用 Eta 的 preference group / choice chip / arrow preference 语言；账号行可打开
