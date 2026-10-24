@@ -196,3 +196,5 @@ Sta 是非官方分支，与 Eta 上游、OpenCode、DeepSeek、Moonshot 均无�
 需要自备 API Key；Root / LSPosed 相关能力取决于设备授权与 ROM 适配。
 
 - ACP 界面按 Claude Code / Codex 的原生远程工作区重建，并使用 Anthropic 字体、日期分组历史、未发消息可选的模型/权限控件和与主题同步的底部系统栏颜色。
+
+- Eta 内的 DSH 移动壳恢复原生头部操作区（后台任务/子智能体/预设），修复弹层透明、详细模式底部截断和问答题输入反向。

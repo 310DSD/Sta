@@ -213,3 +213,5 @@ Agent；DeepSeek Harness 虽然依赖体积大（611 个包）、属于开发者
    profile 覆盖 provider 选路时 Sta 会拒绝切换并提示先清除 profile。
 
 - ACP 工作区进一步对齐原生质感：真实 Anthropic Sans/Serif/Noto Serif SC 字体、按日期分组并可搜索的历史会话、未发消息也能选择模型/权限、底部手势条颜色桥接、纸感背景与更细腻的卡片阴影。
+
+- DSH 移动端壳层恢复原生头部操作区（后台任务、子智能体、当前预设），弹层改为不透明表面；详细模式底部 usage/时长可换行；自由文本问答保留输入光标并强制 auto 方向。

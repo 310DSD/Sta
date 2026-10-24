@@ -369,7 +369,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     '<button type="button" class="eta-icon" id="eta-menu" aria-label="打开菜单">' +
       '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' +
     '</button>' +
-    '<div class="eta-heading"><span class="eta-title">DeepSeek Harness</span></div>' +
+    '<div class="eta-heading"><span class="eta-title">DeepSeek Harness</span><span class="eta-preset" id="eta-preset"></span></div>' +
     '<button type="button" class="eta-icon" id="eta-new" aria-label="新建会话">' +
       '<svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' +
     '</button>' +
@@ -426,6 +426,52 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
   var titleNode = document.querySelector('title');
   if (titleNode) new MutationObserver(syncTitle).observe(titleNode, { childList: true });
   syncTitle();
+
+  var presetEl = document.getElementById('eta-preset');
+  function syncPreset() {
+    var label = document.querySelector('.b06baG_label');
+    var text = label ? label.textContent.trim() : '';
+    presetEl.textContent = text;
+    presetEl.hidden = text === '';
+  }
+  new MutationObserver(syncPreset).observe(frame, {
+    childList: true,
+    subtree: true,
+    characterData: true
+  });
+  syncPreset();
+
+  /* DSH's free-text question answer is a controlled textarea. On some Android
+     WebViews a draft-store rerender resets its caret to offset 0, so the next
+     character lands in front of the previous one (visibly reversed input).
+     Capture the native caret before React handles the input and restore it after
+     the rerender. Also force auto direction so a CJK IME cannot flip the field. */
+  function isDshAnswer(target) {
+    return !!target && target.tagName === 'TEXTAREA' &&
+      !!target.closest('[data-question-key]');
+  }
+  function markAnswerDirection(target) {
+    if (isDshAnswer(target) && target.getAttribute('dir') !== 'auto') {
+      target.setAttribute('dir', 'auto');
+    }
+  }
+  document.addEventListener('focusin', function (event) {
+    markAnswerDirection(event.target);
+  }, true);
+  document.addEventListener('input', function (event) {
+    var target = event.target;
+    if (!isDshAnswer(target)) return;
+    markAnswerDirection(target);
+    var start = target.selectionStart;
+    var end = target.selectionEnd;
+    if (start === null || end === null) return;
+    var restore = function () {
+      if (document.activeElement !== target) return;
+      try { target.setSelectionRange(start, end); } catch (_) {}
+    };
+    if (window.requestAnimationFrame) window.requestAnimationFrame(restore);
+    window.setTimeout(restore, 0);
+  }, true);
   return true;
   }
 

@@ -270,6 +270,16 @@ internal object LinuxPackageProfiles {
     font-weight: 600;
     letter-spacing: 0.005em;
   }
+  .eta-preset {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--eta-faint);
+    font-size: 10.5px;
+    line-height: 13px;
+    font-weight: 500;
+  }
+  .eta-preset[hidden] { display: none !important; }
 
   /* ---------- Drawer scrim ---------- */
   #eta-scrim {
@@ -764,6 +774,83 @@ internal object LinuxPackageProfiles {
     from { opacity: 0; transform: translate3d(0, -6px, 0) scale(0.96); }
     to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
   }
+  /* ---------- DSH native header actions (preset / jobs / subagents) ---------- */
+  body:has(.pI_x6G_frame) {
+    --dsw-menu-surface-fill: var(--eta-surface) !important;
+    --dsw-specific-menu: var(--eta-surface) !important;
+    --dsw-menu-backdrop-filter: none !important;
+  }
+  /* Eta previously hid the whole DSH header because the custom bar replaces its
+     title. Keep the actions band so jobs, subagent catalog and the preset label
+     remain reachable instead of becoming invisible mobile dead ends. */
+  .wSkVaW_header {
+    display: flex !important;
+    flex-direction: column !important;
+    min-height: 44px !important;
+    padding: 2px 14px 5px !important;
+    border-bottom: 0.5px solid var(--eta-hairline) !important;
+  }
+  .wSkVaW_headerBlank { display: none !important; }
+  .wSkVaW_titleRow {
+    min-height: 34px !important;
+    width: 100% !important;
+    padding: 0 !important;
+  }
+  .wSkVaW_titleCluster {
+    flex: 1 !important;
+    min-width: 0 !important;
+    gap: 8px !important;
+  }
+  .wSkVaW_crumbs { max-width: 48% !important; }
+  .wSkVaW_headerActions,
+  .wSkVaW_headerUtilities {
+    flex: none !important;
+    gap: 4px !important;
+    margin-left: auto !important;
+  }
+  .wSkVaW_headerActions {
+    max-width: 72% !important;
+    flex-wrap: wrap !important;
+    justify-content: flex-end !important;
+  }
+  .wSkVaW_headerActions .foD-wG_trigger,
+  .wSkVaW_headerActions .oXE0lW_trigger,
+  .wSkVaW_headerActions .oXE0lW_switcherTrigger {
+    min-height: 30px !important;
+  }
+  .b06baG_label {
+    display: inline-flex !important;
+    max-width: 116px !important;
+    height: 22px !important;
+    padding: 0 6px !important;
+    border: 0.5px solid var(--eta-hairline) !important;
+    background: var(--eta-surface) !important;
+    color: var(--eta-muted) !important;
+    font-size: 11px !important;
+    line-height: 20px !important;
+  }
+  /* The detailed turn footer adds a usage trigger next to the clock. Never clip
+     it behind a fixed 28px row on narrow screens. */
+  .xD_KDq_actions {
+    height: auto !important;
+    min-height: 28px !important;
+    flex-wrap: wrap !important;
+    align-items: center !important;
+    gap: 4px 8px !important;
+  }
+  .xD_KDq_endInfo { flex-wrap: wrap !important; row-gap: 4px !important; }
+  .xD_KDq_timeEnd { white-space: normal !important; overflow-wrap: anywhere !important; }
+  /* Menus in the mobile shell are opaque surfaces: backdrop-filter is not
+     reliable in every Android WebView, and a translucent surface reads as a
+     broken dialog when the blur is absent. */
+  ._surface_ri079_1 > ._material_ri079_21,
+  .foD-wG_menu,
+  .oXE0lW_menu:before,
+  .Xt1eiG_panel {
+    background: var(--eta-surface) !important;
+    backdrop-filter: none !important;
+  }
+
 }
 
 @media (max-width: 720px) and (prefers-reduced-motion: reduce) {
