@@ -422,6 +422,7 @@ internal object InstallerShellRunner {
         environment: TerminalEnvironment,
         linuxRootfsPath: String? = null,
         identity: String? = null,
+        stdin: ByteArray? = null,
     ): InstallerCommandResult = runInterruptible(Dispatchers.IO) {
         val supervisor = ShellProcessSupervisor()
         val process = supervisor.startShellProcess(
@@ -447,7 +448,12 @@ internal object InstallerShellRunner {
                 }
             }
         }
-        runCatching { process.outputStream.close() }
+        runCatching {
+            process.outputStream.use { output ->
+                if (stdin != null) output.write(stdin)
+                output.flush()
+            }
+        }
         try {
             val finished = process.waitFor(timeoutSeconds, TimeUnit.SECONDS)
             if (!finished) {

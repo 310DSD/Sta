@@ -108,7 +108,7 @@ internal class ExtensionAgentLauncher(
                 return@withContext ExtensionAgentLaunchResult.Failed("PROFILE_NOT_INSTALLED")
             }
             if (agent == ExtensionAgent.ACP && !AcpGuiInstaller.install(context, distribution, backend)) {
-                return@withContext ExtensionAgentLaunchResult.Failed("ACP_ASSETS_NOT_INSTALLED")
+                return@withContext ExtensionAgentLaunchResult.Failed("ACP_ASSETS_NOT_INSTALLED", AcpGuiInstaller.lastError)
             }
             val identity = TerminalRuntime.defaultIdentity(environment, rootfs.absolutePath)
             // Stop old launcher forms before starting the current wrapper; otherwise an old

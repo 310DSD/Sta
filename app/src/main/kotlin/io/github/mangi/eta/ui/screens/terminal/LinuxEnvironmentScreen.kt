@@ -368,7 +368,7 @@ internal fun LinuxEnvironmentScreen(
             if (!assetsReady) {
                 withContext(Dispatchers.Main.immediate) {
                     launchingAgent = null
-                    resultMessage = context.getString(R.string.capability_background_failed)
+                    resultMessage = ExtensionAgentLaunchResult.Failed("ACP_ASSETS_NOT_INSTALLED", AcpGuiInstaller.lastError).message(context)
                 }
             } else {
                 val result = extensionAgentLauncher.launch(agent, selectedDistribution.terminalEnvironment, backend)

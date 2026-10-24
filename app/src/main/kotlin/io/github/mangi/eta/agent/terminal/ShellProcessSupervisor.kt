@@ -85,7 +85,8 @@ internal class ShellProcessSupervisor(
             val builder = if (identity == "root") {
                 ProcessBuilder("su", "-c", launcher)
             } else {
-                ProcessBuilder("sh", "-c", launcher)
+                val hostShell = File("/system/bin/sh").takeIf { it.isFile && it.canExecute() }?.absolutePath ?: "sh"
+                ProcessBuilder(hostShell, "-c", launcher)
             }
             if (identity == "user" && environment == TerminalEnvironment.ANDROID) {
                 builder.environment()["HOME"] = TerminalRuntime.userWorkspacePath
