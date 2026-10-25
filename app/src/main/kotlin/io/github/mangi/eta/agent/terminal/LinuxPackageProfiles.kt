@@ -254,7 +254,12 @@ internal object LinuxPackageProfiles {
   }
   #eta-mobile-bar > .eta-icon,
   #eta-mobile-bar > .eta-dsh-action { align-self: center !important; }
-  .eta-heading { align-self: center !important; }
+  .eta-heading {
+    align-self: center !important;
+    align-items: flex-start !important;
+    text-align: left !important;
+  }
+  .eta-title, .eta-preset-line { text-align: left !important; }
   .eta-preset-line {
     min-width: 0;
     display: inline-flex;

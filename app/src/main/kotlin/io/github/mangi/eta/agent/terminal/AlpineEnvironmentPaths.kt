@@ -38,8 +38,9 @@ internal object AlpineEnvironmentPaths {
     // revision 12：v12 修正统计 pill 文本节点目标。
     // revision 13：v13 顶栏图标垂直居中、预设图标与两行标题。
     // revision 14：v14 健壮的任务/子智能体 aria 查找与预设备选识别。
+    // revision 15：v15 标题左对齐和预设 header 后备识别。
     // 已就绪环境需重跑安装脚本以替换注入的样式块。
-    const val DSH_TOOLS_REVISION = 14
+    const val DSH_TOOLS_REVISION = 15
     const val KIMI_TOOLS_REVISION = 1
     const val CODEX_TOOLS_REVISION = 1
     const val CLAUDE_CODE_TOOLS_REVISION = 1

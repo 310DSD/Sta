@@ -525,6 +525,17 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
       if (/(个|tokens|tok\/s|tps)/i.test(text) && !/模式|预设|preset|mode/i.test(text)) continue;
       if (/模式|预设|preset|mode|Coding|写作|研究/i.test(text)) return text;
     }
+    var actions = document.querySelector('.wSkVaW_headerActions');
+    if (actions) {
+      var spans = actions.querySelectorAll('span');
+      for (var j = 0; j < spans.length; j++) {
+        var actionText = spans[j].textContent.trim();
+        if (!actionText || actionText.length > 40) continue;
+        if (/^(\d+|[\d.]+[KMB]?)$/.test(actionText)) continue;
+        if (/后台任务|子智能体|background job|subagent|running|正在运行/i.test(actionText)) continue;
+        if (/模式|预设|preset|mode|Coding|写作|研究/i.test(actionText)) return actionText;
+      }
+    }
     return '';
   }
   function syncPreset() {
