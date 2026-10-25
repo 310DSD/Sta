@@ -263,6 +263,16 @@ internal object LinuxPackageProfiles {
     transition: padding-right 0.2s var(--eta-ease-out);
   }
   body.eta-has-actions .eta-heading { padding-right: 142px; }
+  body[data-ds-dark-theme] #eta-mobile-bar,
+  body[data-ds-dark-theme] .eta-title {
+    color: var(--dsw-alias-label-primary, #f2f3f5) !important;
+  }
+  body[data-ds-dark-theme] .eta-preset {
+    color: var(--dsw-alias-label-tertiary, #a8adb7) !important;
+  }
+  body[data-ds-dark-theme] .wSkVaW_headerActions {
+    color: var(--dsw-alias-label-secondary, #a8adb7) !important;
+  }
   .eta-title {
     overflow: hidden;
     text-overflow: ellipsis;

@@ -32,8 +32,9 @@ internal object AlpineEnvironmentPaths {
     // revision 6：v6 恢复原生头部操作区（后台任务/子智能体/预设），统一不透明弹层，修复详细模式底部信息和问答输入。
     // revision 7：v7 紧凑详细模式底部排版、移动端右侧栏全屏预览、头部/预设/右栏动效。
     // revision 8：v8 原生头部操作合并进 Eta 顶栏、右侧栏覆盖层、底部排版与新建会话焦点控制。
+    // revision 9：v9 暗色字体 token 继承修正。
     // 已就绪环境需重跑安装脚本以替换注入的样式块。
-    const val DSH_TOOLS_REVISION = 8
+    const val DSH_TOOLS_REVISION = 9
     const val KIMI_TOOLS_REVISION = 1
     const val CODEX_TOOLS_REVISION = 1
     const val CLAUDE_CODE_TOOLS_REVISION = 1
