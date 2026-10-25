@@ -398,6 +398,34 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
   }
   document.getElementById('eta-menu').addEventListener('click', function () { toggleDrawer(); });
   scrim.addEventListener('click', function () { toggleDrawer(false); });
+  /* DSH focuses the composer on every newly selected blank Session. A user who
+     pressed "new conversation" should land on the empty screen first, not get a
+     keyboard. Suppress only the short autofocus window; a deliberate tap later
+     still opens the editor. */
+  var suppressAutoFocusUntil = 0;
+  function isComposer(target) {
+    return !!target && !!target.closest &&
+      !!target.closest('.uV2eYG_card, .uV2eYG_input, [contenteditable="true"]');
+  }
+  function blurComposer() {
+    var active = document.activeElement;
+    if (isComposer(active)) active.blur();
+  }
+  function armAutoFocusGuard() {
+    suppressAutoFocusUntil = Date.now() + 900;
+    window.setTimeout(blurComposer, 0);
+    window.setTimeout(blurComposer, 120);
+    window.setTimeout(blurComposer, 360);
+  }
+  document.addEventListener('focusin', function (event) {
+    if (Date.now() < suppressAutoFocusUntil && isComposer(event.target)) {
+      window.setTimeout(function () { event.target.blur(); }, 0);
+    }
+  }, true);
+  document.addEventListener('click', function (event) {
+    if (!event.target || !event.target.closest) return;
+    if (event.target.closest('#eta-new, .hHd-Xa_newSession')) armAutoFocusGuard();
+  }, true);
   document.getElementById('eta-new').addEventListener('click', function () {
     var b = document.querySelector('.hHd-Xa_newSession');
     if (b) b.click();
@@ -436,6 +464,9 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     var text = label ? label.textContent.trim() : '';
     presetEl.textContent = text;
     presetEl.hidden = text === '';
+    var actions = document.querySelector('.wSkVaW_headerActions');
+    var hasActions = !!actions && actions.querySelectorAll('button').length > 0;
+    document.body.classList.toggle('eta-has-actions', hasActions);
   }
   new MutationObserver(syncPreset).observe(frame, {
     childList: true,

@@ -260,7 +260,9 @@ internal object LinuxPackageProfiles {
     display: flex;
     flex-direction: column;
     justify-content: center;
+    transition: padding-right 0.2s var(--eta-ease-out);
   }
+  body.eta-has-actions .eta-heading { padding-right: 142px; }
   .eta-title {
     overflow: hidden;
     text-overflow: ellipsis;
@@ -817,36 +819,32 @@ internal object LinuxPackageProfiles {
   /* Eta previously hid the whole DSH header because the custom bar replaces its
      title. Keep the actions band so jobs, subagent catalog and the preset label
      remain reachable instead of becoming invisible mobile dead ends. */
-  .wSkVaW_header {
-    display: flex !important;
-    flex-direction: column !important;
-    min-height: 44px !important;
-    padding: 2px 14px 5px !important;
-    border-bottom: 0.5px solid var(--eta-hairline) !important;
-  }
+  /* The native DSH header duplicated Eta's title row. Keep only its action
+     components in the Eta top bar; title/crumbs/utilities stay hidden. */
+  .wSkVaW_header { display: contents !important; }
   .wSkVaW_headerBlank { display: none !important; }
-  .wSkVaW_titleRow {
-    min-height: 34px !important;
-    width: 100% !important;
-    padding: 0 !important;
-  }
-  .wSkVaW_titleCluster {
-    flex: 1 !important;
-    min-width: 0 !important;
-    gap: 8px !important;
-  }
-  .wSkVaW_crumbs { max-width: 48% !important; }
-  .wSkVaW_headerActions,
-  .wSkVaW_headerUtilities {
-    flex: none !important;
-    gap: 4px !important;
-    margin-left: auto !important;
-  }
+  .wSkVaW_titleRow,
+  .wSkVaW_titleCluster { display: contents !important; }
+  .wSkVaW_crumbs,
+  .wSkVaW_headerUtilities,
+  .wSkVaW_headerCorner,
+  .wSkVaW_tabs { display: none !important; }
   .wSkVaW_headerActions {
-    max-width: 72% !important;
-    flex-wrap: wrap !important;
+    position: fixed !important;
+    top: calc(env(safe-area-inset-top, 0px) + 10px) !important;
+    right: calc(env(safe-area-inset-right, 0px) + 96px) !important;
+    z-index: 96 !important;
+    display: flex !important;
+    flex: none !important;
+    flex-wrap: nowrap !important;
+    align-items: center !important;
     justify-content: flex-end !important;
+    max-width: calc(100vw - 180px) !important;
+    margin: 0 !important;
+    gap: 2px !important;
+    pointer-events: auto !important;
   }
+  .wSkVaW_headerActions .b06baG_label { display: none !important; }
   .wSkVaW_headerActions {
     animation: eta-header-actions-in 0.24s var(--eta-ease-out) both;
   }
