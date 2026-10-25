@@ -829,7 +829,7 @@ internal object LinuxPackageProfiles {
   /* Eta previously hid the whole DSH header because the custom bar replaces its
      title. Keep the actions band so jobs, subagent catalog and the preset label
      remain reachable instead of becoming invisible mobile dead ends. */
-  /* The native DSH header duplicated Eta's title row. Keep only its action
+  /* The native DSH header duplicated the Eta title row. Keep only its action
      components in the Eta top bar; title/crumbs/utilities stay hidden. */
   .wSkVaW_header { display: contents !important; }
   .wSkVaW_headerBlank { display: none !important; }
