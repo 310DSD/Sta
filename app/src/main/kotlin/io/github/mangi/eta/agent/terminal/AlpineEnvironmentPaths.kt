@@ -35,8 +35,9 @@ internal object AlpineEnvironmentPaths {
     // revision 9：v9 暗色字体 token 继承修正。
     // revision 10：v10 修复 DSH mobile CSS 注入的单引号 shell 语法错误。
     // revision 11：v11 顶栏任务/子智能体图标角标、预设两行、紧凑统计排版。
+    // revision 12：v12 修正统计 pill 文本节点目标。
     // 已就绪环境需重跑安装脚本以替换注入的样式块。
-    const val DSH_TOOLS_REVISION = 11
+    const val DSH_TOOLS_REVISION = 12
     const val KIMI_TOOLS_REVISION = 1
     const val CODEX_TOOLS_REVISION = 1
     const val CLAUDE_CODE_TOOLS_REVISION = 1

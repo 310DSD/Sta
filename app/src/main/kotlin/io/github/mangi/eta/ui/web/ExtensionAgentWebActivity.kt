@@ -497,14 +497,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
   }
   function compactStats() {
     document.querySelectorAll('[data-composer-stat]').forEach(function (statEl) {
-      var leaves = statEl.querySelectorAll('span');
-      var textEl = null;
-      for (var i = 0; i < leaves.length; i++) {
-        if (leaves[i].children.length === 0 && leaves[i].textContent.trim() !== '') {
-          textEl = leaves[i];
-          break;
-        }
-      }
+      var textEl = statEl.querySelector('.iq1doa_label') || statEl.querySelector('[class*="_label"]');
       if (!textEl) return;
       var before = textEl.textContent;
       var after = before;
