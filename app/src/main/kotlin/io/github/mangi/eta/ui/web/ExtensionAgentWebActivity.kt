@@ -473,9 +473,28 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
   var subagentsButton = document.getElementById('eta-subagents');
   var subagentsCount = document.getElementById('eta-subagents-count');
 
-  function headerTrigger(selector) {
+  function labelMatches(label, terms) {
+    for (var i = 0; i < terms.length; i++) {
+      if (label.indexOf(terms[i]) !== -1) return true;
+    }
+    return false;
+  }
+  function findHeaderTrigger(selector, terms) {
+    var direct = document.querySelector(selector);
+    if (direct) return direct;
     var actions = document.querySelector('.wSkVaW_headerActions');
-    return actions ? actions.querySelector(selector) : null;
+    if (actions) {
+      var inActions = actions.querySelector(selector);
+      if (inActions) return inActions;
+    }
+    /* CSS-module class names are not a stable integration surface. The
+       localized accessible label is; it also survives a DSH frontend rebuild. */
+    var buttons = document.querySelectorAll('button[aria-label], [role="button"][aria-label]');
+    for (var i = 0; i < buttons.length; i++) {
+      var label = buttons[i].getAttribute('aria-label') || '';
+      if (labelMatches(label, terms)) return buttons[i];
+    }
+    return null;
   }
   function syncActionBadge(button, countEl, trigger) {
     var label = trigger ? (trigger.getAttribute('aria-label') || '') : '';
@@ -486,13 +505,30 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     button.classList.toggle('eta-action-running', /(运行|running)/i.test(label));
   }
   function syncHeaderActions() {
-    syncActionBadge(jobsButton, jobsCount, headerTrigger('.foD-wG_trigger'));
-    syncActionBadge(subagentsButton, subagentsCount, headerTrigger('.oXE0lW_trigger') ||
-      headerTrigger('.oXE0lW_switcherTrigger'));
+    syncActionBadge(jobsButton, jobsCount, findHeaderTrigger('.foD-wG_trigger',
+      ['后台任务', 'background job', 'background jobs']));
+    syncActionBadge(subagentsButton, subagentsCount, findHeaderTrigger('.oXE0lW_trigger',
+      ['子智能体', 'subagent', 'subagents']));
+  }
+  function findPresetText() {
+    var direct = document.querySelector('.b06baG_label');
+    if (direct) {
+      var directText = direct.textContent.trim();
+      if (directText) return directText;
+    }
+    var candidates = document.querySelectorAll('[class*="label"], [class*="preset"], [class*="Preset"]');
+    for (var i = 0; i < candidates.length; i++) {
+      var text = candidates[i].textContent.trim();
+      if (!text || text.length > 48) continue;
+      if (/^(\d+|[\d.]+[KMB]?)$/.test(text)) continue;
+      if (/后台任务|子智能体|background job|subagent|正在运行|running/i.test(text)) continue;
+      if (/(个|tokens|tok\/s|tps)/i.test(text) && !/模式|预设|preset|mode/i.test(text)) continue;
+      if (/模式|预设|preset|mode|Coding|写作|研究/i.test(text)) return text;
+    }
+    return '';
   }
   function syncPreset() {
-    var label = document.querySelector('.b06baG_label');
-    var text = label ? label.textContent.trim() : '';
+    var text = findPresetText();
     presetEl.textContent = text;
     presetEl.hidden = text === '';
     presetLine.hidden = text === '';
@@ -521,18 +557,32 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     syncHeaderActions();
     compactStats();
   }
-  new MutationObserver(syncTopbar).observe(frame, {
+  var topbarSyncScheduled = false;
+  function scheduleTopbarSync() {
+    if (topbarSyncScheduled) return;
+    topbarSyncScheduled = true;
+    window.requestAnimationFrame(function () {
+      topbarSyncScheduled = false;
+      syncTopbar();
+    });
+  }
+  new MutationObserver(scheduleTopbarSync).observe(frame, {
+    childList: true,
+    subtree: true,
+    characterData: true
+  });
+  new MutationObserver(scheduleTopbarSync).observe(document.body, {
     childList: true,
     subtree: true,
     characterData: true
   });
   syncTopbar();
   jobsButton.addEventListener('click', function () {
-    var trigger = headerTrigger('.foD-wG_trigger');
+    var trigger = findHeaderTrigger('.foD-wG_trigger', ['后台任务', 'background job', 'background jobs']);
     if (trigger) trigger.click();
   });
   subagentsButton.addEventListener('click', function () {
-    var trigger = headerTrigger('.oXE0lW_trigger') || headerTrigger('.oXE0lW_switcherTrigger');
+    var trigger = findHeaderTrigger('.oXE0lW_trigger', ['子智能体', 'subagent', 'subagents']);
     if (trigger) trigger.click();
   });
 

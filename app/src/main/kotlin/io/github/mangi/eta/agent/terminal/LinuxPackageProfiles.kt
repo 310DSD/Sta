@@ -320,6 +320,15 @@ internal object LinuxPackageProfiles {
   body[data-ds-dark-theme] .wSkVaW_headerActions {
     color: var(--dsw-alias-label-secondary, #a8adb7) !important;
   }
+  body[data-ds-dark-theme] #eta-mobile-bar .eta-icon {
+    color: var(--dsw-alias-label-primary, #f2f3f5) !important;
+  }
+  body[data-ds-dark-theme] #eta-mobile-bar .eta-dsh-action {
+    color: var(--dsw-alias-label-secondary, #a8adb7) !important;
+  }
+  body[data-ds-dark-theme] #eta-mobile-bar .eta-dsh-action.eta-action-running {
+    color: var(--dsw-alias-state-business-primary, #7aaaff) !important;
+  }
   .eta-title {
     overflow: hidden;
     text-overflow: ellipsis;
