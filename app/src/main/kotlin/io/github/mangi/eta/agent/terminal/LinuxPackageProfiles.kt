@@ -151,7 +151,7 @@ internal object LinuxPackageProfiles {
    Eta own mobile shell (#eta-mobile-bar / #eta-scrim). */
 
 :root {
-  --eta-topbar-h: 56px;
+  --eta-topbar-h: 64px;
   --eta-ease: cubic-bezier(0.33, 1, 0.68, 1);
   --eta-ease-out: cubic-bezier(0.32, 0.72, 0, 1);
   --eta-spring: cubic-bezier(0.3, 1.12, 0.6, 1);
@@ -252,6 +252,41 @@ internal object LinuxPackageProfiles {
     background: var(--eta-active);
     transform: scale(0.94);
   }
+  .eta-dsh-action {
+    position: relative;
+    color: var(--eta-muted);
+    overflow: visible;
+    transition: color 0.18s ease, background-color 0.2s ease, transform 0.2s var(--eta-spring);
+  }
+  .eta-dsh-action.eta-action-running {
+    color: var(--dsw-alias-state-business-primary, #4d93f8);
+  }
+  .eta-dsh-action.eta-action-empty { color: var(--eta-faint); }
+  .eta-badge {
+    position: absolute;
+    top: 3px;
+    right: 2px;
+    min-width: 14px;
+    height: 14px;
+    padding: 0 3px;
+    border: 0.5px solid var(--eta-hairline);
+    border-radius: 999px;
+    background: var(--eta-surface);
+    color: var(--eta-muted);
+    font-size: 9px;
+    line-height: 12px;
+    font-variant-numeric: tabular-nums;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+  }
+  .eta-action-running .eta-badge {
+    border-color: color-mix(in srgb, var(--dsw-alias-state-business-primary, #4d93f8) 30%, transparent);
+    background: color-mix(in srgb, var(--dsw-alias-state-business-primary, #4d93f8) 12%, var(--eta-surface));
+    color: var(--dsw-alias-state-business-primary, #4d93f8);
+  }
+  .eta-action-empty .eta-badge { opacity: 0.55; }
 
   .eta-heading {
     flex: 1;
@@ -262,7 +297,6 @@ internal object LinuxPackageProfiles {
     justify-content: center;
     transition: padding-right 0.2s var(--eta-ease-out);
   }
-  body.eta-has-actions .eta-heading { padding-right: 142px; }
   body[data-ds-dark-theme] #eta-mobile-bar,
   body[data-ds-dark-theme] .eta-title {
     color: var(--dsw-alias-label-primary, #f2f3f5) !important;
@@ -842,17 +876,18 @@ internal object LinuxPackageProfiles {
   .wSkVaW_headerActions {
     position: fixed !important;
     top: calc(env(safe-area-inset-top, 0px) + 10px) !important;
-    right: calc(env(safe-area-inset-right, 0px) + 96px) !important;
-    z-index: 96 !important;
+    right: calc(env(safe-area-inset-right, 0px) + 180px) !important;
+    z-index: 95 !important;
     display: flex !important;
     flex: none !important;
     flex-wrap: nowrap !important;
     align-items: center !important;
     justify-content: flex-end !important;
-    max-width: calc(100vw - 180px) !important;
+    max-width: 130px !important;
     margin: 0 !important;
     gap: 2px !important;
-    pointer-events: auto !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
   }
   .wSkVaW_headerActions .b06baG_label { display: none !important; }
   .wSkVaW_headerActions {
@@ -902,6 +937,17 @@ internal object LinuxPackageProfiles {
     line-height: 20px !important;
   }
   .xD_KDq_timeStart { font-size: 10px !important; line-height: 20px !important; }
+  .iq1doa_anchor {
+    font-size: 11px !important;
+    line-height: 18px !important;
+    letter-spacing: -0.015em !important;
+  }
+  .iq1doa_pill {
+    gap: 4px !important;
+    padding: 1px 4px !important;
+  }
+  .iq1doa_pill svg { width: 13px !important; height: 13px !important; }
+  .iq1doa_sep { margin: 0 3px !important; }
   .Rd79tq_trigger {
     height: 22px !important;
     padding: 2px 4px !important;

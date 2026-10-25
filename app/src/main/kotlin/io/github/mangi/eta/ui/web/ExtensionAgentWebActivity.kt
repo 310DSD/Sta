@@ -370,6 +370,14 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
       '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' +
     '</button>' +
     '<div class="eta-heading"><span class="eta-title">DeepSeek Harness</span><span class="eta-preset" id="eta-preset"></span></div>' +
+    '<button type="button" class="eta-icon eta-dsh-action" id="eta-jobs" aria-label="后台任务">' +
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M7 9l2.5 2.5L7 14M12.5 14h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
+      '<span class="eta-badge" id="eta-jobs-count">0</span>' +
+    '</button>' +
+    '<button type="button" class="eta-icon eta-dsh-action" id="eta-subagents" aria-label="子智能体">' +
+      '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="9" cy="8" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M3.5 19c.4-3 2.6-5 5.5-5s5.1 2 5.5 5M16 8.5a2.5 2.5 0 0 1 0 4.8M17 14.2c2.1.5 3.5 2.2 3.8 4.3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>' +
+      '<span class="eta-badge" id="eta-subagents-count">0</span>' +
+    '</button>' +
     '<button type="button" class="eta-icon" id="eta-new" aria-label="新建会话">' +
       '<svg width="21" height="21" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' +
     '</button>' +
@@ -459,21 +467,79 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
   syncTitle();
 
   var presetEl = document.getElementById('eta-preset');
+  var jobsButton = document.getElementById('eta-jobs');
+  var jobsCount = document.getElementById('eta-jobs-count');
+  var subagentsButton = document.getElementById('eta-subagents');
+  var subagentsCount = document.getElementById('eta-subagents-count');
+
+  function headerTrigger(selector) {
+    var actions = document.querySelector('.wSkVaW_headerActions');
+    return actions ? actions.querySelector(selector) : null;
+  }
+  function syncActionBadge(button, countEl, trigger) {
+    var label = trigger ? (trigger.getAttribute('aria-label') || '') : '';
+    var match = label.match(/\d+/);
+    var count = match ? match[0] : '0';
+    countEl.textContent = count;
+    button.classList.toggle('eta-action-empty', count === '0');
+    button.classList.toggle('eta-action-running', /(运行|running)/i.test(label));
+  }
+  function syncHeaderActions() {
+    syncActionBadge(jobsButton, jobsCount, headerTrigger('.foD-wG_trigger'));
+    syncActionBadge(subagentsButton, subagentsCount, headerTrigger('.oXE0lW_trigger') ||
+      headerTrigger('.oXE0lW_switcherTrigger'));
+  }
   function syncPreset() {
     var label = document.querySelector('.b06baG_label');
     var text = label ? label.textContent.trim() : '';
     presetEl.textContent = text;
     presetEl.hidden = text === '';
-    var actions = document.querySelector('.wSkVaW_headerActions');
-    var hasActions = !!actions && actions.querySelectorAll('button').length > 0;
-    document.body.classList.toggle('eta-has-actions', hasActions);
   }
-  new MutationObserver(syncPreset).observe(frame, {
+  function compactStats() {
+    document.querySelectorAll('[data-composer-stat]').forEach(function (statEl) {
+      var leaves = statEl.querySelectorAll('span');
+      var textEl = null;
+      for (var i = 0; i < leaves.length; i++) {
+        if (leaves[i].children.length === 0 && leaves[i].textContent.trim() !== '') {
+          textEl = leaves[i];
+          break;
+        }
+      }
+      if (!textEl) return;
+      var before = textEl.textContent;
+      var after = before;
+      if (statEl.getAttribute('data-composer-stat') === 'activity') {
+        after = after.replace(/(\d+)\s*轮\s*(\d+)\s*步/, '$1r/$2t')
+          .replace(/(\d+)\s*turns?\s*(\d+)\s*steps?/i, '$1r/$2t')
+          .replace(/(\d+(?:\.\d+)?)\s*tok\/s/i, '$1tps');
+      } else {
+        after = after.replace(/([\d.]+[KMB]?)\s*tok\b/i, '$1tokens')
+          .replace(/缓存命中\s*([\d.]+)%/, '$1%')
+          .replace(/Cache hit\s*([\d.]+)%/i, '$1%');
+      }
+      after = after.replace(/\s*·\s*/g, '·');
+      if (after !== before) textEl.textContent = after;
+    });
+  }
+  function syncTopbar() {
+    syncPreset();
+    syncHeaderActions();
+    compactStats();
+  }
+  new MutationObserver(syncTopbar).observe(frame, {
     childList: true,
     subtree: true,
     characterData: true
   });
-  syncPreset();
+  syncTopbar();
+  jobsButton.addEventListener('click', function () {
+    var trigger = headerTrigger('.foD-wG_trigger');
+    if (trigger) trigger.click();
+  });
+  subagentsButton.addEventListener('click', function () {
+    var trigger = headerTrigger('.oXE0lW_trigger') || headerTrigger('.oXE0lW_switcherTrigger');
+    if (trigger) trigger.click();
+  });
 
   /* DSH's free-text question answer is a controlled textarea. On some Android
      WebViews a draft-store rerender resets its caret to offset 0, so the next

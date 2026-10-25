@@ -34,8 +34,9 @@ internal object AlpineEnvironmentPaths {
     // revision 8：v8 原生头部操作合并进 Eta 顶栏、右侧栏覆盖层、底部排版与新建会话焦点控制。
     // revision 9：v9 暗色字体 token 继承修正。
     // revision 10：v10 修复 DSH mobile CSS 注入的单引号 shell 语法错误。
+    // revision 11：v11 顶栏任务/子智能体图标角标、预设两行、紧凑统计排版。
     // 已就绪环境需重跑安装脚本以替换注入的样式块。
-    const val DSH_TOOLS_REVISION = 10
+    const val DSH_TOOLS_REVISION = 11
     const val KIMI_TOOLS_REVISION = 1
     const val CODEX_TOOLS_REVISION = 1
     const val CLAUDE_CODE_TOOLS_REVISION = 1
