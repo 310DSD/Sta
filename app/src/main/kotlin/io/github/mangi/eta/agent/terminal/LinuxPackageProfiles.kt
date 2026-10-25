@@ -252,6 +252,19 @@ internal object LinuxPackageProfiles {
     background: var(--eta-active);
     transform: scale(0.94);
   }
+  #eta-mobile-bar > .eta-icon,
+  #eta-mobile-bar > .eta-dsh-action { align-self: center !important; }
+  .eta-heading { align-self: center !important; }
+  .eta-preset-line {
+    min-width: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    color: var(--eta-faint);
+    animation: eta-preset-in 0.24s var(--eta-ease-out) both;
+  }
+  .eta-preset-line[hidden] { display: none !important; }
+  .eta-preset-icon { flex: none; width: 12px; height: 12px; }
   .eta-dsh-action {
     position: relative;
     color: var(--eta-muted);

@@ -369,7 +369,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     '<button type="button" class="eta-icon" id="eta-menu" aria-label="打开菜单">' +
       '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>' +
     '</button>' +
-    '<div class="eta-heading"><span class="eta-title">DeepSeek Harness</span><span class="eta-preset" id="eta-preset"></span></div>' +
+    '<div class="eta-heading"><span class="eta-title">DeepSeek Harness</span><span class="eta-preset-line" id="eta-preset-line"><svg class="eta-preset-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3.5 20 8v8l-8 4.5L4 16V8l8-4.5Z" stroke="currentColor" stroke-width="1.5"/><path d="M8 10.5h8M8 14h5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg><span class="eta-preset" id="eta-preset"></span></span></div>' +
     '<button type="button" class="eta-icon eta-dsh-action" id="eta-jobs" aria-label="后台任务">' +
       '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3.5" y="5" width="17" height="14" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M7 9l2.5 2.5L7 14M12.5 14h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>' +
       '<span class="eta-badge" id="eta-jobs-count">0</span>' +
@@ -467,6 +467,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
   syncTitle();
 
   var presetEl = document.getElementById('eta-preset');
+  var presetLine = document.getElementById('eta-preset-line');
   var jobsButton = document.getElementById('eta-jobs');
   var jobsCount = document.getElementById('eta-jobs-count');
   var subagentsButton = document.getElementById('eta-subagents');
@@ -494,6 +495,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     var text = label ? label.textContent.trim() : '';
     presetEl.textContent = text;
     presetEl.hidden = text === '';
+    presetLine.hidden = text === '';
   }
   function compactStats() {
     document.querySelectorAll('[data-composer-stat]').forEach(function (statEl) {
