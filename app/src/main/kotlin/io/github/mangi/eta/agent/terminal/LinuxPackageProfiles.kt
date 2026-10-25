@@ -278,6 +278,11 @@ internal object LinuxPackageProfiles {
     font-size: 10.5px;
     line-height: 13px;
     font-weight: 500;
+    animation: eta-preset-in 0.24s var(--eta-ease-out) both;
+  }
+  @keyframes eta-preset-in {
+    from { opacity: 0; transform: translate3d(0, 2px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
   }
   .eta-preset[hidden] { display: none !important; }
 
@@ -312,6 +317,35 @@ internal object LinuxPackageProfiles {
     background: var(--eta-canvas) !important;
   }
   .pI_x6G_rightbarCol { grid-column: 1 / -1 !important; }
+  /* Right panel: DSH computes a zero track on a phone, so present its already
+     fullscreen mobile panel as a real overlay above the conversation. */
+  .pI_x6G_rightbarCol {
+    position: fixed !important;
+    inset: var(--eta-topbar-h) 0 0 0 !important;
+    z-index: 115 !important;
+    width: 100vw !important;
+    height: calc(100dvh - var(--eta-topbar-h)) !important;
+    pointer-events: none !important;
+    background: transparent !important;
+    overflow: visible !important;
+  }
+  .pI_x6G_rightbarCol:has([data-sidebar-right-open]) {
+    pointer-events: auto !important;
+    background: var(--eta-surface) !important;
+    animation: eta-right-in 0.3s var(--eta-ease-out) both;
+  }
+  .pI_x6G_rightbarCol:has([data-sidebar-right-open]) .OUqwTW_panel {
+    pointer-events: auto !important;
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+  .pI_x6G_rightbarCol:has([data-sidebar-right-open]) .OUqwTW_panelBody {
+    padding-top: 4px !important;
+  }
+  @keyframes eta-right-in {
+    from { opacity: 0; transform: translate3d(24px, 0, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
 
   /* ---------- Sidebar -> off-canvas drawer ---------- */
   .pI_x6G_sidebarCol {
@@ -813,6 +847,13 @@ internal object LinuxPackageProfiles {
     flex-wrap: wrap !important;
     justify-content: flex-end !important;
   }
+  .wSkVaW_headerActions {
+    animation: eta-header-actions-in 0.24s var(--eta-ease-out) both;
+  }
+  @keyframes eta-header-actions-in {
+    from { opacity: 0; transform: translate3d(0, -3px, 0); }
+    to { opacity: 1; transform: translate3d(0, 0, 0); }
+  }
   .wSkVaW_headerActions .foD-wG_trigger,
   .wSkVaW_headerActions .oXE0lW_trigger,
   .wSkVaW_headerActions .oXE0lW_switcherTrigger {
@@ -829,17 +870,36 @@ internal object LinuxPackageProfiles {
     font-size: 11px !important;
     line-height: 20px !important;
   }
-  /* The detailed turn footer adds a usage trigger next to the clock. Never clip
-     it behind a fixed 28px row on narrow screens. */
+  /* The detailed turn footer adds a usage trigger next to the clock. Keep it
+     on one compact line and tighten its type instead of growing the transcript. */
   .xD_KDq_actions {
     height: auto !important;
-    min-height: 28px !important;
-    flex-wrap: wrap !important;
+    min-height: 24px !important;
+    flex-wrap: nowrap !important;
     align-items: center !important;
-    gap: 4px 8px !important;
+    gap: 4px !important;
   }
-  .xD_KDq_endInfo { flex-wrap: wrap !important; row-gap: 4px !important; }
-  .xD_KDq_timeEnd { white-space: normal !important; overflow-wrap: anywhere !important; }
+  .xD_KDq_endInfo {
+    flex-wrap: nowrap !important;
+    gap: 4px !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+  }
+  .xD_KDq_timeEnd {
+    max-width: 96px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+    font-size: 10px !important;
+    line-height: 20px !important;
+  }
+  .xD_KDq_timeStart { font-size: 10px !important; line-height: 20px !important; }
+  .Rd79tq_trigger {
+    height: 22px !important;
+    padding: 2px 4px !important;
+    font-size: 10px !important;
+  }
+  .Rd79tq_trigger svg { width: 13px !important; height: 13px !important; }
   /* Menus in the mobile shell are opaque surfaces: backdrop-filter is not
      reliable in every Android WebView, and a translucent surface reads as a
      broken dialog when the blur is absent. */

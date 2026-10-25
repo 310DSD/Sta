@@ -403,8 +403,11 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     if (b) b.click();
   });
   document.getElementById('eta-panel').addEventListener('click', function () {
-    var b = document.querySelector('.wSkVaW_headerCorner button') ||
-            document.querySelector('[aria-label="打开右侧边栏"]');
+    var b = document.querySelector('[data-sidebar-right-expand]') ||
+            document.querySelector('[data-sidebar-right-toggle]') ||
+            document.querySelector('.wSkVaW_headerCorner button') ||
+            document.querySelector('[aria-label="打开右侧边栏"]') ||
+            document.querySelector('[aria-label="展开右侧栏"]');
     if (b) b.click();
   });
 
