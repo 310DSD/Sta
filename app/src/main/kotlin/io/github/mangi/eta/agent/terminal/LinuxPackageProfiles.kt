@@ -112,14 +112,6 @@ internal object LinuxPackageProfiles {
             "@moonshot-ai/kimi-code@latest || " +
             "npm install -g --prefix /usr/local @moonshot-ai/kimi-code@latest"
 
-    // zcode-app-cli bundles the ZCode Agent runtime and exposes the official
-    // `zcode --web` entry point for Linux/macOS. It is a community packaging
-    // of the ZCode runtime, so keep this profile clearly marked as beta.
-    private const val ZCODE_INSTALL_SCRIPT =
-        "npm install -g --prefix /usr/local --include=optional --registry=https://registry.npmmirror.com " +
-            "zcode-app-cli@latest || " +
-            "npm install -g --prefix /usr/local --include=optional zcode-app-cli@latest"
-
     private const val CODEX_INSTALL_SCRIPT =
         "npm install -g --prefix /usr/local --include=optional --registry=https://registry.npmmirror.com " +
             "@openai/codex@0.164.0 || " +
@@ -208,24 +200,6 @@ internal object LinuxPackageProfiles {
             ),
         ),
     )
-    val ZCODE = LinuxPackageProfile(
-        id = "zcode",
-        markerName = AlpineEnvironmentPaths.ZCODE_TOOLS_MARKER,
-        revision = AlpineEnvironmentPaths.ZCODE_TOOLS_REVISION,
-        dependsOn = NODE,
-        installTimeoutSeconds = 3600L,
-        specs = mapOf(
-            LinuxDistribution.ALPINE to LinuxPackageSpec(
-                setupScript = ZCODE_INSTALL_SCRIPT,
-                verifyCommand = "command -v zcode >/dev/null && zcode --version >/dev/null",
-            ),
-            LinuxDistribution.DEBIAN to LinuxPackageSpec(
-                setupScript = ZCODE_INSTALL_SCRIPT,
-                verifyCommand = "command -v zcode >/dev/null && zcode --version >/dev/null",
-            ),
-        ),
-    )
-
     val CODEX = LinuxPackageProfile(
         id = "codex",
         markerName = AlpineEnvironmentPaths.CODEX_TOOLS_MARKER,
@@ -307,7 +281,7 @@ internal object LinuxPackageProfiles {
         ),
     )
 
-    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, DSH, KIMI, ZCODE, CODEX, CLAUDE_CODE, CLOUDCLI, ACP)
+    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, DSH, KIMI, CODEX, CLAUDE_CODE, CLOUDCLI, ACP)
 }
 
 internal fun linuxPackageProfileReady(rootfs: File, profile: LinuxPackageProfile): Boolean {

@@ -269,7 +269,6 @@ private fun WebAgentIcon(agent: ExtensionAgent) {
         ExtensionAgent.OPENCODE -> R.drawable.ic_opencode
         ExtensionAgent.DSH -> R.drawable.provider_logo_deepseek
         ExtensionAgent.KIMI -> R.drawable.provider_logo_kimi
-        ExtensionAgent.ZCODE -> R.drawable.model_logo_zai
         ExtensionAgent.CLOUDCLI -> R.drawable.ic_opencode
         ExtensionAgent.ACP -> R.drawable.ic_opencode
     }

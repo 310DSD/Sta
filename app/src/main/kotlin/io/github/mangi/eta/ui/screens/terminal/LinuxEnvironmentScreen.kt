@@ -86,7 +86,6 @@ private enum class InstallTarget {
     OPENCODE,
     DSH,
     KIMI,
-    ZCODE,
     CODEX,
     CLAUDE_CODE,
     CLOUDCLI,
@@ -97,7 +96,6 @@ private fun InstallTarget.extensionAgent(): ExtensionAgent? = when (this) {
     InstallTarget.OPENCODE -> ExtensionAgent.OPENCODE
     InstallTarget.DSH -> ExtensionAgent.DSH
     InstallTarget.KIMI -> ExtensionAgent.KIMI
-    InstallTarget.ZCODE -> ExtensionAgent.ZCODE
     InstallTarget.CLOUDCLI -> ExtensionAgent.CLOUDCLI
     InstallTarget.ACP -> ExtensionAgent.ACP
     else -> null
@@ -163,13 +161,6 @@ private val packageProfileUis = listOf(
         titleRes = R.string.linux_kimi_tools,
         summaryRes = R.string.linux_kimi_tools_summary,
         readyRes = R.string.linux_kimi_tools_ready,
-    ),
-    PackageProfileUi(
-        target = InstallTarget.ZCODE,
-        profile = LinuxPackageProfiles.ZCODE,
-        titleRes = R.string.linux_zcode_tools,
-        summaryRes = R.string.linux_zcode_tools_summary,
-        readyRes = R.string.linux_zcode_tools_ready,
     ),
     PackageProfileUi(
         target = InstallTarget.CODEX,
