@@ -41,8 +41,10 @@ internal object AlpineEnvironmentPaths {
     // revision 15：v15 标题左对齐和预设 header 后备识别。
     // revision 16：v16 回退详细底栏、修复标题溢出、焦点框、思考白块、菜单贴顶和监听开销。
     // revision 17：v17 用页面类替换昂贵 :has 选择器，降低 WebView 样式重算开销。
+    // revision 18：v18 WebView 外框主题色、GPU 图层提示和消息动画补全。
+    // revision 17：v17 用页面类替换昂贵 :has 选择器，降低 WebView 样式重算开销。
     // 已就绪环境需重跑安装脚本以替换注入的样式块。
-    const val DSH_TOOLS_REVISION = 17
+    const val DSH_TOOLS_REVISION = 18
     const val KIMI_TOOLS_REVISION = 1
     const val CODEX_TOOLS_REVISION = 1
     const val CLAUDE_CODE_TOOLS_REVISION = 1

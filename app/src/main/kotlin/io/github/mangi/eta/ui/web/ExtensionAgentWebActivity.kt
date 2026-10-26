@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.graphics.Color
 import android.net.Uri
+import android.content.res.Configuration
 import android.os.Build
 import android.os.Bundle
 import android.view.View
@@ -21,11 +22,13 @@ import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.ViewCompat
@@ -43,6 +46,7 @@ import io.github.mangi.eta.ui.app.AgentAppTheme
 import io.github.mangi.eta.ui.app.message
 import io.github.mangi.eta.ui.screens.terminal.LinuxFileManagerActivity
 import kotlinx.coroutines.launch
+import top.yukonga.miuix.kmp.theme.MiuixTheme
 import org.json.JSONObject
 
 /**
@@ -65,7 +69,10 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     private var current: Tab? = null
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
     private var chromeRoot: View? = null
-    private var chromeBackground = Color.rgb(247, 246, 241)
+    private var chromeBackground = if (
+        (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+            Configuration.UI_MODE_NIGHT_YES
+    ) Color.rgb(18, 18, 20) else Color.rgb(247, 246, 241)
 
     private data class Tab(
         val id: Long,
@@ -93,6 +100,8 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                 val appearance by AppearanceSettingsRepository.settingsFlow()
                     .collectAsState(initial = AppearanceSettings())
                 AgentAppTheme(appearance = appearance, applyInterfaceScale = false) {
+                    val chromeColor = MiuixTheme.colorScheme.background
+                    LaunchedEffect(chromeColor) { applyChromeBackground(chromeColor.toArgb()) }
                     ExtensionAgentTabBar(
                         tabs = tabUi,
                         selectedId = selectedTabId,
@@ -180,7 +189,9 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                 runOnUiThread { applyChromeBackground(parsed) }
             }
         }, "StaHost")
+        setBackgroundColor(chromeBackground)
         overScrollMode = View.OVER_SCROLL_NEVER
+        setLayerType(View.LAYER_TYPE_HARDWARE, null)
         layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -327,6 +338,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     private fun applyChromeBackground(color: Int) {
         chromeBackground = color
         chromeRoot?.setBackgroundColor(color)
+        tabs.forEach { it.webView.setBackgroundColor(color) }
         // Keep the window surface behind the gesture area in the same color. This
         // also covers Android 15 where navigationBarColor is edge-to-edge and may
         // be ignored by the system.
