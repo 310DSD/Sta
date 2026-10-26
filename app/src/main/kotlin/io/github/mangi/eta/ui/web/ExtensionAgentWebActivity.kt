@@ -33,6 +33,7 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import io.github.mangi.eta.agent.terminal.LinuxPackageProfiles
@@ -150,12 +151,29 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         )
         root.addView(contentHost, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         WindowCompat.setDecorFitsSystemWindows(window, false)
-        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+        fun applyRootInsets(view: View, insets: WindowInsetsCompat) {
             val bars = insets.getInsets(
                 WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.ime(),
             )
             view.setPadding(0, bars.top, 0, bars.bottom)
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            applyRootInsets(view, insets)
             insets
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            ViewCompat.setWindowInsetsAnimationCallback(
+                root,
+                object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+                    override fun onProgress(
+                        insets: WindowInsetsCompat,
+                        runningAnimations: MutableList<WindowInsetsAnimationCompat>,
+                    ): WindowInsetsCompat {
+                        applyRootInsets(root, insets)
+                        return insets
+                    }
+                },
+            )
         }
         setContentView(root)
         applyChromeBackground(chromeBackground)
@@ -235,6 +253,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                     view.evaluateJavascript(MOBILE_LAYOUT_BRIDGE, null)
                     view.evaluateJavascript(OPENCODE_LAYOUT_BRIDGE, null)
                     view.evaluateJavascript(DSH_MOBILE_SHELL_JS, null)
+                    syncWebTheme(view)
                     updateTitle(view, url)
                 }
             }
@@ -260,6 +279,12 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                 }.getOrDefault(false)
             }
         }
+    }
+
+    private fun syncWebTheme(view: WebView) {
+        val dark = Color.luminance(chromeBackground) < 0.5f
+        val value = if (dark) "true" else "false"
+        view.evaluateJavascript("window.__etaSetDarkMode && window.__etaSetDarkMode($value);", null)
     }
 
     private fun updateTitle(view: WebView, url: String) {
@@ -339,6 +364,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         chromeBackground = color
         chromeRoot?.setBackgroundColor(color)
         tabs.forEach { it.webView.setBackgroundColor(color) }
+        tabs.forEach { syncWebTheme(it.webView) }
         // Keep the window surface behind the gesture area in the same color. This
         // also covers Android 15 where navigationBarColor is edge-to-edge and may
         // be ignored by the system.
@@ -683,6 +709,31 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                 if (!document.querySelector('.pI_x6G_frame')) return false;
                 document.documentElement.classList.add('eta-dsh-document');
                 document.body.classList.add('eta-dsh-page');
+                window.__etaSetDarkMode = function(on) {
+                  window.__etaDarkForced = !!on;
+                  function apply() {
+                    if (window.__etaDarkForced) {
+                      document.body.setAttribute('data-ds-dark-theme', '');
+                      document.documentElement.style.colorScheme = 'dark';
+                      window.__etaDarkForcedOwned = true;
+                    } else if (window.__etaDarkForcedOwned) {
+                      document.body.removeAttribute('data-ds-dark-theme');
+                      document.documentElement.style.removeProperty('color-scheme');
+                      window.__etaDarkForcedOwned = false;
+                    }
+                  }
+                  apply();
+                  if (!window.__etaDarkObserver) {
+                    window.__etaDarkObserver = new MutationObserver(function() {
+                      if (window.__etaDarkForced && !document.body.hasAttribute('data-ds-dark-theme')) apply();
+                    });
+                    window.__etaDarkObserver.observe(document.body, {
+                      attributes: true,
+                      attributeFilter: ['data-ds-dark-theme']
+                    });
+                  }
+                };
+                window.__etaSetDarkMode(false);
                 var style = document.createElement('style');
                 style.id = 'eta-mobile-webview';
                 style.textContent = $css;
