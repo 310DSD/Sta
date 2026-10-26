@@ -45,9 +45,10 @@ internal object AlpineEnvironmentPaths {
     // revision 19：v19 修复 Activity 构造期读取 resources 导致的启动闪退。
     // revision 20：v20 Eta 暗色同步到嵌入页、输入法 insets 动画。
     // revision 21：v21 外层标签栏/新建页高对比文字与图标。
+    // revision 22：v22 移除与系统 adjustResize 冲突的 IME padding 动画。
     // revision 17：v17 用页面类替换昂贵 :has 选择器，降低 WebView 样式重算开销。
     // 已就绪环境需重跑安装脚本以替换注入的样式块。
-    const val DSH_TOOLS_REVISION = 21
+    const val DSH_TOOLS_REVISION = 22
     const val KIMI_TOOLS_REVISION = 1
     const val CODEX_TOOLS_REVISION = 1
     const val CLAUDE_CODE_TOOLS_REVISION = 1

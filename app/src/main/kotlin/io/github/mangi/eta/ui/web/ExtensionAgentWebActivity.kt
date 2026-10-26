@@ -33,7 +33,6 @@ import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import io.github.mangi.eta.agent.terminal.LinuxPackageProfiles
@@ -160,20 +159,6 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
             applyRootInsets(view, insets)
             insets
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            ViewCompat.setWindowInsetsAnimationCallback(
-                root,
-                object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
-                    override fun onProgress(
-                        insets: WindowInsetsCompat,
-                        runningAnimations: MutableList<WindowInsetsAnimationCompat>,
-                    ): WindowInsetsCompat {
-                        applyRootInsets(root, insets)
-                        return insets
-                    }
-                },
-            )
         }
         setContentView(root)
         applyChromeBackground(chromeBackground)
