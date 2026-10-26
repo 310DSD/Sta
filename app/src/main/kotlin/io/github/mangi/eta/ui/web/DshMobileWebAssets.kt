@@ -263,9 +263,13 @@ window.setTimeout(function () {
     var bar = document.getElementById('eta-mobile-bar');
     if (!bar) return;
     var bottom = bar.getBoundingClientRect().bottom + 4;
-    var menus = document.querySelectorAll('.foD-wG_menu, .oXE0lW_menu');
-    for (var i = 0; i < menus.length; i++) {
-      var menu = menus[i];
+    var nodes = document.querySelectorAll(
+      '.foD-wG_menu, .oXE0lW_menu, [class*="_menu"], [role="tree"], [role="menu"], ul[aria-label*="后台任务"]'
+    );
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      var menu = node.closest('.foD-wG_menu, .oXE0lW_menu, [class*="_menu"]') || node;
+      if (!menu || menu === bar || bar.contains(menu)) continue;
       menu.style.setProperty('top', bottom + 'px', 'important');
       menu.style.setProperty('left', '12px', 'important');
       menu.style.setProperty('right', '12px', 'important');
@@ -278,6 +282,8 @@ window.setTimeout(function () {
   function scheduleMenuPosition() {
     window.setTimeout(positionDshMenus, 0);
     window.setTimeout(positionDshMenus, 80);
+    window.setTimeout(positionDshMenus, 220);
+    window.setTimeout(positionDshMenus, 500);
   }
   jobsButton.addEventListener('click', function () {
 var trigger = findHeaderTrigger('.foD-wG_trigger', ['后台任务', 'background job', 'background jobs']);

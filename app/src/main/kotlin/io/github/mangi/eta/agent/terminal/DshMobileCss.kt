@@ -872,6 +872,29 @@ internal object DshMobileCss {
     max-width: none !important;
     max-height: calc(100dvh - var(--eta-topbar-h) - 16px) !important;
   }
+  /* DSH's model menu uses width:max-content; long model ids make it wider
+     than the phone. Use the same full-width sheet language as Eta dialogs. */
+  .wq12jW_menu {
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    max-height: calc(100dvh - var(--eta-topbar-h) - 96px) !important;
+    border: 0.5px solid var(--eta-hairline) !important;
+    border-radius: 18px !important;
+    background: var(--eta-surface) !important;
+    box-shadow: 0 18px 48px rgb(0 0 0 / 16%), 0 2px 8px rgb(0 0 0 / 6%) !important;
+    backdrop-filter: none !important;
+  }
+  .wq12jW_option,
+  .wq12jW_cell {
+    border-radius: 10px !important;
+  }
+  .wq12jW_searchRow .wq12jW_search {
+    border-radius: 10px !important;
+    background: var(--eta-hover) !important;
+  }
 
 }
 

@@ -49,9 +49,10 @@ internal object AlpineEnvironmentPaths {
     // revision 23：v23 移除预设硬编码兜底，只从 DSH 读取真实预设。
     // revision 24：v24 顶栏观察器改为 header 局部监听，WebView 渲染优先级提升。
     // revision 25：v25 首轮对话隐藏预设、会话切换快速同步、菜单强制贴顶。
+    // revision 26：v26 任务/子智能体菜单通用定位与 Eta 风格模型菜单宽度。
     // revision 17：v17 用页面类替换昂贵 :has 选择器，降低 WebView 样式重算开销。
     // 已就绪环境需重跑安装脚本以替换注入的样式块。
-    const val DSH_TOOLS_REVISION = 25
+    const val DSH_TOOLS_REVISION = 26
     const val KIMI_TOOLS_REVISION = 1
     const val CODEX_TOOLS_REVISION = 1
     const val CLAUDE_CODE_TOOLS_REVISION = 1
