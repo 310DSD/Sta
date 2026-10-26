@@ -1,6 +1,6 @@
 package io.github.mangi.eta.agent.extension
 
-import io.github.mangi.eta.agent.terminal.LinuxPackageProfiles
+import io.github.mangi.eta.agent.terminal.DshMobileCss
 
 private const val OPENCODE_SERVICE_COMMAND =
     "trap 'opencode service stop >/dev/null 2>&1 || true' EXIT TERM INT; " +
@@ -71,9 +71,9 @@ internal enum class ExtensionAgent(
         packageProfileId = "dsh",
         // `dsh web` prints a tokenized loopback URL directly and stays in the foreground.
         // Apply the mobile CSS patch on every launch so an already-installed DSH also gets it.
-        webCommand = "$LinuxPackageProfiles.DSH_MOBILE_CSS_INSTALL; dsh web --host 127.0.0.1 --port 3080 --no-open",
+        webCommand = "$DshMobileCss.installScript; dsh web --host 127.0.0.1 --port 3080 --no-open",
         acceptedCommands = setOf(
-            "$LinuxPackageProfiles.DSH_MOBILE_CSS_INSTALL; dsh web --host 127.0.0.1 --port 3080 --no-open",
+            "$DshMobileCss.installScript; dsh web --host 127.0.0.1 --port 3080 --no-open",
         ),
         legacyCommands = setOf(
             "dsh web --host 127.0.0.1 --port 3080 --no-open",
