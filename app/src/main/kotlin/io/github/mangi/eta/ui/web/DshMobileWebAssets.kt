@@ -11,6 +11,7 @@ import org.json.JSONObject
  */
 internal object DshMobileWebAssets {
     val shellScript: String = """
+
 (function () {
   function install() {
   if (document.getElementById('eta-mobile-bar')) return true;
@@ -114,9 +115,10 @@ attributeFilter: ['data-sidebar-collapsed']
 
   var titleEl = bar.querySelector('.eta-title');
   function syncTitle() {
-var value = document.title || 'DeepSeek Harness';
-var dash = value.indexOf(' — ');
-titleEl.textContent = dash > 0 ? value.slice(0, dash) : 'DeepSeek Harness';
+    var value = document.title || 'DeepSeek Harness';
+    var dash = value.indexOf(' — ');
+    titleEl.textContent = dash > 0 ? value.slice(0, dash) : 'DeepSeek Harness';
+    scheduleTopbarSync();
   }
   var titleNode = document.querySelector('title');
   if (titleNode) new MutationObserver(syncTitle).observe(titleNode, { childList: true });
@@ -196,13 +198,27 @@ for (var scopeIndex = 0; scopeIndex < scopes.length; scopeIndex++) {
 }
 return '';
   }
+  function hasActiveConversation() {
+    var session = document.querySelector('[data-conversation-session]');
+    if (!session || (session.getAttribute('data-conversation-session') || '').trim() === '') return false;
+    /* The first composer is the hero shell; it is still a blank session even
+       though a session id already exists. Do not advertise a preset there. */
+    if (document.querySelector('[data-phase="hero"], [data-content-phase="hero"]')) return false;
+    return true;
+  }
   function syncPreset() {
-var text = findPresetText();
-if (text !== '') lastPresetText = text;
-var shown = text || lastPresetText;
-presetEl.textContent = shown;
-presetEl.hidden = shown === '';
-presetLine.hidden = shown === '';
+    if (!hasActiveConversation()) {
+      presetEl.textContent = '';
+      presetEl.hidden = true;
+      presetLine.hidden = true;
+      return;
+    }
+    var text = findPresetText();
+    if (text !== '') lastPresetText = text;
+    var shown = text || lastPresetText;
+    presetEl.textContent = shown;
+    presetEl.hidden = shown === '';
+    presetLine.hidden = shown === '';
   }
   function syncTopbar() {
 syncPreset();
@@ -241,15 +257,41 @@ window.setTimeout(function () {
   window.setInterval(function () {
     observeHeaderActions();
     syncTopbar();
-  }, 2200);
+  }, 800);
   syncTopbar();
+  function positionDshMenus() {
+    var bar = document.getElementById('eta-mobile-bar');
+    if (!bar) return;
+    var bottom = bar.getBoundingClientRect().bottom + 4;
+    var menus = document.querySelectorAll('.foD-wG_menu, .oXE0lW_menu');
+    for (var i = 0; i < menus.length; i++) {
+      var menu = menus[i];
+      menu.style.setProperty('top', bottom + 'px', 'important');
+      menu.style.setProperty('left', '12px', 'important');
+      menu.style.setProperty('right', '12px', 'important');
+      menu.style.setProperty('width', 'auto', 'important');
+      menu.style.setProperty('max-width', 'none', 'important');
+      menu.style.setProperty('max-height', Math.max(160, window.innerHeight - bottom - 12) + 'px', 'important');
+      menu.style.setProperty('box-sizing', 'border-box', 'important');
+    }
+  }
+  function scheduleMenuPosition() {
+    window.setTimeout(positionDshMenus, 0);
+    window.setTimeout(positionDshMenus, 80);
+  }
   jobsButton.addEventListener('click', function () {
 var trigger = findHeaderTrigger('.foD-wG_trigger', ['后台任务', 'background job', 'background jobs']);
-if (trigger) trigger.click();
+if (trigger) {
+  trigger.click();
+  scheduleMenuPosition();
+}
   });
   subagentsButton.addEventListener('click', function () {
 var trigger = findHeaderTrigger('.oXE0lW_trigger', ['子智能体', 'subagent', 'subagents']);
-if (trigger) trigger.click();
+if (trigger) {
+  trigger.click();
+  scheduleMenuPosition();
+}
   });
 
   /* DSH's free-text question answer is a controlled textarea. On some Android
@@ -293,9 +335,11 @@ attempts += 1;
 if (install() || attempts > 120) clearInterval(timer);
   }, 250);
 })();
-    """.trimIndent()
+    
+        """.trimIndent()
 
     val inputBridge: String = """
+
         (function() {
           if (window.__etaMobileInputInstalled) return;
           window.__etaMobileInputInstalled = true;
@@ -324,9 +368,11 @@ if (install() || attempts > 120) clearInterval(timer);
             }
           }, true);
         })();
-    """.trimIndent()
+    
+        """.trimIndent()
 
     val openCodeLayoutBridge: String = """
+
         (function() {
           if (document.getElementById('eta-opencode-webview')) return;
           var style = document.createElement('style');
@@ -339,11 +385,13 @@ if (install() || attempts > 120) clearInterval(timer);
             '}';
           (document.head || document.documentElement).appendChild(style);
         })();
-    """.trimIndent()
+    
+        """.trimIndent()
 
     val layoutBridge: String by lazy {
         val css = JSONObject.quote(DshMobileCss.css)
         """
+
         (function() {
           if (document.getElementById('eta-mobile-webview')) return;
           function install() {
@@ -388,6 +436,7 @@ if (install() || attempts > 120) clearInterval(timer);
             if (install() || attempts > 120) clearInterval(timer);
           }, 250);
         })();
+        
         """.trimIndent()
     }
 }
