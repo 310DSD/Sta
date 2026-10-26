@@ -217,11 +217,31 @@ window.setTimeout(function () {
   syncTopbar();
 }, 450);
   }
-  new MutationObserver(scheduleTopbarSync).observe(frame, {
-childList: true,
-subtree: true
-  });
-  window.setInterval(syncTopbar, 1500);
+  /* Streaming messages mutate the whole conversation tree constantly. Observing
+     frame-wide here made every token drive header work. The header slot is
+     small and changes only when a job/subagent/preset changes, so bind to it
+     and keep a low-frequency fallback for SPA route replacement. */
+  var headerObserver = null;
+  var observedHeader = null;
+  function observeHeaderActions() {
+    var actions = document.querySelector('.wSkVaW_headerActions');
+    if (!actions || actions === observedHeader) return;
+    if (headerObserver) headerObserver.disconnect();
+    observedHeader = actions;
+    headerObserver = new MutationObserver(scheduleTopbarSync);
+    headerObserver.observe(actions, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['aria-label']
+    });
+  }
+  observeHeaderActions();
+  window.setInterval(function () {
+    observeHeaderActions();
+    syncTopbar();
+  }, 2200);
   syncTopbar();
   jobsButton.addEventListener('click', function () {
 var trigger = findHeaderTrigger('.foD-wG_trigger', ['后台任务', 'background job', 'background jobs']);

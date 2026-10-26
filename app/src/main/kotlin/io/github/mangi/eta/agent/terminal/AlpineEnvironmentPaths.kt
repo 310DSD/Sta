@@ -47,9 +47,10 @@ internal object AlpineEnvironmentPaths {
     // revision 21：v21 外层标签栏/新建页高对比文字与图标。
     // revision 22：v22 移除与系统 adjustResize 冲突的 IME padding 动画。
     // revision 23：v23 移除预设硬编码兜底，只从 DSH 读取真实预设。
+    // revision 24：v24 顶栏观察器改为 header 局部监听，WebView 渲染优先级提升。
     // revision 17：v17 用页面类替换昂贵 :has 选择器，降低 WebView 样式重算开销。
     // 已就绪环境需重跑安装脚本以替换注入的样式块。
-    const val DSH_TOOLS_REVISION = 23
+    const val DSH_TOOLS_REVISION = 24
     const val KIMI_TOOLS_REVISION = 1
     const val CODEX_TOOLS_REVISION = 1
     const val CLAUDE_CODE_TOOLS_REVISION = 1

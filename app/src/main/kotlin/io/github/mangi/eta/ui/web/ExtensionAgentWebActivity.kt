@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.graphics.Color
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.view.ViewGroup
@@ -185,6 +186,9 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
             }
         }, "StaHost")
         setBackgroundColor(chromeTheme.backgroundColor)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false)
+        }
         overScrollMode = View.OVER_SCROLL_NEVER
         layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
