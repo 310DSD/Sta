@@ -69,10 +69,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     private var current: Tab? = null
     private var fileChooserCallback: ValueCallback<Array<Uri>>? = null
     private var chromeRoot: View? = null
-    private var chromeBackground = if (
-        (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
-            Configuration.UI_MODE_NIGHT_YES
-    ) Color.rgb(18, 18, 20) else Color.rgb(247, 246, 241)
+    private var chromeBackground = Color.rgb(247, 246, 241)
 
     private data class Tab(
         val id: Long,
@@ -87,6 +84,10 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
             finish()
             return
         }
+        chromeBackground = if (
+            (resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
+        ) Color.rgb(18, 18, 20) else Color.rgb(247, 246, 241)
 
         if ((applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0) WebView.setWebContentsDebuggingEnabled(true)
         val root = LinearLayout(this).apply {
@@ -191,7 +192,6 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         }, "StaHost")
         setBackgroundColor(chromeBackground)
         overScrollMode = View.OVER_SCROLL_NEVER
-        setLayerType(View.LAYER_TYPE_HARDWARE, null)
         layoutParams = FrameLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
             ViewGroup.LayoutParams.MATCH_PARENT,

@@ -1013,25 +1013,11 @@ internal object LinuxPackageProfiles {
 }
 
 @media (max-width: 720px) and (prefers-reduced-motion: no-preference) {
-  .EvIC1a_column,
-  .Sixlwa_userRow,
-  ._3GBCTG_root {
-    will-change: opacity, transform;
-    backface-visibility: hidden;
-    transform: translateZ(0);
-  }
   .Sixlwa_userRow {
     animation: eta-rise 0.28s var(--eta-ease-out) both;
   }
   ._3GBCTG_root[data-expanded] ._3GBCTG_thinkBody {
     animation: eta-rise 0.24s var(--eta-ease-out) both;
-  }
-  .uV2eYG_card,
-  .eta-icon,
-  .eta-dsh-action,
-  .pI_x6G_rightbarCol {
-    transform: translateZ(0);
-    backface-visibility: hidden;
   }
 }
 
