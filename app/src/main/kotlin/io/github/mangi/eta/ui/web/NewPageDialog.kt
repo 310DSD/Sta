@@ -23,6 +23,8 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -33,6 +35,7 @@ import top.yukonga.miuix.kmp.basic.HorizontalDivider
 import top.yukonga.miuix.kmp.basic.Icon
 import top.yukonga.miuix.kmp.basic.Text
 import top.yukonga.miuix.kmp.basic.TextField
+import top.yukonga.miuix.kmp.basic.TextFieldDefaults
 import top.yukonga.miuix.kmp.theme.MiuixTheme
 
 /**
@@ -47,6 +50,9 @@ internal fun NewPageDialog(
     onOpenUrl: (String) -> Unit,
 ) {
     var url by remember { mutableStateOf("http://127.0.0.1:") }
+    val colors = MiuixTheme.colorScheme
+    val contentColor = if (colors.background.luminance() > 0.5f) Color(0xFF111318) else Color(0xFFF2F3F5)
+    val mutedColor = contentColor.copy(alpha = 0.64f)
     LaunchedEffect(show) {
         if (show) url = "http://127.0.0.1:"
     }
@@ -68,6 +74,8 @@ internal fun NewPageDialog(
                 },
                 title = stringResource(R.string.webview_agents),
                 summary = stringResource(R.string.webview_agents_summary),
+                contentColor = contentColor,
+                mutedColor = mutedColor,
                 onClick = onOpenAgents,
             )
             QuickEntry(
@@ -81,13 +89,15 @@ internal fun NewPageDialog(
                 },
                 title = stringResource(R.string.webview_file_manager),
                 summary = stringResource(R.string.webview_file_manager_summary),
+                contentColor = contentColor,
+                mutedColor = mutedColor,
                 onClick = onOpenFileManager,
             )
             HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
             Text(
                 text = stringResource(R.string.webview_custom_url),
                 style = MiuixTheme.textStyles.footnote2,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                color = mutedColor,
                 modifier = Modifier.padding(start = 4.dp, bottom = 6.dp),
             )
             TextField(
@@ -95,6 +105,8 @@ internal fun NewPageDialog(
                 onValueChange = { url = it },
                 label = stringResource(R.string.webview_url_hint),
                 singleLine = true,
+                textStyle = MiuixTheme.textStyles.body2.copy(color = contentColor),
+                colors = TextFieldDefaults.textFieldColors(labelColor = mutedColor),
                 modifier = Modifier.fillMaxWidth(),
             )
             Spacer(Modifier.height(12.dp))
@@ -113,6 +125,8 @@ private fun QuickEntry(
     icon: @Composable () -> Unit,
     title: String,
     summary: String,
+    contentColor: Color,
+    mutedColor: Color,
     onClick: () -> Unit,
 ) {
     Row(
@@ -134,13 +148,14 @@ private fun QuickEntry(
             Text(
                 text = title,
                 style = MiuixTheme.textStyles.body2,
+                color = contentColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
                 text = summary,
                 style = MiuixTheme.textStyles.footnote2,
-                color = MiuixTheme.colorScheme.onSurfaceVariantSummary,
+                color = mutedColor,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )

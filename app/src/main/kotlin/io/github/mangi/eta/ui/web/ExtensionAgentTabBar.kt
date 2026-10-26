@@ -29,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -59,6 +60,7 @@ internal fun ExtensionAgentTabBar(
     onReload: () -> Unit,
 ) {
     val colors = MiuixTheme.colorScheme
+    val contentColor = if (colors.background.luminance() > 0.5f) Color(0xFF111318) else Color(0xFFF2F3F5)
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -86,7 +88,7 @@ internal fun ExtensionAgentTabBar(
                     Text(
                         text = tab.title.ifBlank { stringResource(R.string.webview_new_page) },
                         style = MiuixTheme.textStyles.footnote1,
-                        color = if (selected) colors.primary else colors.onSurface,
+                        color = if (selected) colors.primary else contentColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.widthIn(max = 180.dp),
@@ -99,17 +101,18 @@ internal fun ExtensionAgentTabBar(
                             imageVector = Icons.Rounded.Close,
                             contentDescription = stringResource(R.string.webview_close_tab),
                             modifier = Modifier.size(15.dp),
-                            tint = if (selected) colors.primary else colors.onSurfaceVariantSummary,
+                            tint = if (selected) colors.primary else contentColor.copy(alpha = 0.72f),
                         )
                     }
                 }
             }
         }
-        TabBarAction(Icons.Rounded.Add, stringResource(R.string.webview_new_page), onAdd)
+        TabBarAction(Icons.Rounded.Add, stringResource(R.string.webview_new_page), contentColor, onAdd)
         TabBarMenu(
             onSyncProviders = onSyncProviders,
             onReload = onReload,
             onCloseTab = { selectedId?.let(onClose) },
+            contentColor = contentColor,
         )
     }
 }
@@ -118,6 +121,7 @@ internal fun ExtensionAgentTabBar(
 private fun TabBarAction(
     icon: androidx.compose.ui.graphics.vector.ImageVector,
     description: String,
+    tint: Color,
     onClick: () -> Unit,
 ) {
     IconButton(onClick = onClick, modifier = Modifier.size(40.dp)) {
@@ -125,7 +129,7 @@ private fun TabBarAction(
             imageVector = icon,
             contentDescription = description,
             modifier = Modifier.size(20.dp),
-            tint = MiuixTheme.colorScheme.onSurface,
+            tint = tint,
         )
     }
 }
@@ -135,10 +139,11 @@ private fun TabBarMenu(
     onSyncProviders: () -> Unit,
     onReload: () -> Unit,
     onCloseTab: () -> Unit,
+    contentColor: Color,
 ) {
     var showMenu by remember { mutableStateOf(false) }
     Box {
-        TabBarAction(Icons.Rounded.MoreVert, stringResource(R.string.webview_page_menu)) { showMenu = true }
+        TabBarAction(Icons.Rounded.MoreVert, stringResource(R.string.webview_page_menu), contentColor) { showMenu = true }
         WindowListPopup(
             show = showMenu,
             alignment = PopupPositionProvider.Align.End,
@@ -159,6 +164,7 @@ private fun TabBarMenu(
                                     imageVector = icon,
                                     contentDescription = null,
                                     modifier = modifier.size(20.dp),
+                                    tint = contentColor,
                                 )
                             },
                         ),
