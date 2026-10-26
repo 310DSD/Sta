@@ -161,7 +161,7 @@ internal object LinuxPackageProfiles {
 
 @media (max-width: 720px) {
   /* ---------- Design tokens (body carries the DSH alias variables) ---------- */
-  body:has(.pI_x6G_frame) {
+  body.eta-dsh-page {
     --eta-canvas: color-mix(in srgb, var(--dsw-alias-label-primary, #0f1115) 3%, var(--dsw-alias-bg-base, #fff));
     --eta-surface: var(--dsw-alias-bg-base, #fff);
     --eta-hairline: var(--dsw-alias-border-l2, #0000001a);
@@ -175,7 +175,7 @@ internal object LinuxPackageProfiles {
     --eta-card-shadow: 0 10px 30px rgb(0 0 0 / 7%), 0 1px 2px rgb(0 0 0 / 4%);
     -webkit-tap-highlight-color: transparent;
   }
-  body:has(.pI_x6G_frame),
+  body.eta-dsh-page,
   .pI_x6G_frame,
   .pI_x6G_centerCol,
   .wSkVaW_root,
@@ -183,30 +183,30 @@ internal object LinuxPackageProfiles {
   .VOzbGW_panel {
     transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease;
   }
-  body:has(.pI_x6G_frame) :focus-visible {
+  body.eta-dsh-page :focus-visible {
     outline: 2px solid color-mix(in srgb, var(--eta-accent) 55%, transparent);
     outline-offset: 2px;
     border-radius: 8px;
   }
-  body:has(.pI_x6G_frame) ::selection {
+  body.eta-dsh-page ::selection {
     background: color-mix(in srgb, var(--eta-accent) 22%, transparent);
   }
 
-  html:has(.pI_x6G_frame),
-  body:has(.pI_x6G_frame) {
+  html.eta-dsh-document,
+  body.eta-dsh-page {
     width: 100%;
     height: 100%;
     overflow: hidden !important;
     background: var(--eta-canvas);
   }
-  body:has(.pI_x6G_frame) { overscroll-behavior: none; }
-  #root:has(.pI_x6G_frame) {
+  body.eta-dsh-page { overscroll-behavior: none; }
+  body.eta-dsh-page #root {
     height: 100dvh !important;
     margin-top: 0 !important;
   }
   /* Only reserve the app bar once the shell script actually inserted it; otherwise a
      failed injection would leave a blank strip at the top of DSH. */
-  body.eta-has-bar #root:has(.pI_x6G_frame) {
+  body.eta-has-bar #root {
     height: calc(100dvh - var(--eta-topbar-h)) !important;
     margin-top: var(--eta-topbar-h) !important;
   }
@@ -256,10 +256,15 @@ internal object LinuxPackageProfiles {
   #eta-mobile-bar > .eta-dsh-action { align-self: center !important; }
   .eta-heading {
     align-self: center !important;
-    align-items: flex-start !important;
+    align-items: stretch !important;
+    overflow: hidden !important;
     text-align: left !important;
   }
-  .eta-title, .eta-preset-line { text-align: left !important; }
+  .eta-title, .eta-preset-line {
+    width: 100% !important;
+    max-width: 100% !important;
+    text-align: left !important;
+  }
   .eta-preset-line {
     min-width: 0;
     display: inline-flex;
@@ -325,6 +330,11 @@ internal object LinuxPackageProfiles {
   body[data-ds-dark-theme] .wSkVaW_headerActions {
     color: var(--dsw-alias-label-secondary, #a8adb7) !important;
   }
+  body[data-ds-dark-theme] .pI_x6G_frame {
+    color-scheme: dark;
+    color: var(--dsw-alias-label-primary, #f2f3f5);
+  }
+  body[data-ds-dark-theme] .pI_x6G_frame svg { color: inherit; }
   body[data-ds-dark-theme] #eta-mobile-bar .eta-icon {
     color: var(--dsw-alias-label-primary, #f2f3f5) !important;
   }
@@ -335,10 +345,12 @@ internal object LinuxPackageProfiles {
     color: var(--dsw-alias-state-business-primary, #7aaaff) !important;
   }
   .eta-title {
+    display: block !important;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-size: 16px;
+    font-size: 15px;
+    max-width: 100% !important;
     line-height: 22px;
     font-weight: 600;
     letter-spacing: 0.005em;
@@ -602,7 +614,9 @@ internal object LinuxPackageProfiles {
     transition: border-color 0.18s ease !important;
   }
   .uV2eYG_card:focus-within {
-    border-color: color-mix(in srgb, var(--dsw-alias-label-primary) 20%, var(--eta-hairline-strong)) !important;
+    border-color: var(--eta-hairline-strong) !important;
+    outline: none !important;
+    box-shadow: var(--eta-card-shadow) !important;
   }
   .uV2eYG_input {
     min-height: 64px !important;
@@ -882,7 +896,7 @@ internal object LinuxPackageProfiles {
     to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
   }
   /* ---------- DSH native header actions (preset / jobs / subagents) ---------- */
-  body:has(.pI_x6G_frame) {
+  body.eta-dsh-page {
     --dsw-menu-surface-fill: var(--eta-surface) !important;
     --dsw-specific-menu: var(--eta-surface) !important;
     --dsw-menu-backdrop-filter: none !important;
@@ -940,64 +954,68 @@ internal object LinuxPackageProfiles {
     font-size: 11px !important;
     line-height: 20px !important;
   }
-  /* The detailed turn footer adds a usage trigger next to the clock. Keep it
-     on one compact line and tighten its type instead of growing the transcript. */
-  .xD_KDq_actions {
+  /* The composer is a single contenteditable surface. Keep the focus ring on
+     the outer card; the generic :focus-visible ring puts a stray blue line
+     around the inner editor on mobile. */
+  body.eta-dsh-page .uV2eYG_card :focus-visible,
+  body.eta-dsh-page .uV2eYG_card:focus-visible,
+  body.eta-dsh-page .uV2eYG_card:focus-within,
+  body.eta-dsh-page [contenteditable="true"]:focus-visible {
+    outline: none !important;
+  }
+  .uV2eYG_card { padding-bottom: 0 !important; }
+  .uV2eYG_input,
+  .uV2eYG_placeholder {
+    min-height: 40px !important;
     height: auto !important;
-    min-height: 24px !important;
-    flex-wrap: nowrap !important;
-    align-items: center !important;
-    gap: 4px !important;
+    padding: 8px 14px 2px !important;
+    line-height: 24px !important;
+    box-sizing: border-box !important;
+    outline: none !important;
   }
-  .xD_KDq_endInfo {
-    flex-wrap: nowrap !important;
-    gap: 4px !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
+  .uV2eYG_placeholder {
+    top: 8px !important;
+    left: 14px !important;
+    right: 14px !important;
   }
-  .xD_KDq_timeEnd {
-    max-width: 96px !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-    font-size: 10px !important;
-    line-height: 20px !important;
+  .uV2eYG_dock { padding-bottom: 6px !important; }
+  /* The sticky reasoning header was clipped to a square white block when
+     expanded. Round it and let the surrounding row own the surface. */
+  ._3GBCTG_root[data-expanded] [data-open] [data-disclosure-header],
+  body.eta-dsh-page [data-disclosure-header] {
+    background: transparent !important;
+    border-radius: 12px !important;
   }
-  .xD_KDq_timeStart { font-size: 10px !important; line-height: 20px !important; }
-  .iq1doa_anchor {
-    font-size: 11px !important;
-    line-height: 18px !important;
-    letter-spacing: -0.015em !important;
+  ._3GBCTG_root[data-expanded] ._3GBCTG_row {
+    border-radius: 12px !important;
+    background: transparent !important;
   }
-  .iq1doa_pill {
-    gap: 4px !important;
-    padding: 1px 4px !important;
-  }
-  .iq1doa_pill svg { width: 13px !important; height: 13px !important; }
-  .iq1doa_sep { margin: 0 3px !important; }
-  .Rd79tq_trigger {
-    height: 22px !important;
-    padding: 2px 4px !important;
-    font-size: 10px !important;
-  }
-  .Rd79tq_trigger svg { width: 13px !important; height: 13px !important; }
   /* Menus in the mobile shell are opaque surfaces: backdrop-filter is not
      reliable in every Android WebView, and a translucent surface reads as a
      broken dialog when the blur is absent. */
   ._surface_ri079_1 > ._material_ri079_21,
   .foD-wG_menu,
-  .oXE0lW_menu:before,
+  .oXE0lW_menu,
   .Xt1eiG_panel {
     background: var(--eta-surface) !important;
     backdrop-filter: none !important;
+  }
+  .foD-wG_menu,
+  .oXE0lW_menu {
+    top: calc(var(--eta-topbar-h) + 4px) !important;
+    left: 12px !important;
+    right: 12px !important;
+    width: auto !important;
+    max-width: none !important;
+    max-height: calc(100dvh - var(--eta-topbar-h) - 16px) !important;
   }
 
 }
 
 @media (max-width: 720px) and (prefers-reduced-motion: reduce) {
-  body:has(.pI_x6G_frame) *,
-  body:has(.pI_x6G_frame) *::before,
-  body:has(.pI_x6G_frame) *::after {
+  body.eta-dsh-page *,
+  body.eta-dsh-page *::before,
+  body.eta-dsh-page *::after {
     animation-duration: 0.001ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.001ms !important;

@@ -362,6 +362,8 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
   if (document.getElementById('eta-mobile-bar')) return true;
   var frame = document.querySelector('.pI_x6G_frame');
   if (!frame) return false;
+  document.documentElement.classList.add('eta-dsh-document');
+  document.body.classList.add('eta-dsh-page');
 
   var bar = document.createElement('header');
   bar.id = 'eta-mobile-bar';
@@ -510,26 +512,23 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     syncActionBadge(subagentsButton, subagentsCount, findHeaderTrigger('.oXE0lW_trigger',
       ['子智能体', 'subagent', 'subagents']));
   }
+  var lastPresetText = '标准模式';
+  function cleanPresetText(value) {
+    return value.replace(/\s*\d+\s*个子智能体.*$/i, '')
+      .replace(/\s*\d+\s*subagents?.*$/i, '').trim();
+  }
   function findPresetText() {
     var direct = document.querySelector('.b06baG_label');
     if (direct) {
-      var directText = direct.textContent.trim();
+      var directText = cleanPresetText(direct.textContent.trim());
       if (directText) return directText;
     }
-    var candidates = document.querySelectorAll('[class*="label"], [class*="preset"], [class*="Preset"]');
-    for (var i = 0; i < candidates.length; i++) {
-      var text = candidates[i].textContent.trim();
-      if (!text || text.length > 48) continue;
-      if (/^(\d+|[\d.]+[KMB]?)$/.test(text)) continue;
-      if (/后台任务|子智能体|background job|subagent|正在运行|running/i.test(text)) continue;
-      if (/(个|tokens|tok\/s|tps)/i.test(text) && !/模式|预设|preset|mode/i.test(text)) continue;
-      if (/模式|预设|preset|mode|Coding|写作|研究/i.test(text)) return text;
-    }
-    var actions = document.querySelector('.wSkVaW_headerActions');
+    var actions = document.querySelector('.wSkVaW_headerActions') ||
+      document.querySelector('[class*="headerActions"]');
     if (actions) {
       var spans = actions.querySelectorAll('span');
       for (var j = 0; j < spans.length; j++) {
-        var actionText = spans[j].textContent.trim();
+        var actionText = cleanPresetText(spans[j].textContent.trim());
         if (!actionText || actionText.length > 40) continue;
         if (/^(\d+|[\d.]+[KMB]?)$/.test(actionText)) continue;
         if (/后台任务|子智能体|background job|subagent|running|正在运行/i.test(actionText)) continue;
@@ -540,53 +539,30 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
   }
   function syncPreset() {
     var text = findPresetText();
-    presetEl.textContent = text;
-    presetEl.hidden = text === '';
-    presetLine.hidden = text === '';
-  }
-  function compactStats() {
-    document.querySelectorAll('[data-composer-stat]').forEach(function (statEl) {
-      var textEl = statEl.querySelector('.iq1doa_label') || statEl.querySelector('[class*="_label"]');
-      if (!textEl) return;
-      var before = textEl.textContent;
-      var after = before;
-      if (statEl.getAttribute('data-composer-stat') === 'activity') {
-        after = after.replace(/(\d+)\s*轮\s*(\d+)\s*步/, '$1r/$2t')
-          .replace(/(\d+)\s*turns?\s*(\d+)\s*steps?/i, '$1r/$2t')
-          .replace(/(\d+(?:\.\d+)?)\s*tok\/s/i, '$1tps');
-      } else {
-        after = after.replace(/([\d.]+[KMB]?)\s*tok\b/i, '$1tokens')
-          .replace(/缓存命中\s*([\d.]+)%/, '$1%')
-          .replace(/Cache hit\s*([\d.]+)%/i, '$1%');
-      }
-      after = after.replace(/\s*·\s*/g, '·');
-      if (after !== before) textEl.textContent = after;
-    });
+    if (text !== '') lastPresetText = text;
+    var shown = text || lastPresetText;
+    presetEl.textContent = shown;
+    presetEl.hidden = shown === '';
+    presetLine.hidden = shown === '';
   }
   function syncTopbar() {
     syncPreset();
     syncHeaderActions();
-    compactStats();
   }
   var topbarSyncScheduled = false;
   function scheduleTopbarSync() {
     if (topbarSyncScheduled) return;
     topbarSyncScheduled = true;
-    window.requestAnimationFrame(function () {
+    window.setTimeout(function () {
       topbarSyncScheduled = false;
       syncTopbar();
-    });
+    }, 450);
   }
   new MutationObserver(scheduleTopbarSync).observe(frame, {
     childList: true,
-    subtree: true,
-    characterData: true
+    subtree: true
   });
-  new MutationObserver(scheduleTopbarSync).observe(document.body, {
-    childList: true,
-    subtree: true,
-    characterData: true
-  });
+  window.setInterval(syncTopbar, 1500);
   syncTopbar();
   jobsButton.addEventListener('click', function () {
     var trigger = findHeaderTrigger('.foD-wG_trigger', ['后台任务', 'background job', 'background jobs']);
@@ -693,6 +669,8 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
               if (document.getElementById('eta-mobile-webview')) return;
               function install() {
                 if (!document.querySelector('.pI_x6G_frame')) return false;
+                document.documentElement.classList.add('eta-dsh-document');
+                document.body.classList.add('eta-dsh-page');
                 var style = document.createElement('style');
                 style.id = 'eta-mobile-webview';
                 style.textContent = $css;

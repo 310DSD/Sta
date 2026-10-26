@@ -39,8 +39,10 @@ internal object AlpineEnvironmentPaths {
     // revision 13：v13 顶栏图标垂直居中、预设图标与两行标题。
     // revision 14：v14 健壮的任务/子智能体 aria 查找与预设备选识别。
     // revision 15：v15 标题左对齐和预设 header 后备识别。
+    // revision 16：v16 回退详细底栏、修复标题溢出、焦点框、思考白块、菜单贴顶和监听开销。
+    // revision 17：v17 用页面类替换昂贵 :has 选择器，降低 WebView 样式重算开销。
     // 已就绪环境需重跑安装脚本以替换注入的样式块。
-    const val DSH_TOOLS_REVISION = 15
+    const val DSH_TOOLS_REVISION = 17
     const val KIMI_TOOLS_REVISION = 1
     const val CODEX_TOOLS_REVISION = 1
     const val CLAUDE_CODE_TOOLS_REVISION = 1
