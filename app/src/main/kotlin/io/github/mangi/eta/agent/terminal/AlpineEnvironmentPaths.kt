@@ -55,7 +55,8 @@ internal object AlpineEnvironmentPaths {
     // 已就绪环境需重跑安装脚本以替换注入的样式块。
     const val DSH_TOOLS_REVISION = 26
     const val KIMI_TOOLS_REVISION = 1
-    const val ZCODE_TOOLS_REVISION = 1
+    // revision 2：官方源码构建的 ZCode CLI 替换早期社区包。
+    const val ZCODE_TOOLS_REVISION = 2
     const val CODEX_TOOLS_REVISION = 1
     const val CLAUDE_CODE_TOOLS_REVISION = 1
     const val CLOUDCLI_TOOLS_REVISION = 1
