@@ -1575,6 +1575,9 @@
   <string name="chat_queue_remove">移除排队消息</string>
   <string name="chat_queue_images_only">[%1$d 张图片]</string>
   <string name="chat_queue_files_only">[%1$d 个文件]</string>
+  <string name="linux_zcode_tools">ZCode Beta</string>
+  <string name="linux_zcode_tools_summary">Install the ZCode CLI beta via npm; requires Node.js. Web UI: zcode --web</string>
+  <string name="linux_zcode_tools_ready">ZCode is ready; run zcode in the terminal</string>
   <string name="linux_codex_tools">Codex</string>
   <string name="linux_codex_tools_summary">Install OpenAI Codex CLI via npm; requires Node.js. Terminal: codex</string>
   <string name="linux_codex_tools_ready">Codex is ready; run codex in the terminal</string>

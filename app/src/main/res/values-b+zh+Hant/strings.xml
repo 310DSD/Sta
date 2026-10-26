@@ -1483,6 +1483,9 @@
   <string name="chat_queue_remove">移除排隊訊息</string>
   <string name="chat_queue_images_only">[%1$d 張圖片]</string>
   <string name="chat_queue_files_only">[%1$d 個檔案]</string>
+  <string name="linux_zcode_tools">ZCode Beta</string>
+  <string name="linux_zcode_tools_summary">透過 npm 安裝 ZCode CLI 測試版；需要先安裝 Node.js 環境。網頁介面：zcode --web</string>
+  <string name="linux_zcode_tools_ready">ZCode 已就緒，在終端機執行 zcode 即可開始</string>
   <string name="linux_codex_tools">Codex</string>
   <string name="linux_codex_tools_summary">透過 npm 安裝 OpenAI Codex CLI，需要 Node.js；終端指令：codex</string>
   <string name="linux_codex_tools_ready">Codex 已就緒；在終端執行 codex</string>
