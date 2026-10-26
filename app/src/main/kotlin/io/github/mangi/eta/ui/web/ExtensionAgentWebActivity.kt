@@ -535,7 +535,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     syncActionBadge(subagentsButton, subagentsCount, findHeaderTrigger('.oXE0lW_trigger',
       ['子智能体', 'subagent', 'subagents']));
   }
-  var lastPresetText = '标准模式';
+  var lastPresetText = '';
   function cleanPresetText(value) {
     return value.replace(/\s*\d+\s*个子智能体.*$/i, '')
       .replace(/\s*\d+\s*subagents?.*$/i, '').trim();
@@ -546,10 +546,15 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
       var directText = cleanPresetText(direct.textContent.trim());
       if (directText) return directText;
     }
-    var actions = document.querySelector('.wSkVaW_headerActions') ||
-      document.querySelector('[class*="headerActions"]');
-    if (actions) {
-      var spans = actions.querySelectorAll('span');
+    var scopes = [
+      document.querySelector('.wSkVaW_headerActions'),
+      document.querySelector('.wSkVaW_header'),
+      document.querySelector('[class*="headerActions"]')
+    ];
+    for (var scopeIndex = 0; scopeIndex < scopes.length; scopeIndex++) {
+      var scope = scopes[scopeIndex];
+      if (!scope) continue;
+      var spans = scope.querySelectorAll('span');
       for (var j = 0; j < spans.length; j++) {
         var actionText = cleanPresetText(spans[j].textContent.trim());
         if (!actionText || actionText.length > 40) continue;
