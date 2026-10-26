@@ -112,6 +112,20 @@ internal object LinuxPackageProfiles {
             "@moonshot-ai/kimi-code@latest || " +
             "npm install -g --prefix /usr/local @moonshot-ai/kimi-code@latest"
 
+    // Official ZCode CLI distribution, built from the Apache-2.0 source tree in
+    // the Eta fork. The artifact is a Node.js web/TUI distribution; the phone
+    // only downloads and extracts it, it never runs the Electron desktop app.
+    private const val ZCODE_INSTALL_SCRIPT =
+        "set -e; " +
+            "curl -fL --retry 3 --connect-timeout 20 " +
+            "https://github.com/310DSD/ZCode/releases/latest/download/eta-zcode-arm64.tar.gz " +
+            "-o /tmp/eta-zcode.tar.gz; " +
+            "mkdir -p /opt/eta; " +
+            "tar -xzf /tmp/eta-zcode.tar.gz -C /opt/eta; " +
+            "chmod +x /opt/eta/zcode/bin/zcode.mjs; " +
+            "ln -sf /opt/eta/zcode/bin/zcode.mjs /usr/local/bin/zcode; " +
+            "rm -f /tmp/eta-zcode.tar.gz"
+
     private const val CODEX_INSTALL_SCRIPT =
         "npm install -g --prefix /usr/local --include=optional --registry=https://registry.npmmirror.com " +
             "@openai/codex@0.164.0 || " +
@@ -200,6 +214,26 @@ internal object LinuxPackageProfiles {
             ),
         ),
     )
+    val ZCODE = LinuxPackageProfile(
+        id = "zcode",
+        markerName = AlpineEnvironmentPaths.ZCODE_TOOLS_MARKER,
+        revision = AlpineEnvironmentPaths.ZCODE_TOOLS_REVISION,
+        dependsOn = NODE,
+        installTimeoutSeconds = 1200L,
+        specs = mapOf(
+            LinuxDistribution.DEBIAN to LinuxPackageSpec(
+                packages = listOf("curl", "ca-certificates"),
+                setupScript = ZCODE_INSTALL_SCRIPT,
+                verifyCommand = "command -v zcode >/dev/null && zcode --version >/dev/null",
+            ),
+            LinuxDistribution.ALPINE to LinuxPackageSpec(
+                packages = listOf("curl", "ca-certificates"),
+                setupScript = ZCODE_INSTALL_SCRIPT,
+                verifyCommand = "command -v zcode >/dev/null && zcode --version >/dev/null",
+            ),
+        ),
+    )
+
     val CODEX = LinuxPackageProfile(
         id = "codex",
         markerName = AlpineEnvironmentPaths.CODEX_TOOLS_MARKER,
@@ -281,7 +315,7 @@ internal object LinuxPackageProfiles {
         ),
     )
 
-    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, DSH, KIMI, CODEX, CLAUDE_CODE, CLOUDCLI, ACP)
+    val ALL = listOf(PYTHON, NODE, SSH, OPENCODE, DSH, KIMI, ZCODE, CODEX, CLAUDE_CODE, CLOUDCLI, ACP)
 }
 
 internal fun linuxPackageProfileReady(rootfs: File, profile: LinuxPackageProfile): Boolean {

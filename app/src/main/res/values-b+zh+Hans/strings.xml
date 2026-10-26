@@ -1553,6 +1553,9 @@
   <string name="chat_queue_remove">移除排队消息</string>
   <string name="chat_queue_images_only">[%1$d 张图片]</string>
   <string name="chat_queue_files_only">[%1$d 个文件]</string>
+  <string name="linux_zcode_tools">ZCode</string>
+  <string name="linux_zcode_tools_summary">安装从 Apache-2.0 官方源码构建的 ZCode CLI；需要先安装 Node.js 环境。网页界面：zcode --web</string>
+  <string name="linux_zcode_tools_ready">ZCode 已就绪，在终端运行 zcode 即可开始</string>
   <string name="linux_codex_tools">Codex</string>
   <string name="linux_codex_tools_summary">通过 npm 安装 OpenAI Codex CLI，需要 Node.js；终端命令：codex</string>
   <string name="linux_codex_tools_ready">Codex 已就绪；在终端运行 codex</string>

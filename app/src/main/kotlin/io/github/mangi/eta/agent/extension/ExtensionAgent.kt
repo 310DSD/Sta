@@ -14,7 +14,7 @@ private const val OPENCODE_SERVICE_COMMAND =
  * The catalogue is deliberately small: each entry must have an installable Linux ARM64 build, a
  * headless web mode that prints a loopback URL, and a TUI fallback for the terminal. Kimi Code was
  * the previous single choice; OpenCode and DeepSeek Harness replace it as the two supported
- * extension agents. ZCode's official Web CLI is source-build/self-host only, so it is not shipped.
+ * extension agents. ZCode is built from its official Apache-2.0 source tree and runs as a local CLI web service.
  */
 internal enum class ExtensionAgent(
     val id: String,
@@ -64,6 +64,18 @@ internal enum class ExtensionAgent(
         acceptedCommands = setOf("kimi web --no-open", "kimi web"),
         webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):\d+/#token=[A-Za-z0-9_-]+"""),
         terminalCommand = "kimi",
+    ),
+    ZCODE(
+        id = "zcode",
+        displayName = "ZCode",
+        packageProfileId = "zcode",
+        // Built from the official ZCode source tree in the Eta fork and
+        // distributed as a Node.js CLI web distribution.
+        webCommand = "zcode --web --workspace /root --port 3031 --no-open",
+        acceptedCommands = setOf("zcode --web --workspace /root --port 3031 --no-open"),
+        legacyCommands = setOf("zcode --web"),
+        webUrlPattern = Regex("""http://(?:127\.0\.0\.1|localhost):3031(?:/[A-Za-z0-9/?:=&._~%+#-]*)?"""),
+        terminalCommand = "zcode",
     ),
     DSH(
         id = "dsh",
