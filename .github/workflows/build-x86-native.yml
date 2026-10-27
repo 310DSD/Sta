@@ -1,0 +1,39 @@
+name: Build Eta x86_64 native libs
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - name: Install Android NDK
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager "ndk;30.0.16248370"
+      - name: Build x86_64 native libs
+        env:
+          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/30.0.16248370
+        run: |
+          set -euo pipefail
+          cp scripts/build-terminal-native.sh scripts/build-terminal-native-x86.sh
+          sed -i 's/eta_abi=arm64-v8a/eta_abi=x86_64/' scripts/build-terminal-native-x86.sh
+          sed -i 's/eta_target=aarch64-linux-android/eta_target=x86_64-linux-android/' scripts/build-terminal-native-x86.sh
+          bash scripts/build-terminal-native-x86.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: eta-x86_64-native
+          path: |
+            app/src/main/jniLibs/x86_64/libeta_pty.so
+            app/src/main/jniLibs/x86_64/libproot_exec.so
+            app/src/main/jniLibs/x86_64/libproot_loader.so
+          if-no-files-found: error
