@@ -25,7 +25,7 @@ jobs:
           "$SDKMANAGER" "ndk;30.0.16248370"
       - name: Build x86_64 native libs
         env:
-          ANDROID_NDK_HOME: ${{ env.ANDROID_SDK_ROOT }}/ndk/30.0.16248370
+          ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/30.0.16248370
         run: |
           set -euo pipefail
           cp scripts/build-terminal-native.sh scripts/build-terminal-native-x86.sh
