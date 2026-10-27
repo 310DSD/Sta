@@ -230,10 +230,7 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                 super.onPageFinished(view, url)
                 if (url != null && isLoopbackHttpUrl(url)) {
                     view.evaluateJavascript(DshMobileWebAssets.inputBridge, null)
-                    if (isZcodeUrl(url)) {
-                        view.evaluateJavascript(ZcodeMobileWebAssets.layoutBridge, null)
-                        view.evaluateJavascript(ZcodeMobileWebAssets.shellScript, null)
-                    } else {
+                    if (!isZcodeUrl(url)) {
                         view.evaluateJavascript(DshMobileWebAssets.layoutBridge, null)
                         view.evaluateJavascript(DshMobileWebAssets.openCodeLayoutBridge, null)
                         view.evaluateJavascript(DshMobileWebAssets.shellScript, null)
