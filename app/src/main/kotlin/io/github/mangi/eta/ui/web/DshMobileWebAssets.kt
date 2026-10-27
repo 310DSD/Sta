@@ -401,7 +401,13 @@ if (install() || attempts > 120) clearInterval(timer);
         (function() {
           if (document.getElementById('eta-mobile-webview')) return;
           function install() {
-            if (!document.querySelector('.pI_x6G_frame')) return false;
+            if (!document.body) return false;
+            // DSH 前端会随版本更换 CSS Module 类名，不能再用旧的 .pI_x6G_frame
+            // 当作唯一挂载条件；否则新版本页面会完全跳过移动 CSS。
+            var isDsh = document.title.indexOf('DeepSeek Harness') >= 0 ||
+              document.querySelector('.pI_x6G_frame') ||
+              document.querySelector('[data-dsh-root]');
+            if (!isDsh) return false;
             document.documentElement.classList.add('eta-dsh-document');
             document.body.classList.add('eta-dsh-page');
             window.__etaSetDarkMode = function(on) {
