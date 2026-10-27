@@ -872,7 +872,7 @@ internal object DshMobileCss {
     max-width: none !important;
     max-height: calc(100dvh - var(--eta-topbar-h) - 16px) !important;
   }
-  /* DSH's model menu uses width:max-content; long model ids make it wider
+  /* DSH model menu uses width:max-content; long model ids make it wider
      than the phone. Use the same full-width sheet language as Eta dialogs. */
   .wq12jW_menu {
     left: 12px !important;
