@@ -896,15 +896,9 @@ internal object DshMobileCss {
     background: var(--eta-hover) !important;
   }
 
-  /* Current DSH CSS-module menus. Older DSH builds used the named classes
-     above; these module selectors and ARIA roles keep the same mobile sheet
-     contract when the frontend is upgraded. */
-  ._portal_4ub78_41,
-  ._list_4ub78_7,
-  ._submenu_4ub78_8,
-  ._menu_6nhg2_547,
-  [role="menu"],
-  [role="listbox"] {
+  /* Only menus explicitly classified by the WebView bridge get the full
+     mobile sheet treatment. Keep unrelated DSH menus at their native width. */
+  .eta-dsh-menu-sheet {
     width: min(360px, calc(100vw - 24px)) !important;
     max-width: calc(100vw - 24px) !important;
     min-width: 0 !important;
@@ -917,27 +911,6 @@ internal object DshMobileCss {
     box-shadow: 0 18px 48px rgb(0 0 0 / 16%), 0 2px 8px rgb(0 0 0 / 6%) !important;
     animation: eta-dsh-menu-in 0.18s var(--eta-ease-out) both !important;
     transform-origin: top center;
-  }
-
-  ._portal_4ub78_41,
-  ._list_4ub78_7,
-  ._menu_6nhg2_547,
-  [role="menu"],
-  [role="listbox"] {
-    left: 12px !important;
-    right: 12px !important;
-  }
-
-  ._submenu_4ub78_8 {
-    left: auto !important;
-    right: 12px !important;
-  }
-
-  [role="dialog"] {
-    width: calc(100vw - 24px) !important;
-    max-width: calc(100vw - 24px) !important;
-    max-height: calc(100dvh - 24px) !important;
-    border-radius: 18px !important;
   }
 
   @keyframes eta-dsh-menu-in {

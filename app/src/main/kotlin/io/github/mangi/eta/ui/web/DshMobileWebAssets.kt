@@ -439,6 +439,38 @@ if (install() || attempts > 120) clearInterval(timer);
             style.id = 'eta-mobile-webview';
             style.textContent = $css;
             (document.head || document.documentElement).appendChild(style);
+
+            // DSH menus are portal-rendered and use generated CSS-module names.
+            // Classify only model/subagent/background menus; unrelated menus must
+            // keep their native width.
+            function classifyDshMenus() {
+              var candidates = document.querySelectorAll(
+                '[role="menu"], [role="listbox"], [data-radix-popper-content-wrapper] > *, [class*="_list_4ub78_7"], [class*="_menu_6nhg2_547"]'
+              );
+              for (var i = 0; i < candidates.length; i++) {
+                var node = candidates[i];
+                var text = (node.innerText || '').slice(0, 2000);
+                if (!text || text.length > 1800) continue;
+                if (/(模型|思考强度|推理|GLM|Claude|GPT|Gemini|DeepSeek|Model|子智能体|Subagent|后台任务|Background|Jobs)/i.test(text)) {
+                  node.classList.add('eta-dsh-menu-sheet');
+                }
+              }
+            }
+            function scheduleDshMenuScan() {
+              if (window.__etaDshMenuFrame) return;
+              window.__etaDshMenuFrame = requestAnimationFrame(function() {
+                window.__etaDshMenuFrame = 0;
+                classifyDshMenus();
+              });
+            }
+            classifyDshMenus();
+            if (!window.__etaDshMenuObserver) {
+              window.__etaDshMenuObserver = new MutationObserver(scheduleDshMenuScan);
+              window.__etaDshMenuObserver.observe(document.body, {
+                childList: true,
+                subtree: true
+              });
+            }
             return true;
           }
           if (install()) return;
