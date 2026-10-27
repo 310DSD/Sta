@@ -230,9 +230,14 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
                 super.onPageFinished(view, url)
                 if (url != null && isLoopbackHttpUrl(url)) {
                     view.evaluateJavascript(DshMobileWebAssets.inputBridge, null)
-                    view.evaluateJavascript(DshMobileWebAssets.layoutBridge, null)
-                    view.evaluateJavascript(DshMobileWebAssets.openCodeLayoutBridge, null)
-                    view.evaluateJavascript(DshMobileWebAssets.shellScript, null)
+                    if (isZcodeUrl(url)) {
+                        view.evaluateJavascript(ZcodeMobileWebAssets.layoutBridge, null)
+                        view.evaluateJavascript(ZcodeMobileWebAssets.shellScript, null)
+                    } else {
+                        view.evaluateJavascript(DshMobileWebAssets.layoutBridge, null)
+                        view.evaluateJavascript(DshMobileWebAssets.openCodeLayoutBridge, null)
+                        view.evaluateJavascript(DshMobileWebAssets.shellScript, null)
+                    }
                     chromeTheme.syncWebView(view)
                     updateTitle(view, url)
                 }
@@ -340,6 +345,9 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
     companion object {
         const val EXTRA_URL = "io.github.mangi.eta.extra.EXTENSION_AGENT_URL"
         private const val REQUEST_FILE_CHOOSER = 7401
+
+        private fun isZcodeUrl(value: String): Boolean =
+            runCatching { Uri.parse(value).port == 3031 }.getOrDefault(false)
 
         private fun isLoopbackHttpUrl(value: String): Boolean {
             val uri = runCatching { Uri.parse(value) }.getOrNull() ?: return false
