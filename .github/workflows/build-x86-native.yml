@@ -16,6 +16,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
+      - uses: android-actions/setup-android@v3
       - name: Install Android NDK
         run: |
           yes | sdkmanager --licenses >/dev/null || true
