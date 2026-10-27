@@ -349,7 +349,7 @@ if (install() || attempts > 120) clearInterval(timer);
         (function() {
           if (window.__etaMobileInputInstalled) return;
           window.__etaMobileInputInstalled = true;
-          var mobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 800;
+          var mobile = window.matchMedia('(pointer: coarse)').matches || window.innerWidth < 1024;
           if (!mobile) return;
           window.addEventListener('keydown', function(event) {
             if (event.key !== 'Enter' || event.isComposing || event.keyCode === 229 ||

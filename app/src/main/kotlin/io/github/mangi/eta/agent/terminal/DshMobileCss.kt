@@ -22,7 +22,7 @@ internal object DshMobileCss {
   --eta-dur: 0.26s;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 1024px) {
   /* ---------- Design tokens (body carries the DSH alias variables) ---------- */
   body.eta-dsh-page {
     --eta-canvas: color-mix(in srgb, var(--dsw-alias-label-primary, #0f1115) 3%, var(--dsw-alias-bg-base, #fff));
@@ -896,9 +896,58 @@ internal object DshMobileCss {
     background: var(--eta-hover) !important;
   }
 
+  /* Current DSH CSS-module menus. Older DSH builds used the named classes
+     above; these module selectors and ARIA roles keep the same mobile sheet
+     contract when the frontend is upgraded. */
+  ._portal_4ub78_41,
+  ._list_4ub78_7,
+  ._submenu_4ub78_8,
+  ._menu_6nhg2_547,
+  [role="menu"],
+  [role="listbox"] {
+    width: min(360px, calc(100vw - 24px)) !important;
+    max-width: calc(100vw - 24px) !important;
+    min-width: 0 !important;
+    max-height: calc(100dvh - 24px) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    border: 0.5px solid var(--eta-hairline) !important;
+    border-radius: 16px !important;
+    background: var(--eta-surface) !important;
+    box-shadow: 0 18px 48px rgb(0 0 0 / 16%), 0 2px 8px rgb(0 0 0 / 6%) !important;
+    animation: eta-dsh-menu-in 0.18s var(--eta-ease-out) both !important;
+    transform-origin: top center;
+  }
+
+  ._portal_4ub78_41,
+  ._list_4ub78_7,
+  ._menu_6nhg2_547,
+  [role="menu"],
+  [role="listbox"] {
+    left: 12px !important;
+    right: 12px !important;
+  }
+
+  ._submenu_4ub78_8 {
+    left: auto !important;
+    right: 12px !important;
+  }
+
+  [role="dialog"] {
+    width: calc(100vw - 24px) !important;
+    max-width: calc(100vw - 24px) !important;
+    max-height: calc(100dvh - 24px) !important;
+    border-radius: 18px !important;
+  }
+
+  @keyframes eta-dsh-menu-in {
+    from { opacity: 0; transform: translate3d(0, -5px, 0) scale(0.985); }
+    to { opacity: 1; transform: translate3d(0, 0, 0) scale(1); }
+  }
+
 }
 
-@media (max-width: 720px) and (prefers-reduced-motion: no-preference) {
+@media (max-width: 1024px) and (prefers-reduced-motion: no-preference) {
   .Sixlwa_userRow {
     animation: eta-rise 0.28s var(--eta-ease-out) both;
   }
@@ -907,7 +956,7 @@ internal object DshMobileCss {
   }
 }
 
-@media (max-width: 720px) and (prefers-reduced-motion: reduce) {
+@media (max-width: 1024px) and (prefers-reduced-motion: reduce) {
   body.eta-dsh-page *,
   body.eta-dsh-page *::before,
   body.eta-dsh-page *::after {
