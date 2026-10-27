@@ -263,12 +263,12 @@ window.setTimeout(function () {
     var bar = document.getElementById('eta-mobile-bar');
     if (!bar) return;
     var bottom = bar.getBoundingClientRect().bottom + 4;
-    var nodes = document.querySelectorAll(
-      '.foD-wG_menu, .oXE0lW_menu, [class*="_menu"], [role="tree"], [role="menu"], ul[aria-label*="后台任务"]'
-    );
+    // Only menus explicitly classified by the DSH bridge are converted to
+    // mobile sheets. Never touch native DSH menus globally: that changes widths
+    // and positions of menus that were already correct.
+    var nodes = document.querySelectorAll('.eta-dsh-menu-sheet');
     for (var i = 0; i < nodes.length; i++) {
-      var node = nodes[i];
-      var menu = node.closest('.foD-wG_menu, .oXE0lW_menu, [class*="_menu"]') || node;
+      var menu = nodes[i];
       if (!menu || menu === bar || bar.contains(menu)) continue;
       menu.style.setProperty('top', bottom + 'px', 'important');
       menu.style.setProperty('left', '12px', 'important');

@@ -53,7 +53,7 @@ internal object AlpineEnvironmentPaths {
     // revision 26：v26 任务/子智能体菜单通用定位与 Eta 风格模型菜单宽度。
     // revision 17：v17 用页面类替换昂贵 :has 选择器，降低 WebView 样式重算开销。
     // 已就绪环境需重跑安装脚本以替换注入的样式块。
-    const val DSH_TOOLS_REVISION = 28
+    const val DSH_TOOLS_REVISION = 29
     const val KIMI_TOOLS_REVISION = 1
     // revision 2：官方源码构建的 ZCode CLI 替换早期社区包。
     const val ZCODE_TOOLS_REVISION = 8
