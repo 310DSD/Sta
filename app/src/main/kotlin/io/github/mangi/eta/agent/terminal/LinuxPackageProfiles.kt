@@ -117,8 +117,12 @@ internal object LinuxPackageProfiles {
     // only downloads and extracts it, it never runs the Electron desktop app.
     private const val ZCODE_INSTALL_SCRIPT =
         "set -e; " +
+            "case \"$(uname -m)\" in " +
+            "x86_64|amd64) eta_zcode_asset=eta-zcode-x64.tar.gz ;; " +
+            "aarch64|arm64) eta_zcode_asset=eta-zcode-arm64.tar.gz ;; " +
+            "*) echo unsupported-arch >&2; exit 2 ;; esac; " +
             "curl -fL --retry 3 --connect-timeout 20 " +
-            "https://github.com/310DSD/ZCode/releases/latest/download/eta-zcode-arm64.tar.gz " +
+            "\"https://github.com/310DSD/ZCode/releases/latest/download/${'$'}{eta_zcode_asset}\" " +
             "-o /tmp/eta-zcode.tar.gz; " +
             "mkdir -p /opt/eta; " +
             "tar -xzf /tmp/eta-zcode.tar.gz -C /opt/eta; " +
