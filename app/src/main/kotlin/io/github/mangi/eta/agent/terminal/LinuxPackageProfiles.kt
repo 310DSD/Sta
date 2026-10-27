@@ -119,7 +119,7 @@ internal object LinuxPackageProfiles {
         "set -e; " +
             // A running daemon keeps the old dist in memory; terminate it before
             // replacing the package so the next launch serves the new web UI.
-            "pkill -f 'zcode.mjs --web' || true; " +
+            "command -v pkill >/dev/null 2>&1 && pkill -f 'zcode.mjs --web' || true; " +
             "curl -fL --retry 3 --connect-timeout 20 " +
             "https://github.com/310DSD/ZCode/releases/latest/download/eta-zcode-arm64.tar.gz " +
             "-o /tmp/eta-zcode.tar.gz; " +
