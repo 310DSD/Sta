@@ -167,6 +167,16 @@ internal class ExtensionAgentWebActivity : ComponentActivity() {
         openTab(target)
     }
 
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        val target = intent.getStringExtra(EXTRA_URL)?.takeIf(::isLoopbackHttpUrl) ?: return
+        // The activity is singleTop in practice: Launch Web sends a new URL to an
+        // already visible browser. Without this handler the intent was delivered
+        // to the existing instance and silently ignored.
+        openTab(target)
+    }
+
     private fun openTab(url: String) {
         val webView = createWebView()
         val title = "页面 ${tabs.size + 1}"
