@@ -56,7 +56,7 @@ internal object AlpineEnvironmentPaths {
     const val DSH_TOOLS_REVISION = 30
     const val KIMI_TOOLS_REVISION = 1
     // revision 2：官方源码构建的 ZCode CLI 替换早期社区包。
-    const val ZCODE_TOOLS_REVISION = 8
+    const val ZCODE_TOOLS_REVISION = 9
     const val CODEX_TOOLS_REVISION = 1
     const val CLAUDE_CODE_TOOLS_REVISION = 1
     const val CLOUDCLI_TOOLS_REVISION = 1
